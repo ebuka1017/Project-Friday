@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Friday — HUD</title>
+  <link rel="stylesheet" href="hud.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div class="hud-root">
+    <div class="hud-panel">
+
+      <!-- Header (Draggable) -->
+      <div class="hud-header">
+        <div class="hud-logo">
+          <span class="logo-icon">◆</span>
+          <span class="logo-text">FRIDAY</span>
+        </div>
+        <div class="hud-header-right">
+          <button class="hud-icon-btn" id="themeBtn" title="Toggle theme">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+          </button>
+          <button class="hud-icon-btn" id="settingsBtn" title="Settings">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+          <button class="hud-icon-btn" id="minimizeBtn" title="Minimize">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Settings Drawer -->
+      <div class="settings-drawer" id="settingsDrawer" style="display: none;">
+        <div class="setting-row">
+          <span class="setting-label">Voice Mode</span>
+          <div class="toggle-group" id="voiceModeToggle">
+            <button class="toggle-opt active" data-mode="ptt">Push-to-Talk</button>
+            <button class="toggle-opt" data-mode="handsfree">Hands-Free</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voice + Status -->
+      <div class="voice-section">
+        <button class="mic-button" id="micButton" title="Hold to speak">
+          <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="23" />
+            <line x1="8" y1="23" x2="16" y2="23" />
+          </svg>
+          <div class="mic-ripple"></div>
+        </button>
+        <div class="voice-info">
+          <div class="voice-status" id="voiceStatus">Idle</div>
+          <div class="voice-hint" id="voiceHint">Press & hold to speak</div>
+        </div>
+      </div>
+
+      <!-- Open App -->
+      <div class="hud-actions">
+        <button class="action-btn" id="openAppBtn" title="Open the main Friday app">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <line x1="9" y1="3" x2="9" y2="21" />
+          </svg>
+          Open App
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="hud-footer">
+        <span class="status-dot" id="engineDot"></span>
+        <span class="footer-text" id="engineStatus">Systems: connecting...</span>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="hud.js"></script>
+</body>
+
+</html>

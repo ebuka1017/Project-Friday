@@ -1,0 +1,23 @@
+# Node
+node_modules/
+dist/
+out/
+
+# Electron
+release/
+
+# C# Sidecar
+sidecar/bin/
+sidecar/obj/
+sidecar/publish/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.vs/
+.vscode/
+*.suo
+*.user

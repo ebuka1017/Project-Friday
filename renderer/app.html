@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws: wss: wss://*.googleapis.com https://*.googleapis.com; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'">
+    <title>Friday</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0c0c12;
+            --bg-surface: #14141e;
+            --bg-card: #1a1a28;
+            --bg-hover: #222230;
+            --border: #2a2a3c;
+            --border-accent: #3d4a7a;
+            --text: #eaeaf0;
+            --text-secondary: #a0a0b4;
+            --text-muted: #6c6c82;
+            --accent: #6c8cff;
+            --accent-glow: rgba(108, 140, 255, 0.2);
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --error: #f87171;
+            --font: 'Inter', -apple-system, sans-serif;
+        }
+
+        :root.theme-light {
+            --bg: #f5efe4;
+            --bg-surface: #ebe4d6;
+            --bg-card: #e0d8c8;
+            --bg-hover: #d6ceb8;
+            --border: #cfc5b2;
+            --border-accent: #8090c0;
+            --text: #1e1c18;
+            --text-secondary: #5c5850;
+            --text-muted: #908878;
+            --accent: #4c62b0;
+            --accent-glow: rgba(76, 98, 176, 0.15);
+            --success: #2a9d5c;
+            --warning: #b87d15;
+            --error: #c83838;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            font-family: var(--font);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        /* ═══ Title Bar ═══ */
+        .title-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 40px;
+            padding: 0 16px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            -webkit-app-region: drag;
+        }
+
+        .title-bar-text {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+        }
+
+        .title-bar-controls {
+            display: flex;
+            gap: 8px;
+            -webkit-app-region: no-drag;
+        }
+
+        .title-bar-controls button {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-close {
+            background: #f87171;
+        }
+
+        .btn-minimize {
+            background: #fbbf24;
+        }
+
+        .btn-maximize {
+            background: #4ade80;
+        }
+
+        img,
+        svg {
+            display: block;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        /* ═══ App Shell ═══ */
+        .app-layout {
+            display: flex;
+            height: calc(100% - 40px);
+        }
+
+        /* ═══ Sidebar ═══ */
+        .sidebar {
+            width: 240px;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+        }
+
+        .sidebar.collapsed .nav-label,
+        .sidebar.collapsed .new-session-label,
+        .sidebar.collapsed .sidebar-section,
+        .sidebar.collapsed .systems-label,
+        .sidebar.collapsed .theme-text {
+            display: none;
+        }
+
+        .sidebar.collapsed .new-session-btn {
+            padding: 10px;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+        }
+
+        .sidebar.collapsed .sidebar-header {
+            padding: 10px;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .sidebar.collapsed .nav-item {
+            padding: 10px;
+            justify-content: center;
+        }
+
+        .sidebar.collapsed .sidebar-footer {
+            flex-direction: column;
+            padding: 8px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .sidebar.collapsed .theme-row {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sidebar.collapsed .systems-row {
+            justify-content: center;
+        }
+
+        .sidebar.collapsed .collapse-btn {
+            order: -1;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .collapse-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.12s;
+            flex-shrink: 0;
+        }
+
+        .collapse-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text);
+        }
+
+        .collapse-btn svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.25s;
+        }
+
+        .sidebar.collapsed .collapse-btn svg {
+            transform: rotate(180deg);
+        }
+
+        .new-session-btn {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-accent);
+            background: rgba(108, 140, 255, 0.06);
+            color: var(--accent);
+            font-family: var(--font);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .new-session-btn:hover {
+            background: rgba(108, 140, 255, 0.12);
+            border-color: var(--accent);
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 4px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.12s;
+            white-space: nowrap;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--text);
+        }
+
+        .nav-item.active {
+            background: rgba(108, 140, 255, 0.1);
+            color: var(--accent);
+        }
+
+        .nav-item svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .systems-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .engine-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--warning);
+            flex-shrink: 0;
+        }
+
+        .engine-dot.connected {
+            background: var(--success);
+        }
+
+        .systems-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* Theme toggle */
+        .theme-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .theme-icons {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .theme-icons svg {
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+            transition: color 0.15s;
+        }
+
+        :root.theme-light .theme-icons .icon-sun {
+            color: var(--warning);
+        }
+
+        :root:not(.theme-light) .theme-icons .icon-moon {
+            color: var(--accent);
+        }
+
+        .theme-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .theme-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .theme-icon-spacer {
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            display: none;
+        }
+
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            border-radius: 10px;
+            background: var(--border);
+            transition: background 0.2s;
+        }
+
+        .toggle-switch input:checked+.toggle-track {
+            background: var(--accent);
+        }
+
+        .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-switch input:checked~.toggle-knob {
+            transform: translateX(16px);
+        }
+
+        /* ═══ Content ═══ */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* Prevent content from pushing beyond viewport */
+            min-height: 0;
+            /* Allow flex children to shrink */
+        }
+
+        /* ═══ Segmented Control (Chat page) ═══ */
+        .segment-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 32px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-surface);
+        }
+
+        .segment-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .segment-group {
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .segment-btn {
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: var(--font);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .segment-btn:hover {
+            color: var(--text-secondary);
+            background: var(--bg-hover);
+        }
+
+        .segment-btn.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        /* ═══ 3-dot Menu ═══ */
+        .menu-wrapper {
+            position: relative;
+        }
+
+        .menu-dots-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.12s;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+
+        .menu-dots-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text);
+        }
+
+        .menu-dots-btn.active {
+            background: var(--bg-hover);
+            color: var(--accent);
+        }
+
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 6px;
+            min-width: 240px;
+            padding: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            animation: menuIn 0.15s ease-out;
+        }
+
+        @keyframes menuIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .menu-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 6px 10px 4px;
+        }
+
+        .menu-toggle-group {
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin: 4px 8px 6px;
+        }
+
+        .menu-toggle-opt {
+            flex: 1;
+            padding: 7px 0;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: var(--font);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.12s;
+            text-align: center;
+        }
+
+        .menu-toggle-opt:hover {
+            background: var(--bg-hover);
+            color: var(--text-secondary);
+        }
+
+        .menu-toggle-opt.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        /* ═══ Active Session View ═══ */
+        .session-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* Contain children so voice-controls stays pinned */
+            min-height: 0;
+        }
+
+        .session-view[hidden] {
+            display: none;
+        }
+
+        /* Thinking / Action Feed — center of screen */
+        .thinking-feed {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            padding-bottom: 16px;
+            /* Room above controls */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+        }
+
+        .thinking-feed::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .thinking-feed::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 2px;
+        }
+
+        .thinking-feed.has-items {
+            justify-content: flex-start;
+            align-items: stretch;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            color: var(--accent);
+            text-shadow: 0 0 30px var(--accent-glow);
+            margin-bottom: 16px;
+        }
+
+        .empty-state h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            max-width: 400px;
+        }
+
+        /* Thought items */
+        .thought-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            animation: thoughtIn 0.3s ease-out;
+        }
+
+        @keyframes thoughtIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .thought-badge {
+            flex-shrink: 0;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-thinking {
+            background: rgba(108, 140, 255, 0.12);
+            color: var(--accent);
+            border: 1px solid rgba(108, 140, 255, 0.2);
+        }
+
+        .badge-action {
+            background: rgba(74, 222, 128, 0.12);
+            color: var(--success);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+        }
+
+        .badge-user {
+            background: rgba(160, 160, 180, 0.12);
+            color: var(--text-secondary);
+            border: 1px solid rgba(160, 160, 180, 0.2);
+        }
+
+        .badge-error {
+            background: rgba(248, 113, 113, 0.12);
+            color: var(--error);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+
+        .badge-result {
+            background: rgba(251, 191, 36, 0.12);
+            color: var(--warning);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .thought-content {
+            flex: 1;
+        }
+
+        .thought-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        .thought-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Status indicator above controls */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .status-indicator.s-listening {
+            color: var(--accent);
+        }
+
+        .status-indicator.s-thinking {
+            color: var(--accent);
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        .status-indicator.s-speaking {
+            color: var(--success);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* ═══ Voice Controls (bottom bar) ═══ */
+        .voice-controls {
+            padding: 24px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .vc-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            outline: none;
+            position: relative;
+        }
+
+        .vc-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-muted);
+            color: var(--text);
+        }
+
+        .vc-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Mic — larger */
+        .vc-mic {
+            width: 64px;
+            height: 64px;
+            border-color: var(--border-accent);
+            color: var(--accent);
+        }
+
+        .vc-mic:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .vc-mic.listening {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 28px var(--accent-glow);
+        }
+
+        .vc-mic svg {
+            width: 26px;
+            height: 26px;
+        }
+
+        .vc-mic .ripple {
+            position: absolute;
+            inset: -5px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .vc-mic.listening .ripple {
+            animation: rippleAnim 2s ease-out infinite;
+        }
+
+        @keyframes rippleAnim {
+            0% {
+                transform: scale(1);
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* Mute */
+        .vc-mute.muted {
+            background: var(--error);
+            border-color: var(--error);
+            color: #fff;
+        }
+
+        /* End */
+        .vc-end {
+            border-color: rgba(248, 113, 113, 0.3);
+            color: var(--error);
+        }
+
+        .vc-end:hover {
+            background: rgba(248, 113, 113, 0.1);
+            border-color: var(--error);
+        }
+
+        /* ═══ Browser View ═══ */
+        .browser-view {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 32px;
+            gap: 24px;
+            overflow-y: auto;
+        }
+
+        .browser-header {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .browser-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .browser-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0;
+            max-width: 600px;
+        }
+
+        .status-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-card-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .status-card-title {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 15px;
+        }
+
+        .status-card-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .allowlist-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 8px;
+        }
+
+        .allowlist-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .allowlist-input-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .allowlist-input-group input {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .allowlist-input-group input:focus {
+            border-color: var(--accent);
+        }
+
+        .allowlist-add-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .allowlist-add-btn:hover {
+            background: #5a7aff;
+        }
+
+        .allowlist-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .allowlist-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .allowlist-item-domain {
+            color: var(--text);
+        }
+
+        .allowlist-remove {
+            color: var(--error);
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .allowlist-remove:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="title-bar">
+        <span class="title-bar-text">FRIDAY</span>
+        <div class="title-bar-controls">
+            <button class="btn-minimize"></button>
+            <button class="btn-maximize"></button>
+            <button class="btn-close" onclick="window.friday.hideApp()"></button>
+        </div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <button class="collapse-btn" id="collapseBtn" title="Collapse sidebar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="11 17 6 12 11 7" />
+                        <polyline points="18 17 13 12 18 7" />
+                    </svg>
+                </button>
+                <button class="new-session-btn" id="newSessionBtn" title="New Session">+ <span
+                        class="new-session-label">New Session</span></button>
+            </div>
+            <div class="sidebar-nav">
+                <div class="nav-item active" data-page="chat" title="Chat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span class="nav-label">Chat</span>
+                </div>
+                <div class="nav-item" data-page="tasks" title="Tasks">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span class="nav-label">Tasks</span>
+                </div>
+                <div class="nav-item" data-page="desktop" title="Desktop">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" />
+                        <line x1="8" y1="21" x2="16" y2="21" />
+                        <line x1="12" y1="17" x2="12" y2="21" />
+                    </svg>
+                    <span class="nav-label">Desktop</span>
+                </div>
+                <div class="nav-item" data-page="browser" title="Browser">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    <span class="nav-label">Browser</span>
+                </div>
+                <div class="nav-item" data-page="logs" title="Logs">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    <span class="nav-label">Logs</span>
+                </div>
+                <div class="nav-item" data-page="settings" title="Settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                    <span class="nav-label">Settings</span>
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="systems-row" title="Systems status">
+                    <span class="engine-dot" id="engineDot"></span>
+                    <span class="systems-label" id="systemsLabel">Systems: connecting</span>
+                </div>
+                <div class="theme-row" title="Toggle theme">
+                    <div class="theme-label">
+                        <div class="theme-icons">
+                            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="5" />
+                                <line x1="12" y1="1" x2="12" y2="3" />
+                                <line x1="12" y1="21" x2="12" y2="23" />
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                                <line x1="1" y1="12" x2="3" y2="12" />
+                                <line x1="21" y1="12" x2="23" y2="12" />
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                            </svg>
+                            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                            </svg>
+                        </div>
+                        <span class="theme-text">Theme</span>
+                    </div>
+                    <label class="toggle-switch" id="themeToggle" title="Switch between dark and light">
+                        <input type="checkbox" id="themeCheck">
+                        <span class="toggle-track"></span>
+                        <span class="toggle-knob"></span>
+                    </label>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Segmented Control + Menu -->
+            <div class="segment-bar" id="segmentBar">
+                <div class="segment-left">
+                    <div class="segment-group">
+                        <button class="segment-btn active" data-tab="active">Active Session</button>
+                        <button class="segment-btn" data-tab="history">History</button>
+                    </div>
+                </div>
+                <div class="menu-wrapper">
+                    <button class="menu-dots-btn" id="menuDotsBtn" title="Options">⋯</button>
+                    <div class="menu-dropdown" id="menuDropdown" style="display:none;">
+                        <div class="menu-label">Voice Mode</div>
+                        <div class="menu-toggle-group" id="appVoiceModeToggle">
+                            <button class="menu-toggle-opt active" data-mode="ptt">Push-to-Talk</button>
+                            <button class="menu-toggle-opt" data-mode="handsfree">Hands-Free</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ Active Session ═══ -->
+            <div class="session-view" id="activeSession">
+                <div class="thinking-feed" id="thinkingFeed">
+                    <div class="empty-state" id="emptyState">
+                        <div class="icon">◆</div>
+                        <h2>Ready to assist</h2>
+                        <p>Press the mic to start a voice session. Friday will show its thinking process and actions
+                            here.</p>
+                    </div>
+                </div>
+                <div class="status-indicator" id="statusIndicator">Idle</div>
+                <div class="voice-controls">
+                    <button class="vc-btn vc-mute" id="muteBtn" title="Mute">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                            <line x1="23" y1="9" x2="17" y2="15" />
+                            <line x1="17" y1="9" x2="23" y2="15" />
+                        </svg>
+                    </button>
+                    <button class="vc-btn vc-mic" id="micBtn" title="Hold to speak">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <line x1="12" y1="19" x2="12" y2="23" />
+                            <line x1="8" y1="23" x2="16" y2="23" />
+                        </svg>
+                        <div class="ripple"></div>
+                    </button>
+                    <button class="vc-btn vc-end" id="endBtn" title="End session">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path
+                                d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 2.59 3.4z" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══ History ═══ -->
+            <div class="history-view" id="historyView" hidden>
+                <div class="history-list" id="historyList">
+                    <div class="history-empty">No past sessions yet. Start a new session to begin.</div>
+                </div>
+            </div>
+
+            <!-- ═══ Browser ═══ -->
+            <div class="browser-view" id="browserView" hidden>
+                <div class="browser-header">
+                    <h2>Browser Integration</h2>
+                    <p>Friday uses your running Chromium browser to browse the web for you. Make sure your browser is
+                        launched with the <code
+                            style="background: var(--bg-hover); padding: 2px 4px; border-radius: 4px;">--remote-debugging-port=9222</code>
+                        flag.</p>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-card-info">
+                        <span class="status-card-title">Browser Connection Status</span>
+                        <span class="status-card-desc" id="browserConnectionDesc">Waiting for extension to
+                            connect...</span>
+                    </div>
+                    <div class="status-badge" id="browserStatusBadge"
+                        style="padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.1); color: var(--text-muted);">
+                        Disconnected
+                    </div>
+                </div>
+
+                <div class="allowlist-section">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <div class="allowlist-header">Site Allowlist</div>
+                        <label class="toggle-switch" title="Allow Friday to visit any website">
+                            <input type="checkbox" id="allowAllDomainsCheck" checked>
+                            <span class="toggle-track"></span>
+                            <span class="toggle-knob"></span>
+                        </label>
+                    </div>
+
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 8px 0;">
+                        <span id="allowlistStatusText">Currently allowing <b>ALL domains</b>. Toggle off to restrict
+                            access.</span>
+                    </p>
+
+                    <div id="allowlistManager" style="opacity: 0.5; pointer-events: none; transition: opacity 0.2s;">
+                        <div class="allowlist-input-group">
+                            <input type="text" id="domainInput" placeholder="e.g. github.com, wikipedia.org">
+                            <button class="allowlist-add-btn" id="addDomainBtn">Add Domain</button>
+                        </div>
+
+                        <div class="allowlist-items" id="allowlistItems">
+                            <!-- Items will be injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                'use strict';
+
+                const segmentBar = document.getElementById('segmentBar');
+                const activeSession = document.getElementById('activeSession');
+                const historyView = document.getElementById('historyView');
+                const thinkingFeed = document.getElementById('thinkingFeed');
+                const emptyState = document.getElementById('emptyState');
+                const statusIndicator = document.getElementById('statusIndicator');
+                const micBtn = document.getElementById('micBtn');
+                const muteBtn = document.getElementById('muteBtn');
+                const endBtn = document.getElementById('endBtn');
+                const newSessionBtn = document.getElementById('newSessionBtn');
+                const systemsDot = document.getElementById('engineDot');
+                const systemsLabel = document.getElementById('systemsLabel');
+                const navItems = document.querySelectorAll('.nav-item');
+
+                // Browser Elements
+                const browserView = document.getElementById('browserView');
+                const browserStatusBadge = document.getElementById('browserStatusBadge');
+                const browserConnectionDesc = document.getElementById('browserConnectionDesc');
+                const domainInput = document.getElementById('domainInput');
+                const addDomainBtn = document.getElementById('addDomainBtn');
+                const allowlistItems = document.getElementById('allowlistItems');
+                const historyList = document.getElementById('historyList');
+
+                let isListening = false;
+                let isMuted = false;
+                let sessionActive = false;
+
+                const menuDotsBtn = document.getElementById('menuDotsBtn');
+                const menuDropdown = document.getElementById('menuDropdown');
+                const appVoiceModeToggle = document.getElementById('appVoiceModeToggle');
+
+                // ── Init ────────────────────────────────────────────────────────
+
+                async function init() {
+                    console.log('[app.html] Initializing...');
+                    const state = await window.friday.getState();
+                    applyState(state);
+
+                    // Initialize VoiceClient (loads API Key etc)
+                    if (window.VoiceClient) {
+                        console.log('[app.html] Initializing VoiceClient...');
+                        await window.VoiceClient.init();
+                    }
+
+                    checkSystems();
+                    setInterval(checkSystems, 5000);
+                }
+
+                window.friday.onStateUpdate(applyState);
+                window.friday.onMessage((msg) => {
+                    addThought(msg.role === 'user' ? 'user' : 'thinking', msg.text);
+                });
+                window.friday.on('voice:control', (action) => {
+                    console.log('[app.html] Received voice:control IPC:', action);
+                    if (action === 'start') {
+                        window.VoiceClient.start();
+                    } else if (action === 'stop') {
+                        window.VoiceClient.stop();
+                    }
+                });
+
+                function applyState(state) {
+                    document.documentElement.classList.toggle('theme-light', state.theme === 'light');
+                    updateStatus(state.status);
+                    if (state.status === 'listening') { isListening = true; micBtn.classList.add('listening'); }
+                    else { isListening = false; micBtn.classList.remove('listening'); }
+                    // Sync voice mode toggle
+                    if (state.voiceMode && appVoiceModeToggle) {
+                        appVoiceModeToggle.querySelectorAll('.menu-toggle-opt').forEach(b => {
+                            b.classList.toggle('active', b.dataset.mode === state.voiceMode);
+                        });
+                    }
+                }
+
+                function updateStatus(status) {
+                    statusIndicator.className = 'status-indicator';
+                    switch (status) {
+                        case 'idle': statusIndicator.textContent = 'Idle'; break;
+                        case 'listening': statusIndicator.textContent = 'Listening'; statusIndicator.classList.add('s-listening'); break;
+                        case 'thinking': statusIndicator.textContent = 'Thinking...'; statusIndicator.classList.add('s-thinking'); break;
+                        case 'speaking': statusIndicator.textContent = 'Speaking'; statusIndicator.classList.add('s-speaking'); break;
+                    }
+                }
+
+                async function checkSystems() {
+                    try {
+                        const s = await window.friday.status();
+                        systemsDot.classList.toggle('connected', s.connected);
+                        systemsLabel.textContent = s.connected ? 'Systems: ready' : 'Systems: offline';
+                    } catch {
+                        systemsDot.classList.remove('connected');
+                        systemsLabel.textContent = 'Systems: error';
+                    }
+                }
+
+                // ── Segment Tabs ────────────────────────────────────────────────
+
+                segmentBar.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.segment-btn');
+                    if (!btn) return;
+                    segmentBar.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    const tab = btn.dataset.tab;
+                    activeSession.hidden = tab !== 'active';
+                    historyView.hidden = tab !== 'history';
+                });
+
+                // ── 3-Dot Menu ──────────────────────────────────────────────────
+
+                menuDotsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const open = menuDropdown.style.display !== 'none';
+                    menuDropdown.style.display = open ? 'none' : 'block';
+                    menuDotsBtn.classList.toggle('active', !open);
+                });
+
+                // Close menu on outside click
+                document.addEventListener('click', () => {
+                    menuDropdown.style.display = 'none';
+                    menuDotsBtn.classList.remove('active');
+                });
+
+                menuDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+                // Voice mode toggle in menu
+                appVoiceModeToggle.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.menu-toggle-opt');
+                    if (!btn) return;
+                    const mode = btn.dataset.mode;
+                    window.friday.setState({ voiceMode: mode });
+                    if (mode === 'ptt' && isListening) {
+                        window.friday.setState({ status: 'idle' });
+                    }
+                });
+
+                // ── Thinking / Action Feed ──────────────────────────────────────
+
+                function addThought(type, text) {
+                    if (emptyState && emptyState.parentNode) emptyState.remove();
+                    thinkingFeed.classList.add('has-items');
+
+                    sessionActive = true;
+                    const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                    const el = document.createElement('div');
+                    el.className = 'thought-item';
+                    el.innerHTML = `
+        <span class="thought-badge badge-${type}">${type}</span>
+        <div class="thought-content">
+          <div class="thought-text">${escapeHtml(text)}</div>
+          <div class="thought-time">${time}</div>
+        </div>
+      `;
+                    thinkingFeed.appendChild(el);
+                    thinkingFeed.scrollTop = thinkingFeed.scrollHeight;
+                }
+
+                // ── Mic Button (synced with HUD) ────────────────────────────────
+
+                micBtn.addEventListener('mousedown', async () => {
+                    const state = await window.friday.getState();
+                    if (state.voiceMode !== 'ptt') return;
+                    window.friday.setState({ status: 'listening' });
+                });
+
+                micBtn.addEventListener('mouseup', async () => {
+                    const state = await window.friday.getState();
+                    if (state.voiceMode !== 'ptt') return;
+                    window.friday.setState({ status: 'idle' });
+                });
+
+                micBtn.addEventListener('click', async () => {
+                    const state = await window.friday.getState();
+
+                    if (state.voiceMode === 'handsfree') {
+                        if (state.status === 'listening') {
+                            window.VoiceClient.stop();
+                        } else {
+                            window.VoiceClient.start();
+                        }
+                    }
+                });
+
+                // ── Mic PTT ─────────────────────────────────────────────────────
+
+                micBtn.addEventListener('mousedown', async () => {
+                    const state = await window.friday.getState();
+                    if (state.voiceMode === 'ptt') {
+                        window.VoiceClient.start();
+                    }
+                });
+
+                micBtn.addEventListener('mouseup', async () => {
+                    const state = await window.friday.getState();
+                    if (state.voiceMode === 'ptt') {
+                        window.VoiceClient.stop();
+                    }
+                });
+
+                micBtn.addEventListener('mouseleave', async () => {
+                    const state = await window.friday.getState();
+                    if (state.voiceMode === 'ptt' && state.status !== 'idle') {
+                        window.VoiceClient.stop();
+                    }
+                });
+
+                // ── Mute ────────────────────────────────────────────────────────
+
+                muteBtn.addEventListener('click', () => {
+                    isMuted = !isMuted;
+                    muteBtn.classList.toggle('muted', isMuted);
+                    muteBtn.title = isMuted ? 'Unmute' : 'Mute';
+                });
+
+                // ── End Session ─────────────────────────────────────────────────
+
+                endBtn.addEventListener('click', () => {
+                    if (!sessionActive) return;
+                    window.friday.setState({ status: 'idle' });
+                    isListening = false;
+                    micBtn.classList.remove('listening');
+
+                    // Save session to history
+                    const title = 'Session at ' + new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const items = thinkingFeed.querySelectorAll('.thought-item');
+                    saveToHistory(title, items.length + ' items');
+
+                    // Clear feed
+                    thinkingFeed.innerHTML = '';
+                    thinkingFeed.classList.remove('has-items');
+                    thinkingFeed.innerHTML = `
+        <div class="empty-state" id="emptyState">
+          <div class="icon">◆</div>
+          <h2>Ready to assist</h2>
+          <p>Press the mic to start a voice session. Friday will show its thinking process and actions here.</p>
+        </div>
+      `;
+
+                    sessionActive = false;
+                });
+
+                // ── New Session ─────────────────────────────────────────────────
+
+                newSessionBtn.addEventListener('click', () => {
+                    // If there is an active session, end it first
+                    if (sessionActive) {
+                        const title = 'Session at ' + new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        const items = thinkingFeed.querySelectorAll('.thought-item');
+                        saveToHistory(title, items.length + ' items');
+                    }
+
+                    // Clear feed
+                    thinkingFeed.innerHTML = '';
+                    thinkingFeed.classList.remove('has-items');
+                    thinkingFeed.innerHTML = `
+        <div class="empty-state" id="emptyState">
+          <div class="icon">◆</div>
+          <h2>Ready to assist</h2>
+          <p>Press the mic to start a voice session. Friday will show its thinking process and actions here.</p>
+        </div>
+      `;
+                    sessionActive = false;
+                    window.friday.setState({ status: 'idle' });
+
+                    // Switch to active tab
+                    segmentBar.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+                    segmentBar.querySelector('[data-tab="active"]').classList.add('active');
+                    switchPage('chat');
+                });
+
+                // ── History ─────────────────────────────────────────────────────
+
+                function saveToHistory(title, meta) {
+                    const emptyMsg = historyList.querySelector('.history-empty');
+                    if (emptyMsg) emptyMsg.remove();
+
+                    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const el = document.createElement('div');
+                    el.className = 'history-item';
+                    el.innerHTML = `
+        <div>
+          <div class="history-title">${escapeHtml(title)}</div>
+          <div class="history-meta">${escapeHtml(meta)}</div>
+        </div>
+        <div class="history-date">${date}</div>
+      `;
+                    historyList.prepend(el);
+                }
+
+                function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+                // ── Sidebar Navigation ──────────────────────────────────────────
+
+                function switchPage(page) {
+                    navItems.forEach(item => item.classList.remove('active'));
+                    const activeNav = document.querySelector(`.nav-item[data-page="${page}"]`);
+                    if (activeNav) activeNav.classList.add('active');
+
+                    // Hide all views first
+                    activeSession.hidden = true;
+                    historyView.hidden = true;
+                    browserView.hidden = true;
+                    segmentBar.style.display = 'none';
+
+                    if (page === 'chat') {
+                        // Chat has sub-tabs (Active Session, History)
+                        segmentBar.style.display = 'flex';
+                        const actTab = segmentBar.querySelector('.segment-btn.active').dataset.tab;
+                        if (actTab === 'active') activeSession.hidden = false;
+                        if (actTab === 'history') historyView.hidden = false;
+                    } else if (page === 'browser') {
+                        browserView.hidden = false;
+                    } else {
+                        // Placeholder for other pages
+                    }
+                }
+
+                navItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        const page = item.dataset.page;
+                        switchPage(page);
+                    });
+                });
+
+                // ── Browser Preferences & Allowlist ─────────────────────────────
+
+                const allowAllDomainsCheck = document.getElementById('allowAllDomainsCheck');
+                const allowlistStatusText = document.getElementById('allowlistStatusText');
+                const allowlistManager = document.getElementById('allowlistManager');
+
+                function renderAllowlist() {
+                    window.friday.getState().then(state => {
+                        // Update master toggle UI
+                        allowAllDomainsCheck.checked = state.allowAllDomains;
+                        if (state.allowAllDomains) {
+                            allowlistStatusText.innerHTML = 'Currently allowing <b>ALL domains</b>. Toggle off to restrict access.';
+                            allowlistManager.style.pointerEvents = 'none';
+                            allowlistManager.style.opacity = '0.4';
+                        } else {
+                            allowlistStatusText.innerHTML = 'Restricting access to the domains listed below.';
+                            allowlistManager.style.pointerEvents = 'auto';
+                            allowlistManager.style.opacity = '1';
+                        }
+
+                        // Render domains
+                        allowlistItems.innerHTML = '';
+                        state.allowedDomains.forEach(domain => {
+                            const el = document.createElement('div');
+                            el.className = 'allowlist-item';
+                            el.innerHTML = `
+                            <span class="allowlist-item-domain">${escapeHtml(domain)}</span>
+                            <button class="allowlist-remove" data-domain="${escapeHtml(domain)}" title="Remove domain">&times;</button>
+                        `;
+                            allowlistItems.appendChild(el);
+                        });
+                    });
+                }
+
+                // Listen for state changes from other windows
+                window.friday.onStateUpdate((state) => {
+                    if (allowAllDomainsCheck.checked !== state.allowAllDomains) renderAllowlist();
+                });
+
+                allowAllDomainsCheck.addEventListener('change', async () => {
+                    const checked = allowAllDomainsCheck.checked;
+                    window.friday.setState({ allowAllDomains: checked });
+                    renderAllowlist();
+                });
+
+                renderAllowlist();
+
+                addDomainBtn.addEventListener('click', async () => {
+                    const domain = domainInput.value.trim().toLowerCase();
+                    if (!domain) return;
+                    const state = await window.friday.getState();
+                    let domains = [...state.allowedDomains];
+                    if (!domains.includes(domain)) {
+                        domains.push(domain);
+                        window.friday.setState({ allowedDomains: domains });
+                        renderAllowlist();
+                        domainInput.value = '';
+                    }
+                });
+
+                allowlistItems.addEventListener('click', async (e) => {
+                    if (e.target.classList.contains('allowlist-remove')) {
+                        const domain = e.target.dataset.domain;
+                        const state = await window.friday.getState();
+                        let domains = state.allowedDomains.filter(d => d !== domain);
+                        window.friday.setState({ allowedDomains: domains });
+                        renderAllowlist();
+                    }
+                });
+
+                // Poll connection status every 2 seconds
+                setInterval(async () => {
+                    if (browserView.hidden) return; // Only poll when viewing the tab
+
+                    try {
+                        const isConnected = await window.friday.browser.connect();
+                        if (isConnected) {
+                            browserConnectionDesc.textContent = 'Extension is connected and ready.';
+                            browserStatusBadge.textContent = 'Active';
+                            browserStatusBadge.style.background = 'rgba(74, 222, 128, 0.1)';
+                            browserStatusBadge.style.color = 'var(--success)';
+                        } else {
+                            browserConnectionDesc.textContent = 'Waiting for extension to connect to port 8765...';
+                            browserStatusBadge.textContent = 'Disconnected';
+                            browserStatusBadge.style.background = 'rgba(255, 255, 255, 0.1)';
+                            browserStatusBadge.style.color = 'var(--text-muted)';
+                        }
+                    } catch (err) {
+                        console.error("Poll error", err);
+                    }
+                }, 2000);
+
+                // ── Collapse Sidebar ────────────────────────────────────────────
+
+                const sidebar = document.querySelector('.sidebar');
+                const collapseBtn = document.getElementById('collapseBtn');
+
+                collapseBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('collapsed');
+                });
+
+                // ── Theme Toggle ────────────────────────────────────────────────
+
+                const themeCheck = document.getElementById('themeCheck');
+
+                themeCheck.addEventListener('change', () => {
+                    const theme = themeCheck.checked ? 'light' : 'dark';
+                    window.friday.setState({ theme });
+                });
+
+                // Keep checkbox in sync with state
+                const origApplyState = applyState;
+                applyState = function (state) {
+                    origApplyState(state);
+                    themeCheck.checked = state.theme === 'light';
+                };
+
+                init();
+            })();
+        </script>
+        <script src="voice-client.js"></script>
+</body>
+
+</html>

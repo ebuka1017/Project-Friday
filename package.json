@@ -1,0 +1,22 @@
+{
+  "name": "friday",
+  "version": "0.1.0",
+  "description": "Friday — Autonomous Voice-Native AI Knowledge Worker for Windows",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "build:sidecar": "dotnet publish sidecar/Sidecar.csproj -c Release -r win-x64",
+    "build": "npm run build:sidecar && electron-builder",
+    "test:pipe": "node electron/test-pipe.js"
+  },
+  "author": "Project Friday",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "ws": "^8.19.0"
+  }
+}

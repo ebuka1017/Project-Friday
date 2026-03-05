@@ -1,0 +1,424 @@
+/* ═══════════════════════════════════════════════════════════════════════
+ * renderer/hud.css — Friday HUD
+ * Solid backgrounds, no blur. Accessible fonts and contrast.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Dark Theme ───────────────────────────────────────────────────────── */
+
+:root {
+  --bg: #13131b;
+  --bg-surface: #1c1c28;
+  --bg-hover: #252534;
+  --border: #2a2a3c;
+  --border-accent: #3d4a7a;
+
+  --text: #eaeaf0;
+  --text-secondary: #a0a0b4;
+  --text-muted: #6c6c82;
+
+  --accent: #6c8cff;
+  --accent-glow: rgba(108, 140, 255, 0.25);
+  --accent-bright: #8facff;
+
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --error: #f87171;
+
+  --radius: 12px;
+  --radius-sm: 6px;
+
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --shadow:
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Cream Light Theme ────────────────────────────────────────────────── */
+
+:root.theme-light {
+  --bg: #f5efe4;
+  --bg-surface: #ebe4d6;
+  --bg-hover: #dfd7c8;
+  --border: #cfc5b2;
+  --border-accent: #8090c0;
+
+  --text: #1e1c18;
+  --text-secondary: #5c5850;
+  --text-muted: #908878;
+
+  --accent: #4c62b0;
+  --accent-glow: rgba(76, 98, 176, 0.15);
+  --accent-bright: #3a50a0;
+
+  --success: #2a9d5c;
+  --warning: #b87d15;
+  --error: #c83838;
+
+  --shadow:
+    0 4px 24px rgba(120, 100, 70, 0.18),
+    0 1px 4px rgba(120, 100, 70, 0.12);
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--font);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Root ──────────────────────────────────────────────────────────────── */
+
+.hud-root {
+  width: 100%;
+  height: 100%;
+  padding: 4px;
+}
+
+/* ── Panel — Solid, no blur ───────────────────────────────────────────── */
+
+.hud-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  animation: panelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Header (Draggable) ───────────────────────────────────────────────── */
+
+.hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+  cursor: grab;
+}
+
+.hud-header button,
+.hud-header .hud-header-right {
+  -webkit-app-region: no-drag;
+}
+
+.hud-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-icon {
+  font-size: 16px;
+  color: var(--accent);
+  text-shadow: 0 0 8px var(--accent-glow);
+}
+
+.logo-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: var(--text);
+}
+
+.hud-header-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ── Icon Buttons ─────────────────────────────────────────────────────── */
+
+.hud-icon-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  transition: all 0.15s ease;
+}
+
+.hud-icon-btn:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.hud-icon-btn.active {
+  color: var(--accent);
+  background: var(--bg-hover);
+}
+
+/* ── Settings Drawer ──────────────────────────────────────────────────── */
+
+.settings-drawer {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setting-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.toggle-group {
+  display: flex;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.toggle-opt {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.toggle-opt:hover {
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+
+.toggle-opt.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Voice Section ────────────────────────────────────────────────────── */
+
+.voice-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 14px;
+}
+
+.mic-button {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid var(--border-accent);
+  background: var(--bg-surface);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  flex-shrink: 0;
+}
+
+.mic-button:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  transform: scale(1.05);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.mic-button:active {
+  transform: scale(0.94);
+}
+
+.mic-button.listening {
+  background: var(--accent);
+  border-color: var(--accent-bright);
+  color: #fff;
+  box-shadow: 0 0 24px var(--accent-glow);
+  animation: micPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes micPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+
+  50% {
+    box-shadow: 0 0 32px var(--accent-glow);
+  }
+}
+
+.mic-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.mic-ripple {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mic-button.listening .mic-ripple {
+  animation: ripple 2s ease-out infinite;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.voice-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.voice-status {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.voice-status.status-listening {
+  color: var(--accent);
+}
+
+.voice-status.status-thinking {
+  color: var(--accent);
+  animation: thinkPulse 1.4s ease-in-out infinite;
+}
+
+.voice-status.status-speaking {
+  color: var(--success);
+}
+
+@keyframes thinkPulse {
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.voice-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Action Button ────────────────────────────────────────────────────── */
+
+.hud-actions {
+  padding: 0 14px 14px;
+}
+
+.action-btn {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.action-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.action-btn:active {
+  transform: scale(0.98);
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+
+.hud-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+}
+
+.hud-footer .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warning);
+  flex-shrink: 0;
+}
+
+.hud-footer .status-dot.connected {
+  background: var(--success);
+}
+
+.footer-text {
+  font-size: 12px;
+  color: var(--text-muted);
+}

@@ -1,0 +1,18 @@
+{
+    "manifest_version": 3,
+    "name": "Friday Browser Bridge",
+    "version": "1.0",
+    "description": "Companion extension for Project Friday. Grants the agent control over the browser.",
+    "permissions": [
+        "debugger",
+        "tabs",
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    }
+}
