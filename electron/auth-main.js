@@ -31,13 +31,20 @@ function setMainWindow(win) {
 
 async function exchangeCodeForToken(code) {
     return new Promise((resolve, reject) => {
-        const data = new URLSearchParams({
+        const clientId = process.env.CLERK_CLIENT_ID || process.env.CLERK_PUBLISHABLE_KEY || "";
+        const params = {
             grant_type: "authorization_code",
-            client_id: process.env.CLERK_PUBLISHABLE_KEY || "",
+            client_id: clientId,
             code: code,
             redirect_uri: `${PROTOCOL}://auth/callback`,
             code_verifier: _pendingVerifier,
-        }).toString();
+        };
+
+        if (process.env.CLERK_CLIENT_SECRET) {
+            params.client_secret = process.env.CLERK_CLIENT_SECRET;
+        }
+
+        const data = new URLSearchParams(params).toString();
 
         const options = {
             hostname: DOMAIN,
@@ -163,7 +170,8 @@ ipcMain.handle("auth:signIn", async () => {
     _pendingVerifier = verifier;
 
     const redirectUri = encodeURIComponent(`${PROTOCOL}://auth/callback`);
-    const clientId = process.env.CLERK_PUBLISHABLE_KEY || "";
+    // OIDC requires a Client ID from Clerk Dashboard -> Settings -> OAuth Applications
+    const clientId = process.env.CLERK_CLIENT_ID || process.env.CLERK_PUBLISHABLE_KEY || "";
 
     const authorizeUrl =
         `https://${DOMAIN}/oauth/authorize` +
@@ -175,6 +183,7 @@ ipcMain.handle("auth:signIn", async () => {
         `&code_challenge_method=S256`;
 
     console.log('[auth-main] Opening authorize URL:', authorizeUrl);
+    console.log('[auth-main] Using Client ID:', clientId);
     await shell.openExternal(authorizeUrl);
     return { started: true };
 });
