@@ -9,6 +9,16 @@
     "build": "npm run build:sidecar && electron-builder",
     "test:pipe": "node electron/test-pipe.js"
   },
+  "build": {
+    "protocols": [
+      {
+        "name": "Project Friday",
+        "schemes": [
+          "friday"
+        ]
+      }
+    ]
+  },
   "author": "Project Friday",
   "license": "MIT",
   "devDependencies": {
@@ -16,6 +26,8 @@
     "electron-builder": "^25.0.0"
   },
   "dependencies": {
+    "@clerk/clerk-js": "^6.0.0",
+    "@dotlottie/player-component": "^2.7.12",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "dotenv": "^17.3.1",

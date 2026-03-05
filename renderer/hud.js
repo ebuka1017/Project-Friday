@@ -134,7 +134,7 @@
 
     // ── Minimize ────────────────────────────────────────────────────────
 
-    minimizeBtn.addEventListener('click', () => window.friday.minimize());
+    minimizeBtn.addEventListener('click', () => window.friday.minimizeHUD());
 
     // ── Open App ────────────────────────────────────────────────────────
 

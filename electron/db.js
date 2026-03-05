@@ -52,6 +52,12 @@ class DatabaseManager {
                 value TEXT,
                 description TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                action TEXT,
+                details TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
@@ -196,6 +202,34 @@ class DatabaseManager {
             this.db.all(
                 `SELECT * FROM memory ORDER BY created_at ASC`,
                 [],
+                (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                }
+            );
+        });
+    }
+
+    // ── Audit Logs ──────────────────────────────────────────────────────┐
+
+    logAudit(action, details = "") {
+        return new Promise((resolve, reject) => {
+            this.db.run(
+                `INSERT INTO audit_logs (action, details) VALUES (?, ?)`,
+                [action, typeof details === 'object' ? JSON.stringify(details) : String(details)],
+                function (err) {
+                    if (err) reject(err);
+                    else resolve();
+                }
+            );
+        });
+    }
+
+    getAuditLogs(limit = 100) {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                `SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?`,
+                [limit],
                 (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows);

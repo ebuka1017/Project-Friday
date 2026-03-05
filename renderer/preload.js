@@ -8,6 +8,15 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('friday', {
     // Get securely injected environment variables
     getGeminiKey: () => ipcRenderer.invoke('env:getGeminiKey'),
+    getClerkKey: () => ipcRenderer.invoke('env:getClerkKey'),
+    setAuthStatus: (status) => ipcRenderer.invoke('auth:setStatus', status),
+
+    // OS-Level Auth integrations
+    authSignIn: () => ipcRenderer.invoke('auth:signIn'),
+    authSignOut: () => ipcRenderer.invoke('auth:signOut'),
+    onAuthSuccess: (callback) => ipcRenderer.on('auth:success', (_, data) => callback(data)),
+    onAuthError: (callback) => ipcRenderer.on('auth:error', (_, data) => callback(data)),
+    onAuthSignedOut: (callback) => ipcRenderer.on('auth:signed-out', () => callback()),
 
     // Voice client controls for HUD
     startVoice: () => ipcRenderer.invoke('voice:start'),
@@ -45,7 +54,11 @@ contextBridge.exposeInMainWorld('friday', {
     delegateTask: (taskDescription) => ipcRenderer.invoke('app:delegateTask', taskDescription),
 
     // Minimize (hide) the HUD
-    minimize: () => ipcRenderer.invoke('hud:minimize'),
+    minimizeHUD: () => ipcRenderer.invoke('hud:minimize'),
+
+    // Window Management for Main App
+    minimize: () => ipcRenderer.invoke('app:minimize'),
+    close: () => ipcRenderer.invoke('app:quit'),
 
     // ── Browser Control (CDP) ───────────────────────────────────────
     browser: {
@@ -108,5 +121,10 @@ contextBridge.exposeInMainWorld('friday', {
         setMemory: (key, value, desc) => ipcRenderer.invoke('db:setMemory', key, value, desc),
         getMemory: (key) => ipcRenderer.invoke('db:getMemory', key),
         getAllMemories: () => ipcRenderer.invoke('db:getAllMemories')
-    }
+    },
+
+    // Extension Installer
+    installExtension: () => ipcRenderer.invoke('install-extension'),
+    detectBrowsers: () => ipcRenderer.invoke('detect-browsers'),
+    onExtensionStatus: (callback) => ipcRenderer.on('extension-install-status', (_, s) => callback(s)),
 });

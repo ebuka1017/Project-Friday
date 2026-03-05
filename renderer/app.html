@@ -5,11 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws: wss: wss://*.googleapis.com https://*.googleapis.com; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'">
+        content="default-src 'self' https://clerk.com https://*.clerk.accounts.dev; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.com https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws: wss: wss://*.googleapis.com https://*.googleapis.com https://*.clerk.accounts.dev; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'">
     <title>Friday</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="../node_modules/@dotlottie/player-component/dist/dotlottie-player.mjs"></script>
     <style>
         :root {
             --bg: #0c0c12;
@@ -75,6 +76,20 @@
             -webkit-app-region: drag;
         }
 
+        .title-bar-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            -webkit-app-region: drag;
+        }
+
+        .title-bar-logo {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
+            border-radius: 3px;
+        }
+
         .title-bar-text {
             font-size: 13px;
             font-weight: 600;
@@ -130,9 +145,47 @@
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             overflow: hidden;
             flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ═══ Clerk Auth Overlay ═══ */
+        #authOverlay {
+            position: fixed;
+            top: 40px;
+            /* Below title bar */
+            left: 0;
+            width: 100%;
+            height: calc(100% - 40px);
+            background: rgba(12, 12, 18, 0.95);
+            /* Deep translucent */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+
+        :root.theme-light #authOverlay {
+            background: rgba(245, 239, 228, 0.95);
+        }
+
+        #authOverlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #clerkMount {
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            background: var(--bg-card);
         }
 
         .sidebar.collapsed {
@@ -1499,12 +1552,191 @@
             overflow-x: auto;
             margin-top: 4px;
         }
+
+        /* ── Onboarding Overlay ── */
+        .onboarding-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: opacity 0.5s ease;
+            -webkit-app-region: no-drag;
+        }
+
+        .onboarding-overlay.hidden {
+            display: none !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .ob-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            transform: translateY(10px);
+        }
+
+        .ob-step.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .ob-step.hidden {
+            display: none;
+        }
+
+        /* Generated Feature Images */
+        .ob-feature-img {
+            width: 320px;
+            border-radius: 16px;
+            margin-bottom: 32px;
+        }
+
+        .ob-logo {
+            width: 80px;
+            margin-bottom: 32px;
+        }
+
+        #splashLottie {
+            width: 400px;
+            height: 400px;
+        }
+
+        .ob-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text);
+            letter-spacing: -0.5px;
+        }
+
+        .ob-desc {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            line-height: 1.6;
+            max-width: 450px;
+        }
+
+        .ob-actions {
+            display: flex;
+            gap: 16px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .ob-btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px var(--accent-glow);
+            min-width: 120px;
+        }
+
+        /* Custom Sign-In color requested by user */
+        .ob-btn-primary.signin {
+            background: #3773d2;
+            box-shadow: 0 4px 12px rgba(55, 115, 210, 0.4);
+        }
+
+        .ob-btn-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+
+        .ob-btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .ob-btn-secondary {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+
+        .ob-btn-secondary:hover {
+            background: var(--bg-hover);
+            color: var(--text);
+        }
+
+        /* Draggable top bar to handle window controls inside the absolute overlay */
+        .ob-topbar {
+            width: 100%;
+            height: 40px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            -webkit-app-region: drag;
+            z-index: 10000;
+        }
+
+        .ob-window-controls {
+            display: flex;
+            height: 100%;
+            -webkit-app-region: no-drag;
+        }
+
+        .ob-win-btn {
+            width: 46px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ob-win-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+        }
+
+        .ob-win-btn.close:hover {
+            background: #e81123;
+            color: #fff;
+        }
     </style>
 </head>
 
 <body>
     <div class="title-bar">
-        <span class="title-bar-text">FRIDAY</span>
+        <div class="title-bar-brand">
+            <img src="assets/logo.png" alt="Friday Logo" class="title-bar-logo">
+            <span class="title-bar-text">FRIDAY</span>
+        </div>
         <div class="title-bar-controls">
             <button class="btn-minimize"></button>
             <button class="btn-maximize"></button>
@@ -1773,7 +2005,7 @@
                                 <span class="setting-desc">Read and write files in your workspace.</span>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" checked disabled>
+                                <input type="checkbox" id="fsPermCheck">
                                 <span class="toggle-track"></span>
                                 <span class="toggle-knob"></span>
                             </label>
@@ -1785,7 +2017,7 @@
                                     permission.</span>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" checked disabled>
+                                <input type="checkbox" id="termPermCheck">
                                 <span class="toggle-track"></span>
                                 <span class="toggle-knob"></span>
                             </label>
@@ -1845,6 +2077,21 @@
                 </div>
 
                 <div class="settings-section">
+                    <h3 class="settings-section-title">Connectivity</h3>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Browser Extension</span>
+                                <span class="setting-desc">Install Friday into your browser to control pages and fill
+                                    fields.</span>
+                                <div id="extInstallStatus" style="font-size: 12px; margin-top: 8px;"></div>
+                            </div>
+                            <button class="settings-action-btn" id="installExtensionBtn">Install Extension</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <h3 class="settings-section-title">Memory & Data</h3>
                     <div class="settings-group">
                         <div class="setting-item">
@@ -1879,6 +2126,113 @@
                 </div>
             </dialog>
         </div>
+
+        <!-- ═══ Onboarding Overlay ═══ -->
+        <div id="onboardingOverlay" class="onboarding-overlay hidden">
+            <!-- Onboarding Window Controls (For the absolute overlay) -->
+            <div class="ob-topbar">
+                <div class="ob-window-controls">
+                    <button class="ob-win-btn" onclick="window.friday.minimize()">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                            <rect x="1" y="5" width="10" height="1"></rect>
+                        </svg>
+                    </button>
+                    <button class="ob-win-btn close" onclick="window.friday.close()">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                            <path
+                                d="M11.53.47a.75.75 0 0 0-1.06 0L6 4.94 1.53.47C1.24.18.76.18.47.47s-.29.76 0 1.06L4.94 6 .47 10.47c-.29.29-.29.76 0 1.06s.76.29 1.06 0L6 7.06l4.47 4.47c.29.29.76.29 1.06 0s.29-.76 0-1.06L7.06 6l4.47-4.47c.29-.29.29-.76 0-1.06z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 0: Splash -->
+            <div id="obStep0" class="ob-step active">
+                <dotlottie-player src="./assets/Welcomefryday.lottie" autoplay id="splashLottie"></dotlottie-player>
+            </div>
+
+            <!-- Step 1: Welcome -->
+            <div id="obStep1" class="ob-step hidden">
+                <img src="assets/ob_step1.png" alt="AI Core" class="ob-feature-img">
+                <h2 class="ob-title">Welcome to Project Friday</h2>
+                <p class="ob-desc">Your autonomous voice-native AI knowledge worker, designed to think alongside you.
+                </p>
+                <div class="ob-actions">
+                    <button class="ob-btn-primary" onclick="nextObStep(2)">Next</button>
+                    <button class="ob-btn-secondary" onclick="nextObStep(3)">Skip</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Capabilities -->
+            <div id="obStep2" class="ob-step hidden">
+                <img src="assets/ob_step2.png" alt="Desktop Control" class="ob-feature-img">
+                <h2 class="ob-title">Intelligent Action</h2>
+                <p class="ob-desc">Friday manages your desktop, browses the web, and executes tasks autonomously based
+                    on your explicit goals.</p>
+                <div class="ob-actions">
+                    <button class="ob-btn-primary" onclick="nextObStep(3)">Next</button>
+                    <button class="ob-btn-secondary" onclick="nextObStep(3)">Skip</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Sign In -->
+            <div id="obStep3" class="ob-step hidden">
+                <img src="assets/logo.png" alt="Friday Logo" class="ob-logo">
+                <h2 class="ob-title">Ready to Start?</h2>
+                <p class="ob-desc">Sign in to unlock Friday's full capabilities and connect your memory.</p>
+                <div class="ob-actions">
+                    <button class="ob-btn-primary signin" onclick="window.fridayAuth.signIn()">Sign In to
+                        Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="./auth-renderer.js"></script>
+        <script>
+            window.nextObStep = (step) => {
+                document.querySelectorAll('.ob-step').forEach(el => {
+                    el.classList.remove('active');
+                    el.classList.add('hidden');
+                });
+                const nextStep = document.getElementById('obStep' + step);
+                if (nextStep) {
+                    nextStep.classList.remove('hidden');
+                    nextStep.classList.add('active');
+                }
+            };
+
+            document.addEventListener("DOMContentLoaded", () => {
+                const player = document.getElementById("splashLottie");
+                if (player) {
+                    // Register listener BEFORE initiating auth to avoid race conditions
+                    window.fridayAuth.onAuthStateChange((state) => {
+                        const overlay = document.getElementById('onboardingOverlay');
+                        if (state.status === 'authenticated') {
+                            overlay.classList.add('hidden');
+                        } else if (state.status === 'idle') {
+                            // Needs to sign in. Show onboarding if not already shown.
+                            if (overlay.classList.contains('hidden')) {
+                                overlay.classList.remove('hidden');
+                                window.nextObStep(0); // Start at splash
+                            }
+                        }
+                    });
+
+                    // Now init (which will trigger the listener above)
+                    window.fridayAuth.initAuth();
+
+                    player.addEventListener("complete", () => {
+                        // After splash completes, check if we are still idle.
+                        // If we are authenticated, the overlay is hidden anyway.
+                        const state = window.fridayAuth.getAuthState();
+                        if (state.status !== 'authenticated') {
+                            window.nextObStep(1);
+                        }
+                    });
+                }
+            });
+        </script>
 
         <script>
             (function () {
@@ -1936,9 +2290,27 @@
 
                 async function init() {
                     console.log('[app.html] Initializing...');
+
+                    // Note: Auth init is handled by the module script above.
+                    // When auth state becomes 'authenticated', the onboarding overlay hides.
+
                     const state = await window.friday.getState();
                     applyState(state);
 
+                    // 2. Load Permissions
+                    const storedFs = await window.friday.db.getMemory('perm_fs');
+                    const storedTerm = await window.friday.db.getMemory('perm_term');
+
+                    const permFs = storedFs !== '0'; // Default strictly true unless explicitly disabled
+                    const permTerm = storedTerm !== '0';
+
+                    if (fsPermCheck) fsPermCheck.checked = permFs;
+                    if (termPermCheck) termPermCheck.checked = permTerm;
+
+                    window.friday.setState({ permFs, permTerm });
+
+                    // Setup periodic checks
+                    setInterval(checkBrowserStatus, 3000); sion
                     // Load initial messages for the active session
                     if (state.activeSessionId) {
                         console.log('[app.html] Loading session:', state.activeSessionId);
@@ -2382,6 +2754,57 @@
                     });
                 }
 
+                // ── Extension Installer ─────────────────────────────────────────
+
+                const installExtensionBtn = document.getElementById('installExtensionBtn');
+                const extInstallStatus = document.getElementById('extInstallStatus');
+
+                async function handleInstallExtension() {
+                    installExtensionBtn.disabled = true;
+                    installExtensionBtn.textContent = 'Installing...';
+                    extInstallStatus.innerHTML = '';
+
+                    const onStatus = (status) => {
+                        const line = document.createElement('div');
+                        line.style.color = status.success ? 'var(--success)' : 'var(--error)';
+                        line.style.marginBottom = '2px';
+                        line.textContent = status.success
+                            ? `✅ ${status.browser} — extension loaded`
+                            : `❌ ${status.browser} — ${status.error}`;
+                        extInstallStatus.appendChild(line);
+                    };
+
+                    // Listen for live status updates
+                    const cleanup = window.friday.onExtensionStatus(onStatus);
+
+                    try {
+                        const result = await window.friday.installExtension();
+                        if (result.launched.length === 0) {
+                            installExtensionBtn.textContent = 'No browsers found';
+                        } else {
+                            installExtensionBtn.textContent = 'Installed ✓';
+                        }
+                    } catch (err) {
+                        const line = document.createElement('div');
+                        line.style.color = 'var(--error)';
+                        line.textContent = `Error: ${err.message}`;
+                        extInstallStatus.appendChild(line);
+                        installExtensionBtn.textContent = 'Retry';
+                        installExtensionBtn.disabled = false;
+                    } finally {
+                        // Keep the listener for a bit or rely on the invoke return
+                    }
+                }
+
+                installExtensionBtn.addEventListener('click', handleInstallExtension);
+
+                // Check version/browsers on load if needed
+                async function loadAvailableBrowsers() {
+                    const browsers = await window.friday.detectBrowsers();
+                    console.log("[Settings] Detected browsers:", browsers);
+                }
+                loadAvailableBrowsers();
+
                 // Listen for state changes from other windows
                 window.friday.onStateUpdate((state) => {
                     if (allowAllDomainsCheck.checked !== state.allowAllDomains) renderAllowlist();
@@ -2431,7 +2854,7 @@
 
                     taskList.innerHTML = '';
                     if (filtered.length === 0) {
-                        taskList.innerHTML = `<div style="color:var(--text-muted); padding:20px; text-align:center;">No ${currentTaskFilter} background tasks.</div>`;
+                        taskList.innerHTML = `< div style = "color:var(--text-muted); padding:20px; text-align:center;" > No ${currentTaskFilter} background tasks.</div > `;
                         return;
                     }
 
@@ -2440,20 +2863,20 @@
                         el.className = 'task-card';
 
                         let excerpt = task.result ? `Result: ${task.result.slice(0, 100)}...` : '';
-                        if (task.error) excerpt = `Error: ${task.error}`;
+                        if (task.error) excerpt = `Error: ${task.error} `;
                         if (task.status === 'running' && task.history && task.history.length > 0) {
                             const lastItem = task.history[task.history.length - 1];
-                            excerpt = lastItem.type === 'tool' ? `Called ${lastItem.name}` : `${lastItem.content.slice(0, 60)}...`;
+                            excerpt = lastItem.type === 'tool' ? `Called ${lastItem.name} ` : `${lastItem.content.slice(0, 60)}...`;
                         }
 
                         el.innerHTML = `
-                            <div class="task-header">
+                    < div class="task-header" >
                                 <div class="task-title">${escapeHtml(task.description)}</div>
                                 <div class="task-badge badge-${task.status}">${task.status}</div>
-                            </div>
+                            </div >
                             <div class="task-id">${task.id}</div>
                             <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">${escapeHtml(excerpt)}</div>
-                        `;
+                `;
 
                         el.addEventListener('click', () => showTaskModal(task));
                         taskList.appendChild(el);
@@ -2470,36 +2893,36 @@
                 });
 
                 function showTaskModal(task) {
-                    modalTitle.textContent = `Job: ${task.id}`;
+                    modalTitle.textContent = `Job: ${task.id} `;
                     modalBody.innerHTML = '';
 
                     const p = document.createElement('p');
                     p.style.color = 'var(--text)';
                     p.style.fontWeight = '600';
-                    p.textContent = `Goal: ${task.description}`;
+                    p.textContent = `Goal: ${task.description} `;
                     modalBody.appendChild(p);
 
                     if (!task.history || task.history.length === 0) {
-                        modalBody.innerHTML += `<div style="color:var(--text-muted); padding: 20px;">No execution trace yet.</div>`;
+                        modalBody.innerHTML += `< div style = "color:var(--text-muted); padding: 20px;" > No execution trace yet.</div > `;
                     } else {
                         task.history.forEach(item => {
                             const timeStr = item.time.split('T')[1].slice(0, 8);
                             const el = document.createElement('div');
                             el.className = 'trace-item';
 
-                            let mainContent = `<div class="trace-content">${escapeHtml(item.content)}</div>`;
+                            let mainContent = `< div class="trace-content" > ${escapeHtml(item.content)}</div > `;
                             if (item.type === 'tool') {
-                                mainContent = `<div class="trace-content"><strong>Callable:</strong> ${item.name}</div>
-                                               <pre>${escapeHtml(JSON.stringify(item.args, null, 2))}</pre>`;
+                                mainContent = `< div class="trace-content" > <strong>Callable:</strong> ${item.name}</div >
+                    <pre>${escapeHtml(JSON.stringify(item.args, null, 2))}</pre>`;
                             }
 
                             el.innerHTML = `
-                                <div class="trace-meta">
+                        < div class="trace-meta" >
                                     <span class="trace-type ${item.type}">${item.type}</span>
                                     <span>${timeStr}</span>
-                                </div>
-                                ${mainContent}
-                            `;
+                                </div >
+                    ${mainContent}
+                `;
                             modalBody.appendChild(el);
                         });
                     }
@@ -2567,6 +2990,27 @@
                 collapseBtn.addEventListener('click', () => {
                     sidebar.classList.toggle('collapsed');
                 });
+
+                // ── Permissions Sync ────────────────────────────────────────────
+
+                const fsPermCheck = document.getElementById('fsPermCheck');
+                const termPermCheck = document.getElementById('termPermCheck');
+
+                if (fsPermCheck) {
+                    fsPermCheck.addEventListener('change', async (e) => {
+                        const val = e.target.checked;
+                        await window.friday.db.setMemory('perm_fs', val ? '1' : '0', 'File System Permission');
+                        window.friday.setState({ permFs: val });
+                    });
+                }
+
+                if (termPermCheck) {
+                    termPermCheck.addEventListener('change', async (e) => {
+                        const val = e.target.checked;
+                        await window.friday.db.setMemory('perm_term', val ? '1' : '0', 'Terminal Permission');
+                        window.friday.setState({ permTerm: val });
+                    });
+                }
 
                 // ── Theme Toggle ────────────────────────────────────────────────
 

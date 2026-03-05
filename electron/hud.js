@@ -43,8 +43,7 @@ function createHUD() {
     // CSS pointer-events handles the rest. No setIgnoreMouseEvents needed.
 
     hudWindow.once('ready-to-show', () => {
-        hudWindow.showInactive();
-        console.log('[hud] Ready and visible');
+        console.log('[hud] Ready (hidden by default)');
     });
 
     hudWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {

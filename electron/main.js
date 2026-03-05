@@ -3,10 +3,15 @@
 // Orchestrates app lifecycle, HUD, main window, sidecar, and shared state.
 // ═══════════════════════════════════════════════════════════════════════
 
-const { app, globalShortcut, ipcMain, BrowserWindow, session, shell } = require('electron');
+const { app, globalShortcut, ipcMain, BrowserWindow, session, shell, Tray, Menu, nativeImage } = require('electron');
 const { createHUD, toggleHUD, hideHUD, getWindow } = require('./hud');
 const sidecar = require('./sidecar-launcher');
 const pipeClient = require('./pipe-client');
+const { registerDeepLink, setMainWindow } = require('./auth-main');
+
+// Register deep link early, before app ready
+registerDeepLink();
+
 const { setState, getState, addMessage } = require('./state');
 const browserServer = require('./browser-server');
 const subAgents = require('./sub-agents');
@@ -14,6 +19,7 @@ const { startMCPServer } = require('./mcp-server');
 const db = require('./db');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const { installExtension, detectBrowsers } = require("./extensionInstaller");
 require('dotenv').config();
 
 // Override console to broadcast logs to renderer
@@ -54,13 +60,21 @@ console.error = (...args) => broadcastLog('error', ...args);
 // CRITICAL for HUD: Allow the background/hidden main window to start WebRTC AudioContext without user DOM clicks
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-// Securely provide API Key to renderer (only provide if it exists)
-ipcMain.handle('env:getGeminiKey', () => process.env.GEMINI_API_KEY || null);
-
 let mainWindow = null;
+let isAuthenticated = false; // Clerk Auth Gate
+
+ipcMain.handle('auth:setStatus', (_, status) => {
+    isAuthenticated = status;
+    console.log(`[Auth] User authentication status set to: ${status}`);
+    return true;
+});
 
 // Voice control routing (HUD -> Main Window)
 ipcMain.handle('voice:start', () => {
+    if (!isAuthenticated) {
+        console.warn('[Auth] Blocked voice:start: User not authenticated');
+        return;
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('voice:control', 'start');
     }
@@ -82,6 +96,7 @@ ipcMain.handle('browser:disconnect', () => {
 });
 ipcMain.handle('browser:navigate', async (_, url) => {
     try {
+        db.logAudit('browser_navigate', { url }).catch(e => console.error('[Audit]', e));
         return await browserServer.navigate(url);
     } catch (e) {
         console.error('[Browser] Navigate Error:', e);
@@ -90,6 +105,7 @@ ipcMain.handle('browser:navigate', async (_, url) => {
 });
 ipcMain.handle('browser:evaluate', async (_, expression) => {
     try {
+        db.logAudit('browser_evaluate', { expression }).catch(e => console.error('[Audit]', e));
         return await browserServer.evaluate(expression);
     } catch (e) {
         console.error('[Browser] Evaluate Error:', e);
@@ -105,80 +121,119 @@ ipcMain.handle('browser:getDOM', async () => {
     }
 });
 
+// ── System Tray ──────────────────────────────────────────────────────────
+
+let tray = null;
+
+function createTray() {
+    // Load the custom Friday logo for the tray
+    const iconPath = path.join(__dirname, '..', 'renderer', 'assets', 'logo.png');
+    let icon = nativeImage.createFromPath(iconPath);
+    icon = icon.resize({ width: 32, height: 32 }); // Best practice for Windows Tray
+
+    tray = new Tray(icon);
+    const contextMenu = Menu.buildFromTemplate([
+        { label: 'Open Friday', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
+        { type: 'separator' },
+        {
+            label: 'Quit Friday', click: () => {
+                app.isQuiting = true;
+                app.quit();
+            }
+        }
+    ]);
+    tray.setToolTip('Project Friday');
+    tray.setContextMenu(contextMenu);
+
+    tray.on('click', () => {
+        if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    });
+}
+
 // ── App Lifecycle ────────────────────────────────────────────────────────
 
-app.whenReady().then(async () => {
-    console.log('[friday] App ready — initializing...');
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+    app.quit();
+} else {
+    app.whenReady().then(async () => {
+        console.log('[friday] App ready — initializing...');
 
-    // Start Browser extension WebSocket bridge
-    browserServer.start();
+        // Start Browser extension WebSocket bridge
+        browserServer.start();
 
-    // Start Model Context Protocol Server
-    startMCPServer();
+        // Start Model Context Protocol Server
+        startMCPServer();
 
-    const launched = sidecar.launch();
-    if (!launched) {
-        console.warn('[friday] Engine not available — running without native features');
-    }
+        const launched = sidecar.launch();
+        if (!launched) {
+            console.warn('[friday] Engine not available — running without native features');
+        }
 
-    if (launched) {
+        if (launched) {
+            try {
+                await pipeClient.connect();
+                console.log('[friday] Pipe connected to engine');
+                setState({ engineConnected: true });
+            } catch (err) {
+                console.error('[friday] Pipe connection failed:', err.message);
+                setState({ engineConnected: false });
+            }
+        }
+
+        // Track pipe connection state
+        pipeClient.on('event', (data) => {
+            console.log('[friday] Engine event:', data);
+        });
+
+        // Initialize DB
         try {
-            await pipeClient.connect();
-            console.log('[friday] Pipe connected to engine');
-            setState({ engineConnected: true });
+            await db.init();
+            console.log('[friday] Database initialized.');
         } catch (err) {
-            console.error('[friday] Pipe connection failed:', err.message);
-            setState({ engineConnected: false });
+            console.error('[friday] Database initialization failed:', err);
         }
-    }
 
-    // Track pipe connection state
-    pipeClient.on('event', (data) => {
-        console.log('[friday] Engine event:', data);
-    });
+        createHUD();
+        initMainWindow();
+        showMainWindow(); // Show main window on app start
+        registerHotkey();
+        createTray();
 
-    // Initialize DB
-    try {
-        await db.init();
-        console.log('[friday] Database initialized.');
-    } catch (err) {
-        console.error('[friday] Database initialization failed:', err);
-    }
+        // Grant media permissions automatically so the hidden window doesn't crash on getUserMedia()
+        session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+            if (permission === 'media') return true;
+            return false;
+        });
+        session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+            if (permission === 'media') callback(true);
+            else callback(false);
+        });
 
-    createHUD();
-    initMainWindow(); // Initialize VoiceClient silently in the background
-    registerHotkey();
-
-    // Grant media permissions automatically so the hidden window doesn't crash on getUserMedia()
-    session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-        if (permission === 'media') return true;
-        return false;
-    });
-    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-        if (permission === 'media') callback(true);
-        else callback(false);
-    });
-
-    // Initial session loading
-    try {
-        const sessions = await db.getSessions();
-        if (sessions.length > 0) {
-            setState({ sessions, activeSessionId: sessions[0].id });
-        } else {
-            const newSessionId = `session-${Date.now()}`;
-            const title = "New Conversation";
-            await db.createSession(newSessionId, title);
-            setState({
-                sessions: [{ id: newSessionId, title, created_at: new Date().toISOString() }],
-                activeSessionId: newSessionId
-            });
+        // Initial session loading
+        try {
+            const sessions = await db.getSessions();
+            if (sessions.length > 0) {
+                setState({ sessions, activeSessionId: sessions[0].id });
+            } else {
+                const newSessionId = `session-${Date.now()}`;
+                const title = "New Conversation";
+                await db.createSession(newSessionId, title);
+                setState({
+                    sessions: [{ id: newSessionId, title, created_at: new Date().toISOString() }],
+                    activeSessionId: newSessionId
+                });
+            }
+        } catch (err) {
+            console.error('[friday] Failed to load initial sessions:', err);
         }
-    } catch (err) {
-        console.error('[friday] Failed to load initial sessions:', err);
-    }
 
-    console.log('[friday] Initialization complete');
-});
+        console.log('[friday] Initialization complete');
+    });
+}
 
 // ── Main App Window ─────────────────────────────────────────────────────
 
@@ -200,6 +255,8 @@ function initMainWindow() {
             nodeIntegration: false,
         },
     });
+
+    setMainWindow(mainWindow);
 
     mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'app.html'));
 
@@ -245,23 +302,38 @@ function showMainWindow() {
 // ── Global Hotkey ────────────────────────────────────────────────────────
 
 function registerHotkey() {
-    const registered = globalShortcut.register('CommandOrControl+Q', () => {
-        toggleHUD();
-    });
+    const handleHotkey = () => {
+        if (!isAuthenticated) {
+            console.log('[hotkey] Not authenticated. Showing main window to prompt login.');
+            showMainWindow();
+        } else {
+            toggleHUD();
+        }
+    };
+
+    const registered = globalShortcut.register('CommandOrControl+Q', handleHotkey);
 
     if (registered) {
         console.log('[hotkey] Ctrl+Q registered');
     } else {
         console.warn('[hotkey] Ctrl+Q taken — using Ctrl+Shift+Space');
-        globalShortcut.register('CommandOrControl+Shift+Space', () => toggleHUD());
+        globalShortcut.register('CommandOrControl+Shift+Space', handleHotkey);
     }
 }
 
 // ── IPC Handlers ────────────────────────────────────────────────────────
 
 ipcMain.handle('sidecar:send', async (_, method, params) => {
+    if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
     if (!pipeClient.isConnected) return { error: 'Engine not connected' };
-    try { return await pipeClient.send(method, params); }
+    try {
+        // Audit log destructive sidecar actions
+        const actionableMethods = ['input.typeString', 'input.sendChord', 'input.clickAt'];
+        if (actionableMethods.includes(method)) {
+            db.logAudit(`sidecar_${method}`, params).catch(e => console.error('[Audit]', e));
+        }
+        return await pipeClient.send(method, params);
+    }
     catch (err) { return { error: err.message }; }
 });
 
@@ -288,6 +360,16 @@ ipcMain.handle('app:hideMain', () => {
         console.log('[friday] Main window hidden (VoiceClient running in background)');
     }
     return { hidden: true };
+});
+
+ipcMain.handle('app:minimize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.minimize();
+    }
+});
+
+ipcMain.handle('app:quit', () => {
+    app.quit();
 });
 
 ipcMain.handle('app:openExternal', async (_, url) => {
@@ -344,6 +426,7 @@ ipcMain.handle('browser:ping', async () => {
 ipcMain.handle('tasks:list', () => subAgents.getAllTasks());
 
 ipcMain.handle('app:delegateTask', (_, taskDescription) => {
+    if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
     console.log(`[friday] Delegating task: ${taskDescription}`);
     const jobId = subAgents.startTask(taskDescription, (res) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -380,6 +463,37 @@ ipcMain.handle('state:addMessage', async (_, role, text) => {
         }
     }
     return { ok: true };
+});
+
+// ─── Extension Installer IPC ────────────────────────────────────────────────
+
+ipcMain.handle("install-extension", async (event) => {
+    const EXTENSION_DIR = app.isPackaged
+        ? path.join(process.resourcesPath, "extension")
+        : path.join(__dirname, "..", "extension");
+
+    return await installExtension(EXTENSION_DIR, {
+        onStatus: (s) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send("extension-install-status", s);
+            }
+        },
+    });
+});
+
+ipcMain.handle("detect-browsers", async () => {
+    return Object.keys(detectBrowsers());
+});
+
+
+// ── Secure Env Keys ───────────────────────────────────────────────
+
+ipcMain.handle('env:getGeminiKey', () => {
+    return process.env.GEMINI_API_KEY;
+});
+
+ipcMain.handle('env:getClerkKey', () => {
+    return process.env.CLERK_PUBLISHABLE_KEY || '';
 });
 
 // ── Database IPC ──────────────────────────────────────────────────
