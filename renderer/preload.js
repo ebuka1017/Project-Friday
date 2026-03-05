@@ -106,6 +106,7 @@ contextBridge.exposeInMainWorld('friday', {
         createSession: (title) => ipcRenderer.invoke('db:createSession', title),
         deleteSession: (id) => ipcRenderer.invoke('db:deleteSession', id),
         setMemory: (key, value, desc) => ipcRenderer.invoke('db:setMemory', key, value, desc),
-        getMemory: (key) => ipcRenderer.invoke('db:getMemory', key)
+        getMemory: (key) => ipcRenderer.invoke('db:getMemory', key),
+        getAllMemories: () => ipcRenderer.invoke('db:getAllMemories')
     }
 });

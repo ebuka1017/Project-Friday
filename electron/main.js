@@ -410,6 +410,10 @@ ipcMain.handle('db:getMemory', async (_, key) => {
     return await db.getMemory(key);
 });
 
+ipcMain.handle('db:getAllMemories', async () => {
+    return await db.getAllMemories();
+});
+
 // ── Cleanup ──────────────────────────────────────────────────────────────
 
 app.on('will-quit', () => {

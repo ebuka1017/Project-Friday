@@ -1139,6 +1139,117 @@
             opacity: 1;
         }
 
+        /* ═══ Desktop & Settings Shared UI ═══ */
+        .desktop-view,
+        .settings-view {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 32px;
+            gap: 24px;
+            overflow-y: auto;
+        }
+
+        .page-header {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .page-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0;
+            max-width: 600px;
+        }
+
+        .settings-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .settings-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin: 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-surface);
+            padding: 16px 20px;
+        }
+
+        .setting-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .setting-title {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .setting-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            max-width: 400px;
+            line-height: 1.4;
+        }
+
+        .settings-action-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .settings-action-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .settings-action-btn.danger {
+            border-color: rgba(248, 113, 113, 0.3);
+            color: var(--error);
+        }
+
+        .settings-action-btn.danger:hover {
+            background: rgba(248, 113, 113, 0.1);
+        }
+
         /* Modal */
         dialog.modal {
             margin: auto;
@@ -1581,7 +1692,7 @@
 
             <!-- ═══ Browser ═══ -->
             <div class="browser-view" id="browserView" hidden>
-                <div class="browser-header">
+                <div class="page-header">
                     <h2>Browser Integration</h2>
                     <p>Friday uses your running Chromium browser to browse the web for you. Make sure your browser is
                         launched with the <code
@@ -1630,6 +1741,59 @@
                 </div>
             </div>
 
+            <!-- ═══ Desktop ═══ -->
+            <div class="desktop-view" id="desktopView" hidden>
+                <div class="page-header">
+                    <h2>Desktop Integration</h2>
+                    <p>Friday uses a local Sidecar process to interact with your operating system, manage windows, and
+                        execute tools securely.</p>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-card-info">
+                        <span class="status-card-title">Sidecar Connection</span>
+                        <span class="status-card-desc" id="desktopConnectionDesc">Checking status...</span>
+                    </div>
+                    <div class="status-badge" id="desktopStatusBadge"
+                        style="padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.1); color: var(--text-muted);">
+                        Disconnected
+                    </div>
+                </div>
+
+                <div class="settings-section" style="margin-top: 8px;">
+                    <h3 class="settings-section-title">System Permissions</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: -8px 0 8px 0;">
+                        Configure what actions Friday is allowed to perform on your machine.
+                    </p>
+
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">File System Access</span>
+                                <span class="setting-desc">Read and write files in your workspace.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked disabled>
+                                <span class="toggle-track"></span>
+                                <span class="toggle-knob"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Terminal Commands</span>
+                                <span class="setting-desc">Execute scripts and commands. Destructive commands ask for
+                                    permission.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked disabled>
+                                <span class="toggle-track"></span>
+                                <span class="toggle-knob"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ═══ Logs View ═══ -->
             <div class="logs-view" id="logsView" hidden>
                 <div class="log-header">
@@ -1641,6 +1805,66 @@
                 </div>
                 <div class="log-container" id="logContainer">
                     <div style="opacity: 0.5;">Terminal stdout streaming...</div>
+                </div>
+            </div>
+
+            <!-- ═══ Settings ═══ -->
+            <div class="settings-view" id="settingsView" hidden>
+                <div class="page-header">
+                    <h2>Settings</h2>
+                    <p>Configure Friday's behavior and your preferences.</p>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Preferences</h3>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Theme</span>
+                                <span class="setting-desc">Switch between Light and Dark aesthetics.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="settingsThemeCheck">
+                                <span class="toggle-track"></span>
+                                <span class="toggle-knob"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Voice Mode</span>
+                                <span class="setting-desc">Push-to-Talk prevents background noise. Hands-Free leaves the
+                                    mic fully open.</span>
+                            </div>
+                            <div class="menu-toggle-group" id="settingsVoiceModeToggle"
+                                style="margin: 0; width: 220px;">
+                                <button class="menu-toggle-opt active" data-mode="ptt">Push-to-Talk</button>
+                                <button class="menu-toggle-opt" data-mode="handsfree">Hands-Free</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Memory & Data</h3>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Export Memory</span>
+                                <span class="setting-desc">Download a complete JSON backup of all stored facts and
+                                    knowledge.</span>
+                            </div>
+                            <button class="settings-action-btn" id="exportMemoryBtn">Export to JSON</button>
+                        </div>
+                        <div class="setting-item" style="border-top: 1px solid var(--border);">
+                            <div class="setting-info">
+                                <span class="setting-title">Clear Local Memory</span>
+                                <span class="setting-desc">Delete stored facts from the SQLite database. Chat histories
+                                    will not be deleted.</span>
+                            </div>
+                            <button class="settings-action-btn danger"
+                                onclick="alert('Memory would be cleared here.')">Clear Memory</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -2087,8 +2311,10 @@
                     activeSession.hidden = true;
                     historyView.hidden = true;
                     browserView.hidden = true;
+                    desktopView.hidden = true;
                     logsView.hidden = true;
                     tasksView.hidden = true;
+                    settingsView.hidden = true;
                     segmentBar.style.display = 'none';
 
                     if (page === 'chat') {
@@ -2102,14 +2328,16 @@
                         }
                     } else if (page === 'browser') {
                         browserView.hidden = false;
+                    } else if (page === 'desktop') {
+                        desktopView.hidden = false;
                     } else if (page === 'logs') {
                         logsView.hidden = false;
                         logsView.scrollTop = logsView.scrollHeight;
                     } else if (page === 'tasks') {
                         tasksView.hidden = false;
                         renderTasks();
-                    } else {
-                        // Placeholder for other pages
+                    } else if (page === 'settings') {
+                        settingsView.hidden = false;
                     }
                 }
 
@@ -2283,23 +2511,45 @@
 
                 // Poll connection status every 2 seconds
                 setInterval(async () => {
-                    if (browserView.hidden) return; // Only poll when viewing the tab
-
-                    try {
-                        const isConnected = await window.friday.browser.connect();
-                        if (isConnected) {
-                            browserConnectionDesc.textContent = 'Extension is connected and ready.';
-                            browserStatusBadge.textContent = 'Active';
-                            browserStatusBadge.style.background = 'rgba(74, 222, 128, 0.1)';
-                            browserStatusBadge.style.color = 'var(--success)';
-                        } else {
-                            browserConnectionDesc.textContent = 'Waiting for extension to connect to port 8765...';
-                            browserStatusBadge.textContent = 'Disconnected';
-                            browserStatusBadge.style.background = 'rgba(255, 255, 255, 0.1)';
-                            browserStatusBadge.style.color = 'var(--text-muted)';
+                    if (!browserView.hidden) {
+                        try {
+                            const isConnected = await window.friday.browser.connect();
+                            if (isConnected) {
+                                browserConnectionDesc.textContent = 'Extension is connected and ready.';
+                                browserStatusBadge.textContent = 'Active';
+                                browserStatusBadge.style.background = 'rgba(74, 222, 128, 0.1)';
+                                browserStatusBadge.style.color = 'var(--success)';
+                            } else {
+                                browserConnectionDesc.textContent = 'Waiting for extension to connect to port 8765...';
+                                browserStatusBadge.textContent = 'Disconnected';
+                                browserStatusBadge.style.background = 'rgba(255, 255, 255, 0.1)';
+                                browserStatusBadge.style.color = 'var(--text-muted)';
+                            }
+                        } catch (err) {
+                            console.error("Browser Poll error", err);
                         }
-                    } catch (err) {
-                        console.error("Poll error", err);
+                    }
+
+                    if (!desktopView.hidden) {
+                        try {
+                            const status = await window.friday.status();
+                            const desktopConnectionDesc = document.getElementById('desktopConnectionDesc');
+                            const desktopStatusBadge = document.getElementById('desktopStatusBadge');
+
+                            if (status && status.status === 'connected') {
+                                desktopConnectionDesc.textContent = 'Sidecar is connected and ready.';
+                                desktopStatusBadge.textContent = 'Active';
+                                desktopStatusBadge.style.background = 'rgba(74, 222, 128, 0.1)';
+                                desktopStatusBadge.style.color = 'var(--success)';
+                            } else {
+                                desktopConnectionDesc.textContent = 'Waiting for Sidecar process...';
+                                desktopStatusBadge.textContent = 'Disconnected';
+                                desktopStatusBadge.style.background = 'rgba(255, 255, 255, 0.1)';
+                                desktopStatusBadge.style.color = 'var(--text-muted)';
+                            }
+                        } catch (err) {
+                            console.error("Desktop Poll error", err);
+                        }
                     }
                 }, 2000);
 
@@ -2321,17 +2571,91 @@
                 // ── Theme Toggle ────────────────────────────────────────────────
 
                 const themeCheck = document.getElementById('themeCheck');
+                const settingsThemeCheck = document.getElementById('settingsThemeCheck');
 
-                themeCheck.addEventListener('change', () => {
-                    const theme = themeCheck.checked ? 'light' : 'dark';
+                function handleThemeChange(e) {
+                    const theme = e.target.checked ? 'light' : 'dark';
                     window.friday.setState({ theme });
-                });
+                }
+
+                // ── Memory Export ───────────────────────────────────────────────
+
+                const exportMemoryBtn = document.getElementById('exportMemoryBtn');
+                if (exportMemoryBtn) {
+                    exportMemoryBtn.addEventListener('click', async () => {
+                        try {
+                            const originalText = exportMemoryBtn.textContent;
+                            exportMemoryBtn.textContent = 'Exporting...';
+                            exportMemoryBtn.disabled = true;
+
+                            const memories = await window.friday.db.getAllMemories();
+
+                            const blob = new Blob([JSON.stringify(memories, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `friday_memory_${new Date().toISOString().split('T')[0]}.json`;
+                            document.body.appendChild(a);
+
+                            a.click();
+
+                            setTimeout(() => {
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                                exportMemoryBtn.textContent = 'Exported!';
+                                exportMemoryBtn.style.borderColor = 'var(--success)';
+                                exportMemoryBtn.style.color = 'var(--success)';
+
+                                setTimeout(() => {
+                                    exportMemoryBtn.textContent = originalText;
+                                    exportMemoryBtn.disabled = false;
+                                    exportMemoryBtn.style.borderColor = '';
+                                    exportMemoryBtn.style.color = '';
+                                }, 2000);
+                            }, 100);
+
+                        } catch (err) {
+                            console.error("Failed to export memory:", err);
+                            exportMemoryBtn.textContent = 'Error';
+                            exportMemoryBtn.style.borderColor = 'var(--error)';
+                            exportMemoryBtn.style.color = 'var(--error)';
+                            setTimeout(() => {
+                                exportMemoryBtn.textContent = 'Export to JSON';
+                                exportMemoryBtn.disabled = false;
+                                exportMemoryBtn.style.borderColor = '';
+                                exportMemoryBtn.style.color = '';
+                            }, 3000);
+                        }
+                    });
+                }
+
+                themeCheck.addEventListener('change', handleThemeChange);
+                if (settingsThemeCheck) settingsThemeCheck.addEventListener('change', handleThemeChange);
+
+                // Voice mode logic for settings
+                const settingsVoiceModeToggle = document.getElementById('settingsVoiceModeToggle');
+                if (settingsVoiceModeToggle) {
+                    settingsVoiceModeToggle.addEventListener('click', (e) => {
+                        const btn = e.target.closest('.menu-toggle-opt');
+                        if (!btn) return;
+                        const mode = btn.dataset.mode;
+                        window.friday.setState({ voiceMode: mode });
+                    });
+                }
 
                 // Keep checkbox in sync with state
                 const origApplyState = applyState;
                 applyState = function (state) {
                     origApplyState(state);
                     themeCheck.checked = state.theme === 'light';
+                    if (settingsThemeCheck) settingsThemeCheck.checked = state.theme === 'light';
+
+                    if (state.voiceMode && settingsVoiceModeToggle) {
+                        settingsVoiceModeToggle.querySelectorAll('.menu-toggle-opt').forEach(b => {
+                            b.classList.toggle('active', b.dataset.mode === state.voiceMode);
+                        });
+                    }
                 };
 
                 init();
