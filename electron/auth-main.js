@@ -2,6 +2,7 @@ const { app, ipcMain, shell } = require("electron");
 const crypto = require("crypto");
 const https = require("https");
 const { URLSearchParams } = require("url");
+const path = require("path");
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -83,16 +84,20 @@ async function exchangeCodeForToken(code) {
 // ─── Deep Link Registration ───────────────────────────────────────────────────
 
 function registerDeepLink() {
-    if (process.defaultApp) {
-        if (process.argv.length >= 2) {
-            app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
-                process.argv[1],
-            ]);
+    try {
+        if (process.defaultApp) {
+            if (process.argv.length >= 2) {
+                const appPath = path.resolve(process.argv[1]);
+                app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [appPath]);
+                console.log(`[auth-main] Registered custom protocol: ${PROTOCOL}:// (Dev: ${appPath})`);
+            }
+        } else {
+            app.setAsDefaultProtocolClient(PROTOCOL);
+            console.log(`[auth-main] Registered custom protocol: ${PROTOCOL}:// (Prod)`);
         }
-    } else {
-        app.setAsDefaultProtocolClient(PROTOCOL);
+    } catch (err) {
+        console.error('[auth-main] Failed to register custom protocol:', err.message);
     }
-    console.log(`[auth-main] Registered custom protocol: ${PROTOCOL}://`);
 }
 
 // ─── Handle Incoming Deep Link ────────────────────────────────────────────────

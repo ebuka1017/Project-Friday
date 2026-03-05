@@ -20,6 +20,7 @@ const db = require('./db');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const { installExtension, detectBrowsers } = require("./extensionInstaller");
+require('./clerk-fetch-user');
 require('dotenv').config();
 
 // Override console to broadcast logs to renderer
@@ -365,6 +366,16 @@ ipcMain.handle('app:hideMain', () => {
 ipcMain.handle('app:minimize', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.minimize();
+    }
+});
+
+ipcMain.handle('app:maximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMaximized()) {
+            mainWindow.unmaximize();
+        } else {
+            mainWindow.maximize();
+        }
     }
 });
 

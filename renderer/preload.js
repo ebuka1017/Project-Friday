@@ -58,6 +58,7 @@ contextBridge.exposeInMainWorld('friday', {
 
     // Window Management for Main App
     minimize: () => ipcRenderer.invoke('app:minimize'),
+    maximize: () => ipcRenderer.invoke('app:maximize'),
     close: () => ipcRenderer.invoke('app:quit'),
 
     // ── Browser Control (CDP) ───────────────────────────────────────
@@ -127,4 +128,7 @@ contextBridge.exposeInMainWorld('friday', {
     installExtension: () => ipcRenderer.invoke('install-extension'),
     detectBrowsers: () => ipcRenderer.invoke('detect-browsers'),
     onExtensionStatus: (callback) => ipcRenderer.on('extension-install-status', (_, s) => callback(s)),
+
+    // Clerk Backend Fetch
+    clerkGetUser: (userId) => ipcRenderer.invoke('clerk-get-user', userId),
 });
