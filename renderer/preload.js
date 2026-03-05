@@ -96,4 +96,13 @@ contextBridge.exposeInMainWorld('friday', {
             ipcRenderer.on(channel, (_, ...args) => callback(...args));
         }
     },
+    // ── Database & Memory ──────────────────────────────────────────
+    db: {
+        getSessions: () => ipcRenderer.invoke('db:getSessions'),
+        getMessages: (sessionId) => ipcRenderer.invoke('db:getMessages', sessionId),
+        createSession: (title) => ipcRenderer.invoke('db:createSession', title),
+        deleteSession: (id) => ipcRenderer.invoke('db:deleteSession', id),
+        setMemory: (key, value, desc) => ipcRenderer.invoke('db:setMemory', key, value, desc),
+        getMemory: (key) => ipcRenderer.invoke('db:getMemory', key)
+    }
 });

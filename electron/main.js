@@ -11,6 +11,8 @@ const { setState, getState, addMessage } = require('./state');
 const browserServer = require('./browser-server');
 const subAgents = require('./sub-agents');
 const { startMCPServer } = require('./mcp-server');
+const db = require('./db');
+const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 require('dotenv').config();
 
@@ -127,6 +129,14 @@ app.whenReady().then(async () => {
         console.log('[friday] Engine event:', data);
     });
 
+    // Initialize DB
+    try {
+        await db.init();
+        console.log('[friday] Database initialized.');
+    } catch (err) {
+        console.error('[friday] Database initialization failed:', err);
+    }
+
     createHUD();
     initMainWindow(); // Initialize VoiceClient silently in the background
     registerHotkey();
@@ -140,6 +150,24 @@ app.whenReady().then(async () => {
         if (permission === 'media') callback(true);
         else callback(false);
     });
+
+    // Initial session loading
+    try {
+        const sessions = await db.getSessions();
+        if (sessions.length > 0) {
+            setState({ sessions, activeSessionId: sessions[0].id });
+        } else {
+            const newSessionId = `session-${Date.now()}`;
+            const title = "New Conversation";
+            await db.createSession(newSessionId, title);
+            setState({
+                sessions: [{ id: newSessionId, title, created_at: new Date().toISOString() }],
+                activeSessionId: newSessionId
+            });
+        }
+    } catch (err) {
+        console.error('[friday] Failed to load initial sessions:', err);
+    }
 
     console.log('[friday] Initialization complete');
 });
@@ -324,9 +352,48 @@ ipcMain.handle('state:set', (_, patch) => {
 
 ipcMain.handle('state:get', () => getState());
 
-ipcMain.handle('state:addMessage', (_, role, text) => {
+ipcMain.handle('state:addMessage', async (_, role, text) => {
+    const msgId = `msg-${uuidv4()}`;
+    const activeSessionId = getState().activeSessionId;
+
     addMessage(role, text);
+
+    if (activeSessionId) {
+        try {
+            await db.saveMessage(msgId, activeSessionId, role, text);
+        } catch (err) {
+            console.error('[friday] Failed to save message to DB:', err);
+        }
+    }
     return { ok: true };
+});
+
+// ── Database IPC ──────────────────────────────────────────────────
+
+ipcMain.handle('db:getSessions', async () => {
+    return await db.getSessions();
+});
+
+ipcMain.handle('db:getMessages', async (_, sessionId) => {
+    return await db.getMessages(sessionId);
+});
+
+ipcMain.handle('db:createSession', async (_, title) => {
+    const id = `session-${Date.now()}`;
+    await db.createSession(id, title);
+    return id;
+});
+
+ipcMain.handle('db:deleteSession', async (_, id) => {
+    return await db.deleteSession(id);
+});
+
+ipcMain.handle('db:setMemory', async (_, key, value, desc) => {
+    return await db.setMemory(key, value, desc);
+});
+
+ipcMain.handle('db:getMemory', async (_, key) => {
+    return await db.getMemory(key);
 });
 
 // ── Cleanup ──────────────────────────────────────────────────────────────

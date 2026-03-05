@@ -15,8 +15,11 @@ const state = {
     theme: 'light',
     // Engine connection
     engineConnected: false,
-    // Conversation messages (shared between HUD and main app)
+    // Conversation messages (transient, mostly for broadcast)
     messages: [],
+    // Session management
+    activeSessionId: null,
+    sessions: [],
     // Browser Integration
     allowAllDomains: true, // Default to true per user request
     allowedDomains: ['wikipedia.org', 'github.com', 'developer.mozilla.org'],

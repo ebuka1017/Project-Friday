@@ -1537,11 +1537,17 @@
                     updateStatus(state.status);
                     if (state.status === 'listening') { isListening = true; micBtn.classList.add('listening'); }
                     else { isListening = false; micBtn.classList.remove('listening'); }
+
                     // Sync voice mode toggle
                     if (state.voiceMode && appVoiceModeToggle) {
                         appVoiceModeToggle.querySelectorAll('.menu-toggle-opt').forEach(b => {
                             b.classList.toggle('active', b.dataset.mode === state.voiceMode);
                         });
+                    }
+
+                    // Refresh history if it's open
+                    if (!historyView.hidden) {
+                        loadHistory();
                     }
                 }
 
@@ -1688,51 +1694,38 @@
 
                 // ── End Session ─────────────────────────────────────────────────
 
-                endBtn.addEventListener('click', () => {
+                endBtn.addEventListener('click', async () => {
                     if (!sessionActive) return;
                     window.friday.setState({ status: 'idle' });
                     isListening = false;
                     micBtn.classList.remove('listening');
 
-                    // Save session to history
-                    const title = 'Session at ' + new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                    const items = thinkingFeed.querySelectorAll('.thought-item');
-                    saveToHistory(title, items.length + ' items');
-
-                    // Clear feed
-                    thinkingFeed.innerHTML = '';
-                    thinkingFeed.classList.remove('has-items');
-                    thinkingFeed.innerHTML = `
-        <div class="empty-state" id="emptyState">
-          <div class="icon">◆</div>
-          <h2>Ready to assist</h2>
-          <p>Press the mic to start a voice session. Friday will show its thinking process and actions here.</p>
-        </div>
-      `;
-
+                    // No longer manually saving here, as messages are auto-saved to DB.
+                    // Just clear the current session.
+                    resetFeed();
                     sessionActive = false;
                 });
 
-                // ── New Session ─────────────────────────────────────────────────
-
-                newSessionBtn.addEventListener('click', () => {
-                    // If there is an active session, end it first
-                    if (sessionActive) {
-                        const title = 'Session at ' + new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                        const items = thinkingFeed.querySelectorAll('.thought-item');
-                        saveToHistory(title, items.length + ' items');
-                    }
-
-                    // Clear feed
+                function resetFeed() {
                     thinkingFeed.innerHTML = '';
                     thinkingFeed.classList.remove('has-items');
                     thinkingFeed.innerHTML = `
-        <div class="empty-state" id="emptyState">
-          <div class="icon">◆</div>
-          <h2>Ready to assist</h2>
-          <p>Press the mic to start a voice session. Friday will show its thinking process and actions here.</p>
-        </div>
-      `;
+                        <div class="empty-state" id="emptyState">
+                          <div class="icon">◆</div>
+                          <h2>Ready to assist</h2>
+                          <p>Press the mic to start a voice session. Friday will show its thinking process and actions here.</p>
+                        </div>
+                    `;
+                }
+
+                // ── New Session ─────────────────────────────────────────────────
+
+                newSessionBtn.addEventListener('click', async () => {
+                    const title = "Conversation at " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const newId = await window.friday.db.createSession(title);
+
+                    window.friday.setState({ activeSessionId: newId });
+                    resetFeed();
                     sessionActive = false;
                     window.friday.setState({ status: 'idle' });
 
@@ -1742,26 +1735,81 @@
                     switchPage('chat');
                 });
 
-                // ── History ─────────────────────────────────────────────────────
-
-                function saveToHistory(title, meta) {
-                    const emptyMsg = historyList.querySelector('.history-empty');
-                    if (emptyMsg) emptyMsg.remove();
-
-                    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    const el = document.createElement('div');
-                    el.className = 'history-item';
-                    el.innerHTML = `
-        <div>
-          <div class="history-title">${escapeHtml(title)}</div>
-          <div class="history-meta">${escapeHtml(meta)}</div>
-        </div>
-        <div class="history-date">${date}</div>
-      `;
-                    historyList.prepend(el);
+                function escapeHtml(t) {
+                    if (!t) return '';
+                    const d = document.createElement('div');
+                    d.textContent = t;
+                    return d.innerHTML;
                 }
 
-                function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+                async function loadHistory() {
+                    const sessions = await window.friday.db.getSessions();
+                    const state = await window.friday.getState();
+                    historyList.innerHTML = '';
+
+                    if (sessions.length === 0) {
+                        historyList.innerHTML = '<div class="history-empty">No past sessions yet. Start a new session to begin.</div>';
+                        return;
+                    }
+
+                    sessions.forEach(session => {
+                        const dateStr = new Date(session.created_at).toLocaleDateString();
+                        const el = document.createElement('div');
+                        el.className = 'history-item';
+                        if (session.id === state.activeSessionId) {
+                            el.style.borderColor = 'var(--accent)';
+                        }
+
+                        el.innerHTML = `
+                            <div>
+                                <div class="history-title">${escapeHtml(session.title)}</div>
+                                <div class="history-meta">ID: ${session.id}</div>
+                            </div>
+                            <div class="history-date">${dateStr}</div>
+                        `;
+                        el.addEventListener('click', () => loadSession(session.id));
+                        historyList.appendChild(el);
+                    });
+                }
+
+                async function loadSession(sessionId) {
+                    window.friday.setState({ activeSessionId: sessionId });
+                    resetFeed();
+
+                    const messages = await window.friday.db.getMessages(sessionId);
+                    messages.forEach(msg => {
+                        addThought(msg.role === 'user' ? 'user' : 'thinking', msg.text, new Date(msg.created_at));
+                    });
+
+                    // Switch to chat tab if not there
+                    segmentBar.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+                    segmentBar.querySelector('[data-tab="active"]').classList.add('active');
+                    historyView.hidden = true;
+                    activeSession.hidden = false;
+                }
+
+                function addThought(type, text, timestamp = null) {
+                    const emptyStateInFeed = thinkingFeed.querySelector('#emptyState');
+                    if (emptyStateInFeed) emptyStateInFeed.remove();
+
+                    thinkingFeed.classList.add('has-items');
+                    sessionActive = true;
+
+                    const date = timestamp || new Date();
+                    const time = date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                    const el = document.createElement('div');
+                    el.className = 'thought-item';
+                    el.innerHTML = `
+                        <span class="thought-badge badge-${type}">${type}</span>
+                        <div class="thought-content">
+                          <div class="thought-text">${escapeHtml(text)}</div>
+                          <div class="thought-time">${time}</div>
+                        </div>
+                    `;
+                    thinkingFeed.appendChild(el);
+                    thinkingFeed.scrollTop = thinkingFeed.scrollHeight;
+                }
 
                 // ── Sidebar Navigation ──────────────────────────────────────────
 
@@ -1783,7 +1831,10 @@
                         segmentBar.style.display = 'flex';
                         const actTab = segmentBar.querySelector('.segment-btn.active').dataset.tab;
                         if (actTab === 'active') activeSession.hidden = false;
-                        if (actTab === 'history') historyView.hidden = false;
+                        if (actTab === 'history') {
+                            historyView.hidden = false;
+                            loadHistory();
+                        }
                     } else if (page === 'browser') {
                         browserView.hidden = false;
                     } else if (page === 'logs') {
