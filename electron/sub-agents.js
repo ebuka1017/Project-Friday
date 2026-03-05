@@ -124,7 +124,7 @@ class SubAgentManager {
         }];
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-1.5-flash",
             systemInstruction: "You are a headless background worker agent. You have native access to the user's desktop and browser. Complete the task assigned to you asynchronously. You MUST call the finish_task tool when you are completely done.",
             tools: tools
         });

@@ -29,6 +29,9 @@ contextBridge.exposeInMainWorld('friday', {
     // Open a URL in the system's default browser
     openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
 
+    // Copy text to system clipboard
+    copyToClipboard: (text) => ipcRenderer.invoke('app:copyToClipboard', text),
+
     // Get available skills list
     getSkills: () => ipcRenderer.invoke('app:getSkills'),
 

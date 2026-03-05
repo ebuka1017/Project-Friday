@@ -21,21 +21,29 @@ const originalConsoleLog = console.log;
 const originalConsoleWarn = console.warn;
 const originalConsoleError = console.error;
 
+// Global error handlers
+process.on('uncaughtException', (err) => {
+    originalConsoleError('[friday] Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    originalConsoleError('[friday] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 function broadcastLog(level, ...args) {
-    const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-    // Keep standard stdout
+    let message = "";
+    try {
+        message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+    } catch (e) {
+        message = "[Serialization Error] " + args.join(' ');
+    }
+
     if (level === 'log') originalConsoleLog(message);
     else if (level === 'warn') originalConsoleWarn(message);
     else if (level === 'error') originalConsoleError(message);
 
-    // Broadcast to UI
     const time = new Date().toISOString().split('T')[1].slice(0, 12);
-    if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
         mainWindow.webContents.send('app:logLine', { time, level, message });
-    }
-    const hud = getWindow();
-    if (hud && !hud.isDestroyed()) {
-        hud.webContents.send('app:logLine', { time, level, message: `[HUD] ${message}` });
     }
 }
 
@@ -286,6 +294,12 @@ ipcMain.handle('app:openExternal', async (_, url) => {
     console.log('[friday] Opening in default browser:', url);
     await shell.openExternal(url);
     return { opened: true };
+});
+
+ipcMain.handle('app:copyToClipboard', (_, text) => {
+    const { clipboard } = require('electron');
+    clipboard.writeText(text);
+    return true;
 });
 
 ipcMain.handle('app:getSkills', async () => {

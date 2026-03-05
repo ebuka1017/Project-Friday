@@ -913,6 +913,88 @@
             font-size: 15px;
         }
 
+        /* ═══ Tasks (Sub-Agents) ═══ */
+        .tasks-view {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 24px 32px;
+            overflow-y: auto;
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .task-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .task-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            background: var(--bg-hover);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .task-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.4;
+        }
+
+        .task-id {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: monospace;
+            opacity: 0.7;
+        }
+
+        .task-badge {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-running {
+            background: var(--accent-glow);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .badge-completed {
+            background: rgba(74, 222, 128, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .badge-failed {
+            background: rgba(248, 113, 113, 0.1);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
         /* ═══ Browser View ═══ */
         .browser-view {
             display: flex;
@@ -1183,7 +1265,8 @@
             letter-spacing: 1px;
         }
 
-        .log-clear-btn {
+        .log-clear-btn,
+        .log-copy-btn {
             padding: 6px 12px;
             border-radius: 6px;
             border: 1px solid var(--border);
@@ -1201,6 +1284,12 @@
             background: rgba(248, 113, 113, 0.05);
         }
 
+        .log-copy-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
         .log-container {
             flex: 1;
             background: var(--bg-surface);
@@ -1208,11 +1297,17 @@
             border-radius: 10px;
             padding: 16px;
             overflow-y: auto;
-            font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
             font-size: 13px;
             line-height: 1.6;
             color: var(--text);
-            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        :root.theme-light .log-container {
+            background: #ffffff;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+            border-color: var(--border);
         }
 
         :root:not(.theme-light) .log-container {
@@ -1471,10 +1566,12 @@
 
             <!-- ═══ Tasks (Sub-Agents) ═══ -->
             <div class="tasks-view" id="tasksView" hidden>
-                <div class="segment-bar" style="padding: 0 0 16px 0; border: none; background: transparent;">
-                    <div class="segment-group" id="tasksSegmentGroup">
-                        <button class="segment-btn active" data-filter="running">Running</button>
-                        <button class="segment-btn" data-filter="completed">Completed & Failed</button>
+                <div class="segment-bar" id="tasksSegmentBar" style="margin: -24px -32px 24px -32px; border-top: none;">
+                    <div class="segment-left">
+                        <div class="segment-group" id="tasksSegmentGroup">
+                            <button class="segment-btn active" data-filter="running">Running</button>
+                            <button class="segment-btn" data-filter="completed">Completed & Failed</button>
+                        </div>
                     </div>
                 </div>
                 <div class="task-list" id="taskList">
@@ -1537,7 +1634,10 @@
             <div class="logs-view" id="logsView" hidden>
                 <div class="log-header">
                     <h2>System Feed</h2>
-                    <button class="log-clear-btn" id="clearLogsBtn">Clear</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="log-copy-btn" id="copyLogsBtn">Copy</button>
+                        <button class="log-clear-btn" id="clearLogsBtn">Clear</button>
+                    </div>
                 </div>
                 <div class="log-container" id="logContainer">
                     <div style="opacity: 0.5;">Terminal stdout streaming...</div>
@@ -1598,6 +1698,7 @@
                 const logsView = document.getElementById('logsView');
                 const logContainer = document.getElementById('logContainer');
                 const clearLogsBtn = document.getElementById('clearLogsBtn');
+                const copyLogsBtn = document.getElementById('copyLogsBtn');
 
                 let isListening = false;
                 let isMuted = false;
@@ -1668,6 +1769,23 @@
 
                 clearLogsBtn.addEventListener('click', () => {
                     logContainer.innerHTML = '';
+                });
+
+                copyLogsBtn.addEventListener('click', () => {
+                    const text = logContainer.innerText;
+                    window.friday.copyToClipboard(text).then(() => {
+                        const originalText = copyLogsBtn.textContent;
+                        copyLogsBtn.textContent = 'Copied!';
+                        copyLogsBtn.style.borderColor = 'var(--success)';
+                        copyLogsBtn.style.color = 'var(--success)';
+                        setTimeout(() => {
+                            copyLogsBtn.textContent = originalText;
+                            copyLogsBtn.style.borderColor = '';
+                            copyLogsBtn.style.color = '';
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy logs:', err);
+                    });
                 });
 
                 window.friday.on('voice:control', (action) => {
