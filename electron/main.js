@@ -9,8 +9,37 @@ const sidecar = require('./sidecar-launcher');
 const pipeClient = require('./pipe-client');
 const { setState, getState, addMessage } = require('./state');
 const browserServer = require('./browser-server');
+const subAgents = require('./sub-agents');
+const { startMCPServer } = require('./mcp-server');
 const path = require('path');
 require('dotenv').config();
+
+// Override console to broadcast logs to renderer
+const originalConsoleLog = console.log;
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+
+function broadcastLog(level, ...args) {
+    const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+    // Keep standard stdout
+    if (level === 'log') originalConsoleLog(message);
+    else if (level === 'warn') originalConsoleWarn(message);
+    else if (level === 'error') originalConsoleError(message);
+
+    // Broadcast to UI
+    const time = new Date().toISOString().split('T')[1].slice(0, 12);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('app:logLine', { time, level, message });
+    }
+    const hud = getWindow();
+    if (hud && !hud.isDestroyed()) {
+        hud.webContents.send('app:logLine', { time, level, message: `[HUD] ${message}` });
+    }
+}
+
+console.log = (...args) => broadcastLog('log', ...args);
+console.warn = (...args) => broadcastLog('warn', ...args);
+console.error = (...args) => broadcastLog('error', ...args);
 
 // CRITICAL for HUD: Allow the background/hidden main window to start WebRTC AudioContext without user DOM clicks
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
@@ -73,6 +102,9 @@ app.whenReady().then(async () => {
 
     // Start Browser extension WebSocket bridge
     browserServer.start();
+
+    // Start Model Context Protocol Server
+    startMCPServer();
 
     const launched = sidecar.launch();
     if (!launched) {
@@ -153,7 +185,11 @@ function initMainWindow() {
     });
 
     mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-        console.log(`[app:log] ${message}`);
+        // Broadcast renderer logs back to itself for the Logs tab
+        const time = new Date().toISOString().split('T')[1].slice(0, 12);
+        const lvlStr = level === 1 ? 'log' : level === 2 ? 'warn' : 'error';
+        mainWindow.webContents.send('app:logLine', { time, level: lvlStr, message: `[renderer] ${message}` });
+        originalConsoleLog(`[app:log] ${message}`);
     });
 }
 
@@ -261,6 +297,18 @@ ipcMain.handle('browser:ping', async () => {
         return { connected: true };
     }
     return { connected: false, error: 'Extension not connected' };
+});
+
+ipcMain.handle('tasks:list', () => subAgents.getAllTasks());
+
+ipcMain.handle('app:delegateTask', (_, taskDescription) => {
+    console.log(`[friday] Delegating task: ${taskDescription}`);
+    const jobId = subAgents.startTask(taskDescription, (res) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('voice:subAgentComplete', res);
+        }
+    });
+    return { jobId };
 });
 
 ipcMain.handle('hud:minimize', () => {

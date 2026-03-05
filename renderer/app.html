@@ -855,6 +855,64 @@
             border-color: var(--error);
         }
 
+        /* ═══ History View ═══ */
+        .history-view {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .history-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .history-meta {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .history-date {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .history-empty {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 40px;
+            font-size: 15px;
+        }
+
         /* ═══ Browser View ═══ */
         .browser-view {
             display: flex;
@@ -997,6 +1055,115 @@
 
         .allowlist-remove:hover {
             opacity: 1;
+        }
+
+        /* Modal */
+        dialog.modal {
+            margin: auto;
+            border: 1px solid var(--border-accent);
+            border-radius: 16px;
+            background: var(--bg-surface);
+            color: var(--text);
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            padding: 0;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        dialog.modal::backdrop {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-muted);
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .modal-close:hover {
+            color: var(--text);
+            background: var(--bg-hover);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(80vh - 70px);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .trace-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .trace-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .trace-type {
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .trace-type.thought {
+            color: var(--warning);
+        }
+
+        .trace-type.tool {
+            color: var(--accent);
+        }
+
+        .trace-type.system {
+            color: var(--success);
+        }
+
+        .trace-type.error {
+            color: var(--error);
+        }
+
+        .trace-content {
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        pre {
+            background: var(--bg);
+            padding: 8px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -1174,6 +1341,19 @@
                 </div>
             </div>
 
+            <!-- ═══ Tasks (Sub-Agents) ═══ -->
+            <div class="tasks-view" id="tasksView" hidden>
+                <div class="segment-bar" style="padding: 0 0 16px 0; border: none; background: transparent;">
+                    <div class="segment-group" id="tasksSegmentGroup">
+                        <button class="segment-btn active" data-filter="running">Running</button>
+                        <button class="segment-btn" data-filter="completed">Completed & Failed</button>
+                    </div>
+                </div>
+                <div class="task-list" id="taskList">
+                    <!-- Cards injected here -->
+                </div>
+            </div>
+
             <!-- ═══ Browser ═══ -->
             <div class="browser-view" id="browserView" hidden>
                 <div class="browser-header">
@@ -1224,6 +1404,28 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ═══ Logs View ═══ -->
+            <div class="logs-view" id="logsView" hidden>
+                <div class="log-header">
+                    <h2>System Feed</h2>
+                    <button class="log-clear-btn" id="clearLogsBtn">Clear</button>
+                </div>
+                <div class="log-container" id="logContainer">
+                    <div style="opacity: 0.5;">Terminal stdout streaming...</div>
+                </div>
+            </div>
+
+            <!-- Modal for Task Trace -->
+            <dialog class="modal" id="taskModal">
+                <div class="modal-header">
+                    <div class="modal-title" id="modalTitle">Task Process</div>
+                    <button class="modal-close" id="closeModalBtn">&times;</button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Traces injected here -->
+                </div>
+            </dialog>
         </div>
 
         <script>
@@ -1244,6 +1446,17 @@
                 const systemsLabel = document.getElementById('systemsLabel');
                 const navItems = document.querySelectorAll('.nav-item');
 
+                // Tasks Elements
+                const tasksView = document.getElementById('tasksView');
+                const taskList = document.getElementById('taskList');
+                const tasksSegmentGroup = document.getElementById('tasksSegmentGroup');
+                const taskModal = document.getElementById('taskModal');
+                const closeModalBtn = document.getElementById('closeModalBtn');
+                const modalTitle = document.getElementById('modalTitle');
+                const modalBody = document.getElementById('modalBody');
+                let currentTaskFilter = 'running';
+                let rawTasksData = [];
+
                 // Browser Elements
                 const browserView = document.getElementById('browserView');
                 const browserStatusBadge = document.getElementById('browserStatusBadge');
@@ -1252,6 +1465,11 @@
                 const addDomainBtn = document.getElementById('addDomainBtn');
                 const allowlistItems = document.getElementById('allowlistItems');
                 const historyList = document.getElementById('historyList');
+
+                // Logs Elements
+                const logsView = document.getElementById('logsView');
+                const logContainer = document.getElementById('logContainer');
+                const clearLogsBtn = document.getElementById('clearLogsBtn');
 
                 let isListening = false;
                 let isMuted = false;
@@ -1282,6 +1500,29 @@
                 window.friday.onMessage((msg) => {
                     addThought(msg.role === 'user' ? 'user' : 'thinking', msg.text);
                 });
+
+                // Hook up logs
+                if (window.friday.onLogLine) {
+                    window.friday.onLogLine((log) => {
+                        const el = document.createElement('div');
+                        el.className = 'log-line';
+                        el.innerHTML = `
+                            <span class="log-time">${escapeHtml(log.time)}</span>
+                            <span class="log-level ${escapeHtml(log.level)}">${escapeHtml(log.level)}</span>
+                            <span class="log-msg">${escapeHtml(log.message)}</span>
+                        `;
+                        logContainer.appendChild(el);
+                        // Auto scroll if near bottom
+                        if (logsView.scrollHeight - logsView.scrollTop < logsView.clientHeight + 100) {
+                            logsView.scrollTop = logsView.scrollHeight;
+                        }
+                    });
+                }
+
+                clearLogsBtn.addEventListener('click', () => {
+                    logContainer.innerHTML = '';
+                });
+
                 window.friday.on('voice:control', (action) => {
                     console.log('[app.html] Received voice:control IPC:', action);
                     if (action === 'start') {
@@ -1533,6 +1774,8 @@
                     activeSession.hidden = true;
                     historyView.hidden = true;
                     browserView.hidden = true;
+                    logsView.hidden = true;
+                    tasksView.hidden = true;
                     segmentBar.style.display = 'none';
 
                     if (page === 'chat') {
@@ -1543,6 +1786,12 @@
                         if (actTab === 'history') historyView.hidden = false;
                     } else if (page === 'browser') {
                         browserView.hidden = false;
+                    } else if (page === 'logs') {
+                        logsView.hidden = false;
+                        logsView.scrollTop = logsView.scrollHeight;
+                    } else if (page === 'tasks') {
+                        tasksView.hidden = false;
+                        renderTasks();
                     } else {
                         // Placeholder for other pages
                     }
@@ -1625,6 +1874,97 @@
                     }
                 });
 
+                // ── Tasks / Sub-Agents ──────────────────────────────────────────
+
+                async function renderTasks() {
+                    try {
+                        rawTasksData = await window.friday.getAllTasks();
+                    } catch (e) { console.error('Error fetching tasks', e); }
+
+                    let filtered = rawTasksData.filter(t => currentTaskFilter === 'running' ? t.status === 'running' : t.status !== 'running');
+                    // Sort by newest first based on ID (since ID has timestamp slice)
+                    filtered.reverse();
+
+                    taskList.innerHTML = '';
+                    if (filtered.length === 0) {
+                        taskList.innerHTML = `<div style="color:var(--text-muted); padding:20px; text-align:center;">No ${currentTaskFilter} background tasks.</div>`;
+                        return;
+                    }
+
+                    filtered.forEach(task => {
+                        const el = document.createElement('div');
+                        el.className = 'task-card';
+
+                        let excerpt = task.result ? `Result: ${task.result.slice(0, 100)}...` : '';
+                        if (task.error) excerpt = `Error: ${task.error}`;
+                        if (task.status === 'running' && task.history && task.history.length > 0) {
+                            const lastItem = task.history[task.history.length - 1];
+                            excerpt = lastItem.type === 'tool' ? `Called ${lastItem.name}` : `${lastItem.content.slice(0, 60)}...`;
+                        }
+
+                        el.innerHTML = `
+                            <div class="task-header">
+                                <div class="task-title">${escapeHtml(task.description)}</div>
+                                <div class="task-badge badge-${task.status}">${task.status}</div>
+                            </div>
+                            <div class="task-id">${task.id}</div>
+                            <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">${escapeHtml(excerpt)}</div>
+                        `;
+
+                        el.addEventListener('click', () => showTaskModal(task));
+                        taskList.appendChild(el);
+                    });
+                }
+
+                tasksSegmentGroup.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.segment-btn');
+                    if (!btn) return;
+                    tasksSegmentGroup.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentTaskFilter = btn.dataset.filter;
+                    renderTasks();
+                });
+
+                function showTaskModal(task) {
+                    modalTitle.textContent = `Job: ${task.id}`;
+                    modalBody.innerHTML = '';
+
+                    const p = document.createElement('p');
+                    p.style.color = 'var(--text)';
+                    p.style.fontWeight = '600';
+                    p.textContent = `Goal: ${task.description}`;
+                    modalBody.appendChild(p);
+
+                    if (!task.history || task.history.length === 0) {
+                        modalBody.innerHTML += `<div style="color:var(--text-muted); padding: 20px;">No execution trace yet.</div>`;
+                    } else {
+                        task.history.forEach(item => {
+                            const timeStr = item.time.split('T')[1].slice(0, 8);
+                            const el = document.createElement('div');
+                            el.className = 'trace-item';
+
+                            let mainContent = `<div class="trace-content">${escapeHtml(item.content)}</div>`;
+                            if (item.type === 'tool') {
+                                mainContent = `<div class="trace-content"><strong>Callable:</strong> ${item.name}</div>
+                                               <pre>${escapeHtml(JSON.stringify(item.args, null, 2))}</pre>`;
+                            }
+
+                            el.innerHTML = `
+                                <div class="trace-meta">
+                                    <span class="trace-type ${item.type}">${item.type}</span>
+                                    <span>${timeStr}</span>
+                                </div>
+                                ${mainContent}
+                            `;
+                            modalBody.appendChild(el);
+                        });
+                    }
+                    taskModal.showModal();
+                }
+
+                closeModalBtn.addEventListener('click', () => taskModal.close());
+                taskModal.addEventListener('click', (e) => { if (e.target === taskModal) taskModal.close(); });
+
                 // Poll connection status every 2 seconds
                 setInterval(async () => {
                     if (browserView.hidden) return; // Only poll when viewing the tab
@@ -1646,6 +1986,12 @@
                         console.error("Poll error", err);
                     }
                 }, 2000);
+
+                setInterval(async () => {
+                    if (tasksView && !tasksView.hidden) {
+                        renderTasks();
+                    }
+                }, 1000);
 
                 // ── Collapse Sidebar ────────────────────────────────────────────
 

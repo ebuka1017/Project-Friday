@@ -38,6 +38,9 @@ contextBridge.exposeInMainWorld('friday', {
     // Check browser extension connection
     browserPing: () => ipcRenderer.invoke('browser:ping'),
 
+    // Delegate background task to sub-agent
+    delegateTask: (taskDescription) => ipcRenderer.invoke('app:delegateTask', taskDescription),
+
     // Minimize (hide) the HUD
     minimize: () => ipcRenderer.invoke('hud:minimize'),
 
@@ -61,6 +64,17 @@ contextBridge.exposeInMainWorld('friday', {
 
     // Add a message to the conversation
     addMessage: (role, text) => ipcRenderer.invoke('state:addMessage', role, text),
+
+    // Sub-Agents
+    delegateTask: (taskDesc) => ipcRenderer.invoke('app:delegateTask', taskDesc),
+    onSubAgentComplete: (callback) => ipcRenderer.on('voice:subAgentComplete', (_, result) => callback(result)),
+    getAllTasks: () => ipcRenderer.invoke('tasks:list'),
+
+    // Voice Control (HUD -> App)
+    onVoiceControl: (callback) => ipcRenderer.on('voice:control', (_, action) => callback(action)),
+
+    // System log stream
+    onLogLine: (callback) => ipcRenderer.on('app:logLine', (_, log) => callback(log)),
 
     // Listen for state updates from main process
     onStateUpdate: (callback) => {

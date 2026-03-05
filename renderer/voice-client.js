@@ -20,6 +20,9 @@ class VoiceClient {
         this.baseModel = 'models/gemini-2.0-flash-exp'; // Fallback
         this.model = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 
+        // Listen for background task completions
+        window.friday.onSubAgentComplete((result) => this.handleSubAgentComplete(result));
+
         // Setup state module bindings (called after init)
         this.apiKey = null;
         this.skillsList = [];
@@ -99,6 +102,7 @@ You have these tools:
 - Desktop: desktop_type_string, desktop_send_chord, desktop_click_at, desktop_find_element, desktop_dump_tree
 - Browser: navigate_browser, read_browser_dom, evaluate_browser_js, open_default_browser
 - Vision: take_screenshot (captures the screen so you can see what's happening)
+- Async: delegate_task (spawn a background agent to do work for you asynchronously)
 
 CRITICAL RULES:
 - NEVER claim a tool succeeded unless you received a success response.
@@ -227,6 +231,17 @@ CRITICAL RULES:
                                 name: "take_screenshot",
                                 description: "Captures a screenshot of the entire screen. Use this to verify the result of a tool call or to see what the user sees. Returns a JPEG image.",
                                 parameters: { type: "OBJECT", properties: {} }
+                            },
+                            {
+                                name: "delegate_task",
+                                description: "Spawn a background sub-agent to complete a long-running or complex task asynchronously. The sub-agent has access to all your desktop and browser tools. This tool returns immediately with a jobId so you can keep talking to the user. You will be notified when it finishes.",
+                                parameters: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        taskDescription: { type: "STRING", description: "Detailed, step-by-step instructions for what the background agent should do. E.g. 'Navigate to gmail.com, find the compose button...'" }
+                                    },
+                                    required: ["taskDescription"]
+                                }
                             }
                         ]
                     }
@@ -428,29 +443,29 @@ CRITICAL RULES:
             }
             // ── Desktop Control Tools ──
             else if (call.name === 'desktop_type_string') {
-                const res = await window.friday.sidecar('TypeString', { text: call.args.text });
+                const res = await window.friday.sidecar('input.typeString', { text: call.args.text });
                 response = res || { success: true };
                 window.friday.addMessage('result', `⌨️ Typed "${call.args.text.substring(0, 50)}"`);
             }
             else if (call.name === 'desktop_send_chord') {
-                const res = await window.friday.sidecar('SendChord', { chord: call.args.chord });
+                const res = await window.friday.sidecar('input.sendChord', { keys: call.args.chord });
                 response = res || { success: true };
                 window.friday.addMessage('result', `🎹 Sent ${call.args.chord}`);
             }
             else if (call.name === 'desktop_click_at') {
-                const res = await window.friday.sidecar('ClickAt', { x: call.args.x, y: call.args.y });
+                const res = await window.friday.sidecar('input.clickAt', { x: call.args.x, y: call.args.y });
                 response = res || { success: true };
                 window.friday.addMessage('result', `🖱️ Clicked at (${call.args.x}, ${call.args.y})`);
             }
             else if (call.name === 'desktop_find_element') {
                 const params = { name: call.args.name };
                 if (call.args.controlType) params.controlType = call.args.controlType;
-                const res = await window.friday.sidecar('FindElement', params);
+                const res = await window.friday.sidecar('uia.findElement', params);
                 response = res || { error: 'Element not found' };
                 window.friday.addMessage('result', `🔍 FindElement: ${call.args.name}`);
             }
             else if (call.name === 'desktop_dump_tree') {
-                const res = await window.friday.sidecar('DumpTree', {});
+                const res = await window.friday.sidecar('uia.dumpTree', {});
                 response = res || { error: 'Failed to dump UI tree' };
                 window.friday.addMessage('result', `🌳 UI tree dumped`);
             }
@@ -484,6 +499,11 @@ CRITICAL RULES:
                     window.friday.addMessage('error', `❌ Screenshot failed`);
                 }
             }
+            else if (call.name === 'delegate_task') {
+                const res = await window.friday.delegateTask(call.args.taskDescription);
+                response = { success: true, jobId: res.jobId, message: `Task delegated successfully. Job ID: ${res.jobId}. You will be notified when it completes.` };
+                window.friday.addMessage('result', `🤖 Delegated task [${res.jobId}]: ${call.args.taskDescription.substring(0, 50)}...`);
+            }
         } catch (err) {
             console.error(`[VoiceClient] Tool error (${call.name}):`, err);
             response = { success: false, error: err.message };
@@ -504,6 +524,27 @@ CRITICAL RULES:
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(functionResponseMsg));
             console.log('[VoiceClient] Sent function response');
+        }
+    }
+
+    // Called when a sub-agent spawned by delegate_task finishes
+    handleSubAgentComplete(result) {
+        console.log('[VoiceClient] Sub-agent finished:', result);
+        window.friday.addMessage('result', `🤖 Sub-agent ${result.jobId} finished.`);
+
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            const sysMsg = {
+                clientContent: {
+                    turns: [{
+                        role: "user",
+                        parts: [{
+                            text: `[SYSTEM NOTIFICATION] Background task ${result.jobId} completed. Result: ${result.result || result.error}`
+                        }]
+                    }],
+                    turnComplete: true
+                }
+            };
+            this.ws.send(JSON.stringify(sysMsg));
         }
     }
 
