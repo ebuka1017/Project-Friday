@@ -26,6 +26,7 @@ class VoiceClient {
         // Setup state module bindings (called after init)
         this.apiKey = null;
         this.skillsList = [];
+        this.agentTools = [];
     }
 
     async init() {
@@ -43,6 +44,15 @@ class VoiceClient {
                 console.log(`[VoiceClient] Loaded ${this.skillsList.length} skills`);
             } catch (e) {
                 console.warn('[VoiceClient] Could not load skills:', e);
+            }
+
+            // Load dynamic tool registry
+            try {
+                this.agentTools = await window.friday.getAgentTools();
+                console.log(`[VoiceClient] Loaded ${this.agentTools.length} tools from registry`);
+            } catch (e) {
+                console.error('[VoiceClient] Failed to load tool registry:', e);
+                return false;
             }
 
             // Pre-initialize playback AudioContext for faster first audio
@@ -135,115 +145,7 @@ CRITICAL RULES:
                 },
                 tools: [
                     {
-                        functionDeclarations: [
-                            // ── Browser Tools ──
-                            {
-                                name: "navigate_browser",
-                                description: "Navigate the browser to a URL. The URL must be in the user's allowlist.",
-                                parameters: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        url: { type: "STRING", description: "The full URL to navigate to" }
-                                    },
-                                    required: ["url"]
-                                }
-                            },
-                            {
-                                name: "read_browser_dom",
-                                description: "Read the current browser page title, URL, and DOM text. Useful for understanding what's on the screen.",
-                                parameters: { type: "OBJECT", properties: {} }
-                            },
-                            {
-                                name: "evaluate_browser_js",
-                                description: "Execute JavaScript in the active browser tab. Use for clicking, scrolling, extracting data.",
-                                parameters: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        script: { type: "STRING", description: "JavaScript code to execute" }
-                                    },
-                                    required: ["script"]
-                                }
-                            },
-                            {
-                                name: "open_default_browser",
-                                description: "Open a URL in the user's default system browser.",
-                                parameters: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        url: { type: "STRING", description: "The URL to open" }
-                                    },
-                                    required: ["url"]
-                                }
-                            },
-                            // ── Desktop Control Tools ──
-                            {
-                                name: "desktop_type_string",
-                                description: "Type a string into the currently focused application on the desktop.",
-                                parameters: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        text: { type: "STRING", description: "The text to type" }
-                                    },
-                                    required: ["text"]
-                                }
-                            },
-                            {
-                                name: "desktop_send_chord",
-                                description: "Send a keyboard shortcut. Examples: 'Ctrl+C', 'Alt+Tab', 'Win+E', 'Enter', 'Ctrl+Shift+Esc'.",
-                                parameters: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        chord: { type: "STRING", description: "The keyboard shortcut to send" }
-                                    },
-                                    required: ["chord"]
-                                }
-                            },
-                            {
-                                name: "desktop_click_at",
-                                description: "Click at specific screen coordinates.",
-                                parameters: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        x: { type: "NUMBER", description: "X coordinate" },
-                                        y: { type: "NUMBER", description: "Y coordinate" }
-                                    },
-                                    required: ["x", "y"]
-                                }
-                            },
-                            {
-                                name: "desktop_find_element",
-                                description: "Find a UI element by name using Windows UI Automation. Returns element info if found.",
-                                parameters: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        name: { type: "STRING", description: "The name or text of the element to find" },
-                                        controlType: { type: "STRING", description: "Optional: Button, Edit, Text, Window, etc." }
-                                    },
-                                    required: ["name"]
-                                }
-                            },
-                            {
-                                name: "desktop_dump_tree",
-                                description: "Get a tree of UI elements of the currently focused window. Shows element names, types, and coordinates. Useful for understanding what's on screen before interacting.",
-                                parameters: { type: "OBJECT", properties: {} }
-                            },
-                            {
-                                name: "take_screenshot",
-                                description: "Captures a screenshot of the entire screen. Use this to verify the result of a tool call or to see what the user sees. Returns a JPEG image.",
-                                parameters: { type: "OBJECT", properties: {} }
-                            },
-                            {
-                                name: "delegate_task",
-                                description: "Spawn a background sub-agent to complete a long-running or complex task asynchronously. The sub-agent has access to all your desktop and browser tools. This tool returns immediately with a jobId so you can keep talking to the user. You will be notified when it finishes.",
-                                parameters: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        taskDescription: { type: "STRING", description: "Detailed, step-by-step instructions for what the background agent should do. E.g. 'Navigate to gmail.com, find the compose button...'" }
-                                    },
-                                    required: ["taskDescription"]
-                                }
-                            }
-                        ]
+                        functionDeclarations: this.agentTools
                     }
                 ]
             }
@@ -430,6 +332,63 @@ CRITICAL RULES:
                 response = { result: res };
                 window.friday.addMessage('result', `⚡ JS executed`);
             }
+            else if (call.name === 'browser_back') {
+                const res = await window.friday.browser.goBack();
+                response = { success: res || false };
+                window.friday.addMessage('result', `🔙 Navigated Back`);
+            }
+            else if (call.name === 'browser_forward') {
+                const res = await window.friday.browser.goForward();
+                response = { success: res || false };
+                window.friday.addMessage('result', `🔜 Navigated Forward`);
+            }
+            else if (call.name === 'web_click') {
+                const res = await window.friday.browser.click(call.args.target);
+                response = { success: res || false };
+                if (res && res.error) response = res;
+                window.friday.addMessage('result', `🖱️ Web Click: ${call.args.target.substring(0, 20)}`);
+            }
+            else if (call.name === 'web_type') {
+                const res = await window.friday.browser.type(call.args.target, call.args.text);
+                response = { success: res || false };
+                if (res && res.error) response = res;
+                window.friday.addMessage('result', `⌨️ Web Type: ${call.args.text.substring(0, 15)}`);
+            }
+            else if (call.name === 'web_screenshot') {
+                if (call.args.annotated) {
+                    await window.friday.browser.annotate();
+                    await new Promise(r => setTimeout(r, 200)); // allow DOM to paint labels
+                }
+                const b64Data = await window.friday.browser.screenshot();
+                if (call.args.annotated) {
+                    await window.friday.browser.clearAnnotations();
+                }
+
+                if (b64Data) {
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        const imgMsg = {
+                            clientContent: {
+                                turns: [{
+                                    role: "user",
+                                    parts: [{
+                                        inlineData: { mimeType: "image/jpeg", data: b64Data }
+                                    }, {
+                                        text: call.args.annotated ? "Here is the annotated browser screenshot. Find the number corresponding to your target and reply with a web_click or web_type using the exact 'x,y' coordinates of the element center." : "Here is the browser screenshot."
+                                    }]
+                                }],
+                                turnComplete: true
+                            }
+                        };
+                        this.ws.send(JSON.stringify(imgMsg));
+                        response = { success: true, message: "Browser screenshot sent to your vision." };
+                    } else {
+                        response = { error: "Voice connection not open to receive image." };
+                    }
+                } else {
+                    response = { error: 'Failed to capture browser tab' };
+                }
+                window.friday.addMessage('result', call.args.annotated ? `📸 Annotated Web Screenshot taken` : `📸 Web Screenshot taken`);
+            }
             else if (call.name === 'open_default_browser') {
                 const url = call.args.url;
                 await window.friday.openExternal(url);
@@ -469,6 +428,67 @@ CRITICAL RULES:
                 response = res || { error: 'Failed to dump UI tree' };
                 window.friday.addMessage('result', `🌳 UI tree dumped`);
             }
+            else if (call.name === 'process_list') {
+                const res = await window.friday.sidecar('process.list', {});
+                response = res || { error: 'Failed to list processes' };
+                if (res && res.processes) window.friday.addMessage('result', `📋 Found ${res.processes.length} visible processes`);
+            }
+            else if (call.name === 'process_kill') {
+                const res = await window.friday.sidecar('process.kill', { pid: call.args.pid });
+                response = res || { error: 'Failed to kill process' };
+                window.friday.addMessage('result', `💀 Terminated process PID ${call.args.pid}`);
+            }
+            else if (call.name === 'get_system_info') {
+                const info = await window.friday.getSystemInfo();
+                response = info || { error: 'Failed to get system info' };
+                window.friday.addMessage('result', `🖥️ System Info gathered`);
+            }
+            else if (call.name === 'show_notification') {
+                const res = await window.friday.showNotification(call.args.title, call.args.body);
+                response = res || { success: true };
+                window.friday.addMessage('result', `🔔 Notification: ${call.args.title}`);
+            }
+            else if (call.name === 'show_message_dialog') {
+                const res = await window.friday.showMessageDialog(call.args);
+                response = res || { error: 'Failed to show dialog' };
+                window.friday.addMessage('result', `💬 Message Dialog shown`);
+            }
+            else if (call.name === 'http_request') {
+                const res = await window.friday.httpRequest(call.args);
+                response = res || { error: 'Failed to perform HTTP request' };
+                window.friday.addMessage('result', `🌐 HTTP Request: ${call.args.method || 'GET'} ${call.args.url}`);
+            }
+            else if (call.name === 'get_user_profile') {
+                const profile = await window.friday.getUserProfile();
+                response = profile || { error: 'Failed to get user profile' };
+                window.friday.addMessage('result', `👤 User Profile gathered`);
+            }
+            else if (call.name === 'web_search') {
+                const res = await window.friday.webSearch(call.args.query);
+                response = res || { error: 'Search failed' };
+                window.friday.addMessage('result', `🔍 Searched: ${call.args.query}`);
+            }
+            else if (call.name === 'web_deepdive') {
+                const res = await window.friday.webDeepdive(call.args.url);
+                response = res || { error: 'Deep-dive failed' };
+                window.friday.addMessage('result', `🌊 Deep-dive: ${call.args.url}`);
+            }
+            // ── Window Management Tools ──
+            else if (call.name === 'window_list') {
+                const res = await window.friday.sidecar('window.list', {});
+                response = res || { error: 'Failed to list windows' };
+                if (res && res.windows) window.friday.addMessage('result', `🪟 Found ${res.windows.length} windows`);
+            }
+            else if (call.name === 'window_focus') {
+                const res = await window.friday.sidecar('window.focus', { handle: call.args.handle });
+                response = res || { error: 'Failed to focus window' };
+                window.friday.addMessage('result', `🎯 Focused window handle ${call.args.handle}`);
+            }
+            else if (call.name === 'window_close') {
+                const res = await window.friday.sidecar('window.close', { handle: call.args.handle });
+                response = res || { error: 'Failed to close window' };
+                window.friday.addMessage('result', `❌ Closed window handle ${call.args.handle}`);
+            }
             else if (call.name === 'take_screenshot') {
                 const screenshot = await window.friday.takeScreenshot();
                 if (screenshot && screenshot.data) {
@@ -498,6 +518,22 @@ CRITICAL RULES:
                     response = { error: screenshot?.error || 'Failed to capture screenshot' };
                     window.friday.addMessage('error', `❌ Screenshot failed`);
                 }
+            }
+            // ── File System Tools ──
+            else if (call.name === 'fs_list_directory') {
+                const res = await window.friday.fsListDirectory(call.args.path);
+                response = res;
+                if (res.success) window.friday.addMessage('result', `📁 Listed directory: ${call.args.path.substring(0, 30)}`);
+            }
+            else if (call.name === 'fs_read_file') {
+                const res = await window.friday.fsReadFileStr(call.args.path);
+                response = res;
+                if (res.success) window.friday.addMessage('result', `📄 Read file: ${call.args.path.substring(0, 30)}... (${res.content.length} chars)`);
+            }
+            else if (call.name === 'fs_write_file') {
+                const res = await window.friday.fsWriteFileStr(call.args.path, call.args.content);
+                response = res;
+                if (res.success) window.friday.addMessage('result', `💾 Wrote file: ${call.args.path.substring(0, 30)}...`);
             }
             else if (call.name === 'delegate_task') {
                 const res = await window.friday.delegateTask(call.args.taskDescription);

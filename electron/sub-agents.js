@@ -8,6 +8,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const pipeClient = require('./pipe-client');
 const browserServer = require('./browser-server');
 const { shell } = require('electron');
+const toolsRegistry = require('../shared/tools-registry');
+const fsTools = require('./fs-tools');
 
 class SubAgentManager {
     constructor() {
@@ -67,60 +69,9 @@ class SubAgentManager {
     async _runAgentLoop(jobId, taskDescription) {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-        // Define exact same tools as the main agent (without screenshot for now)
+        // Load tools from shared registry
         const tools = [{
-            functionDeclarations: [
-                {
-                    name: "desktop_type_string",
-                    description: "Type a string into the currently focused application on the desktop.",
-                    parameters: { type: "OBJECT", properties: { text: { type: "STRING" } }, required: ["text"] }
-                },
-                {
-                    name: "desktop_send_chord",
-                    description: "Send a keyboard shortcut. Examples: 'Ctrl+C', 'Alt+Tab', 'Win+E', 'Enter'.",
-                    parameters: { type: "OBJECT", properties: { keys: { type: "STRING" } }, required: ["keys"] }
-                },
-                {
-                    name: "desktop_click_at",
-                    description: "Click at specific screen coordinates.",
-                    parameters: { type: "OBJECT", properties: { x: { type: "NUMBER" }, y: { type: "NUMBER" } }, required: ["x", "y"] }
-                },
-                {
-                    name: "desktop_find_element",
-                    description: "Find a UI element by name using Windows UI Automation.",
-                    parameters: { type: "OBJECT", properties: { name: { type: "STRING" }, controlType: { type: "STRING" } }, required: ["name"] }
-                },
-                {
-                    name: "desktop_dump_tree",
-                    description: "Get a tree of UI elements of the currently focused window.",
-                    parameters: { type: "OBJECT", properties: {} }
-                },
-                {
-                    name: "navigate_browser",
-                    description: "Navigate the active browser tab to a URL.",
-                    parameters: { type: "OBJECT", properties: { url: { type: "STRING" } }, required: ["url"] }
-                },
-                {
-                    name: "read_browser_dom",
-                    description: "Read the current browser page title, URL, and DOM text.",
-                    parameters: { type: "OBJECT", properties: {} }
-                },
-                {
-                    name: "evaluate_browser_js",
-                    description: "Execute JavaScript in the active browser tab.",
-                    parameters: { type: "OBJECT", properties: { script: { type: "STRING" } }, required: ["script"] }
-                },
-                {
-                    name: "open_default_browser",
-                    description: "Open a URL in the user's default system browser.",
-                    parameters: { type: "OBJECT", properties: { url: { type: "STRING" } }, required: ["url"] }
-                },
-                {
-                    name: "finish_task",
-                    description: "Call this when the task is successfully completed.",
-                    parameters: { type: "OBJECT", properties: { summary: { type: "STRING", description: "Summary of what was done" } }, required: ["summary"] }
-                }
-            ]
+            functionDeclarations: toolsRegistry.getSubAgentTools()
         }];
 
         const model = genAI.getGenerativeModel({
@@ -219,6 +170,14 @@ class SubAgentManager {
         } else if (name === 'desktop_dump_tree') {
             return await pipeClient.send('uia.dumpTree', {});
         }
+        // Window Management
+        else if (name === 'window_list') {
+            return await pipeClient.send('window.list', {});
+        } else if (name === 'window_focus') {
+            return await pipeClient.send('window.focus', { handle: args.handle });
+        } else if (name === 'window_close') {
+            return await pipeClient.send('window.close', { handle: args.handle });
+        }
         // Browser
         else if (name === 'navigate_browser') {
             return await browserServer.navigate(args.url);
@@ -229,6 +188,22 @@ class SubAgentManager {
         } else if (name === 'open_default_browser') {
             await shell.openExternal(args.url);
             return { success: true };
+        } else if (name === 'browser_back') {
+            return await browserServer.goBack();
+        } else if (name === 'browser_forward') {
+            return await browserServer.goForward();
+        } else if (name === 'web_click') {
+            return await browserServer.click(args.selector);
+        } else if (name === 'web_type') {
+            return await browserServer.type(args.selector, args.text);
+        }
+        // File System
+        else if (name === 'fs_list_directory') {
+            return await fsTools.listDirectory(args.path);
+        } else if (name === 'fs_read_file') {
+            return await fsTools.readFileStr(args.path);
+        } else if (name === 'fs_write_file') {
+            return await fsTools.writeFileStr(args.path, args.content);
         }
 
         throw new Error(`Unknown tool: ${name}`);

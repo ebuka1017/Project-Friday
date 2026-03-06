@@ -20,6 +20,12 @@ const db = require('./db');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const { installExtension, detectBrowsers } = require("./extensionInstaller");
+const toolsRegistry = require('../shared/tools-registry');
+const fsTools = require('./fs-tools');
+const sysinfoTools = require('./sysinfo-tools');
+const notificationTools = require('./notification-tools');
+const networkTools = require('./network-tools');
+const searchTools = require('./search-tools');
 require('./clerk-fetch-user');
 require('dotenv').config();
 
@@ -62,12 +68,18 @@ console.error = (...args) => broadcastLog('error', ...args);
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 let mainWindow = null;
-let isAuthenticated = false; // Clerk Auth Gate
+let currentUser = null;
 
-ipcMain.handle('auth:setStatus', (_, status) => {
+ipcMain.handle('auth:setStatus', (_, status, user) => {
     isAuthenticated = status;
-    console.log(`[Auth] User authentication status set to: ${status}`);
+    currentUser = user || null;
+    console.log(`[Auth] User status: ${status}, User: ${currentUser?.email || 'none'}`);
     return true;
+});
+
+ipcMain.handle('app:getUserProfile', async () => {
+    if (!isAuthenticated || !currentUser) return { error: 'Not signed in' };
+    return currentUser;
 });
 
 // Voice control routing (HUD -> Main Window)
@@ -119,6 +131,148 @@ ipcMain.handle('browser:getDOM', async () => {
     } catch (e) {
         console.error('[Browser] GetDOM Error:', e);
         return null;
+    }
+});
+ipcMain.handle('browser:goBack', async () => {
+    try {
+        db.logAudit('browser_goback').catch(e => console.error('[Audit]', e));
+        return await browserServer.goBack();
+    } catch (e) {
+        console.error('[Browser] GoBack Error:', e);
+        return false;
+    }
+});
+ipcMain.handle('browser:goForward', async () => {
+    try {
+        db.logAudit('browser_goforward').catch(e => console.error('[Audit]', e));
+        return await browserServer.goForward();
+    } catch (e) {
+        console.error('[Browser] GoForward Error:', e);
+        return false;
+    }
+});
+ipcMain.handle('browser:click', async (_, selector) => {
+    try {
+        db.logAudit('browser_click', { selector }).catch(e => console.error('[Audit]', e));
+        return await browserServer.clickTarget(selector);
+    } catch (e) {
+        console.error('[Browser] Click Error:', e.message);
+        return { error: e.message };
+    }
+});
+ipcMain.handle('browser:type', async (_, selector, text) => {
+    try {
+        db.logAudit('browser_type', { selector, text }).catch(e => console.error('[Audit]', e));
+        return await browserServer.typeTarget(selector, text);
+    } catch (e) {
+        console.error('[Browser] Type Error:', e.message);
+        return { error: e.message };
+    }
+});
+
+ipcMain.handle('browser:screenshot', async () => {
+    try {
+        db.logAudit('browser_screenshot').catch(e => console.error('[Audit]', e));
+        return await browserServer.captureScreenshot();
+    } catch (e) {
+        console.error('[Browser] Screenshot Error:', e.message);
+        return null;
+    }
+});
+ipcMain.handle('browser:annotate', async () => {
+    try { return await browserServer.annotateInteractiveElements(); }
+    catch (e) { console.error('[Browser] Annotate Error:', e.message); return null; }
+});
+ipcMain.handle('browser:clearAnnotations', async () => {
+    try { return await browserServer.removeAnnotations(); }
+    catch (e) { console.error('[Browser] ClearAnnotations Error:', e.message); return null; }
+});
+
+ipcMain.handle('app:getSystemInfo', async () => {
+    try {
+        db.logAudit('get_system_info').catch(e => console.error('[Audit]', e));
+        return await sysinfoTools.getSystemInfo();
+    } catch (e) {
+        console.error('[SysInfo] IPC Error:', e.message);
+        return { error: e.message };
+    }
+});
+
+ipcMain.handle('app:showNotification', async (_, title, body) => {
+    try {
+        db.logAudit('show_notification', { title }).catch(e => console.error('[Audit]', e));
+        return notificationTools.showNotification(title, body);
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+
+ipcMain.handle('app:showMessageDialog', async (_, options) => {
+    try {
+        db.logAudit('show_message_dialog', { title: options.title }).catch(e => console.error('[Audit]', e));
+        return await notificationTools.showMessageDialog(options);
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+
+ipcMain.handle('app:httpRequest', async (_, options) => {
+    try {
+        db.logAudit('http_request', { url: options.url, method: options.method }).catch(e => console.error('[Audit]', e));
+        return await networkTools.httpRequest(options);
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+
+ipcMain.handle('app:webSearch', async (_, query) => {
+    try {
+        db.logAudit('web_search', { query }).catch(e => console.error('[Audit]', e));
+        return await searchTools.webSearch(query);
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+
+ipcMain.handle('app:webDeepdive', async (_, url) => {
+    try {
+        db.logAudit('web_deepdive', { url }).catch(e => console.error('[Audit]', e));
+        return await searchTools.webDeepdive(url);
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+
+// ── Shared Tools Registry ────────────────────────────────────────────────
+ipcMain.handle('app:getAgentTools', () => {
+    return toolsRegistry.getAllTools();
+});
+
+// ── Native File System Tools ─────────────────────────────────────────────
+ipcMain.handle('fs:listDirectory', async (_, path) => {
+    try {
+        db.logAudit('fs_list_directory', { path }).catch(e => console.error('[Audit]', e));
+        return await fsTools.listDirectory(path);
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+ipcMain.handle('fs:readFileStr', async (_, path) => {
+    try {
+        db.logAudit('fs_read_file', { path }).catch(e => console.error('[Audit]', e));
+        return await fsTools.readFileStr(path);
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+ipcMain.handle('fs:writeFileStr', async (_, path, content) => {
+    try {
+        db.logAudit('fs_write_file', { path }).catch(e => console.error('[Audit]', e));
+        return await fsTools.writeFileStr(path, content);
+    } catch (e) {
+        return { success: false, error: e.message };
     }
 });
 
@@ -329,7 +483,7 @@ ipcMain.handle('sidecar:send', async (_, method, params) => {
     if (!pipeClient.isConnected) return { error: 'Engine not connected' };
     try {
         // Audit log destructive sidecar actions
-        const actionableMethods = ['input.typeString', 'input.sendChord', 'input.clickAt'];
+        const actionableMethods = ['input.typeString', 'input.sendChord', 'input.clickAt', 'process.kill'];
         if (actionableMethods.includes(method)) {
             db.logAudit(`sidecar_${method}`, params).catch(e => console.error('[Audit]', e));
         }

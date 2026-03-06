@@ -44,8 +44,28 @@ contextBridge.exposeInMainWorld('friday', {
     // Get available skills list
     getSkills: () => ipcRenderer.invoke('app:getSkills'),
 
+    // Get dynamic tool registry
+    getAgentTools: () => ipcRenderer.invoke('app:getAgentTools'),
+
     // Take a screenshot of the screen
     takeScreenshot: () => ipcRenderer.invoke('app:takeScreenshot'),
+
+    // Get system information
+    getSystemInfo: () => ipcRenderer.invoke('app:getSystemInfo'),
+
+    // Notifications and Dialogs
+    showNotification: (title, body) => ipcRenderer.invoke('app:showNotification', title, body),
+    showMessageDialog: (options) => ipcRenderer.invoke('app:showMessageDialog', options),
+
+    // Network and HTTP
+    httpRequest: (options) => ipcRenderer.invoke('app:httpRequest', options),
+
+    // Authentication / User Profile
+    getUserProfile: () => ipcRenderer.invoke('app:getUserProfile'),
+
+    // Web Search
+    webSearch: (query) => ipcRenderer.invoke('app:webSearch', query),
+    webDeepdive: (url) => ipcRenderer.invoke('app:webDeepdive', url),
 
     // Check browser extension connection
     browserPing: () => ipcRenderer.invoke('browser:ping'),
@@ -59,7 +79,12 @@ contextBridge.exposeInMainWorld('friday', {
     // Window Management for Main App
     minimize: () => ipcRenderer.invoke('app:minimize'),
     maximize: () => ipcRenderer.invoke('app:maximize'),
-    close: () => ipcRenderer.invoke('app:quit'),
+    close: () => ipcRenderer.invoke('app:close'),
+
+    // ── Native File System Tools ──
+    fsListDirectory: (path) => ipcRenderer.invoke('fs:listDirectory', path),
+    fsReadFileStr: (path) => ipcRenderer.invoke('fs:readFileStr', path),
+    fsWriteFileStr: (path, content) => ipcRenderer.invoke('fs:writeFileStr', path, content),
 
     // ── Browser Control (CDP) ───────────────────────────────────────
     browser: {
@@ -67,7 +92,14 @@ contextBridge.exposeInMainWorld('friday', {
         disconnect: () => ipcRenderer.invoke('browser:disconnect'),
         navigate: (url) => ipcRenderer.invoke('browser:navigate', url),
         evaluate: (expression) => ipcRenderer.invoke('browser:evaluate', expression),
-        getDOM: () => ipcRenderer.invoke('browser:getDOM')
+        getDOM: () => ipcRenderer.invoke('browser:getDOM'),
+        goBack: () => ipcRenderer.invoke('browser:goBack'),
+        goForward: () => ipcRenderer.invoke('browser:goForward'),
+        click: (selector) => ipcRenderer.invoke('browser:click', selector),
+        type: (selector, text) => ipcRenderer.invoke('browser:type', selector, text),
+        screenshot: () => ipcRenderer.invoke('browser:screenshot'),
+        annotate: () => ipcRenderer.invoke('browser:annotate'),
+        clearAnnotations: () => ipcRenderer.invoke('browser:clearAnnotations')
     },
 
     // ── Shared State ────────────────────────────────────────────────

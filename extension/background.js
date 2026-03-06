@@ -54,6 +54,22 @@ async function handleCommand(method, params) {
         return await getDOM();
     } else if (method === "evaluate") {
         return await evaluate(params.expression);
+    } else if (method === "goBack") {
+        return await goBack();
+    } else if (method === "goForward") {
+        return await goForward();
+    } else if (method === "click") {
+        return await click(params.selector);
+    } else if (method === "type") {
+        return await type(params.selector, params.text);
+    } else if (method === "cdp") {
+        const tabId = await ensureDebugger();
+        return new Promise((resolve, reject) => {
+            chrome.debugger.sendCommand({ tabId }, params.command, params.args || {}, (result) => {
+                if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+                resolve(result || {});
+            });
+        });
     }
     throw new Error(`Unknown method: ${method}`);
 }
@@ -139,6 +155,58 @@ async function evaluate(expression) {
             resolve(result.result.value);
         });
     });
+}
+
+async function goBack() {
+    return await evaluate("window.history.back()");
+}
+
+async function goForward() {
+    return await evaluate("window.history.forward()");
+}
+
+async function click(selector) {
+    // Escape quotes in selector to prevent injection breaking the script
+    const safeSelector = selector.replace(/"/g, '\\"');
+    return await evaluate(`
+        (function() {
+            const el = document.querySelector("${safeSelector}");
+            if (!el) throw new Error("Element not found: ${safeSelector}");
+            el.click();
+            return true;
+        })()
+    `);
+}
+
+async function type(selector, text) {
+    const safeSelector = selector.replace(/"/g, '\\"');
+    const safeText = text.replace(/"/g, '\\"').replace(/\\n/g, '\\\\n');
+    return await evaluate(`
+        (function() {
+            const el = document.querySelector("${safeSelector}");
+            if (!el) throw new Error("Element not found: ${safeSelector}");
+            
+            el.focus();
+            
+            // Try native setter first for React 16+ compatibility
+            try {
+                const proto = Object.getPrototypeOf(el);
+                const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set 
+                                  || Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                if (nativeSetter) {
+                    nativeSetter.call(el, "${safeText}");
+                } else {
+                    el.value = "${safeText}";
+                }
+            } catch (e) {
+                el.value = "${safeText}";
+            }
+            
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+        })()
+    `);
 }
 
 // Handle detachment external to us

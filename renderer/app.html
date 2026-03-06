@@ -2635,9 +2635,10 @@
                     thinkingFeed.classList.remove('has-items');
                     thinkingFeed.innerHTML = `
                         <div class="empty-state" id="emptyState">
-                          <div class="icon">◆</div>
-                          <h2>Ready to assist</h2>
-                          <p>Press the mic to start a voice session. Friday will show its thinking process and actions here.</p>
+                            <img src="assets/logo.png" alt="Friday Logo"
+                                style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 12px;">
+                            <h2>Hello, how can i assist you?</h2>
+                            <p>Press the mic to start a voice session. Friday will show its thinking process and actions here.</p>
                         </div>
                     `;
                 }
@@ -2917,7 +2918,7 @@
 
                     taskList.innerHTML = '';
                     if (filtered.length === 0) {
-                        taskList.innerHTML = `< div style = "color:var(--text-muted); padding:20px; text-align:center;" > No ${currentTaskFilter} background tasks.</div > `;
+                        taskList.innerHTML = `<div style="color:var(--text-muted); padding:20px; text-align:center;">No ${currentTaskFilter} background tasks.</div>`;
                         return;
                     }
 
@@ -2933,13 +2934,13 @@
                         }
 
                         el.innerHTML = `
-                    < div class="task-header" >
+                            <div class="task-header">
                                 <div class="task-title">${escapeHtml(task.description)}</div>
                                 <div class="task-badge badge-${task.status}">${task.status}</div>
-                            </div >
+                            </div>
                             <div class="task-id">${task.id}</div>
                             <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">${escapeHtml(excerpt)}</div>
-                `;
+                        `;
 
                         el.addEventListener('click', () => showTaskModal(task));
                         taskList.appendChild(el);
@@ -2966,26 +2967,26 @@
                     modalBody.appendChild(p);
 
                     if (!task.history || task.history.length === 0) {
-                        modalBody.innerHTML += `< div style = "color:var(--text-muted); padding: 20px;" > No execution trace yet.</div > `;
+                        modalBody.innerHTML += `<div style="color:var(--text-muted); padding: 20px;">No execution trace yet.</div>`;
                     } else {
                         task.history.forEach(item => {
                             const timeStr = item.time.split('T')[1].slice(0, 8);
                             const el = document.createElement('div');
                             el.className = 'trace-item';
 
-                            let mainContent = `< div class="trace-content" > ${escapeHtml(item.content)}</div > `;
+                            let mainContent = `<div class="trace-content">${escapeHtml(item.content)}</div>`;
                             if (item.type === 'tool') {
-                                mainContent = `< div class="trace-content" > <strong>Callable:</strong> ${item.name}</div >
-                    <pre>${escapeHtml(JSON.stringify(item.args, null, 2))}</pre>`;
+                                mainContent = `<div class="trace-content"><strong>Callable:</strong> ${item.name}</div>
+                                <pre>${escapeHtml(JSON.stringify(item.args, null, 2))}</pre>`;
                             }
 
                             el.innerHTML = `
-                        < div class="trace-meta" >
+                                <div class="trace-meta">
                                     <span class="trace-type ${item.type}">${item.type}</span>
                                     <span>${timeStr}</span>
-                                </div >
-                    ${mainContent}
-                `;
+                                </div>
+                                ${mainContent}
+                            `;
                             modalBody.appendChild(el);
                         });
                     }

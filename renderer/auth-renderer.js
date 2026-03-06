@@ -23,8 +23,8 @@
         console.log('[AuthRenderer] State updated:', _authState.status, _authState.user?.email || '');
         _listeners.forEach((fn) => fn(_authState));
 
-        // Notify main process of auth status for route protection
-        window.friday.setAuthStatus(_authState.status === 'authenticated');
+        // Notify main process of auth status and user profile for route protection and tools
+        window.friday.setAuthStatus(_authState.status === 'authenticated', _authState.user);
     }
 
     function onAuthStateChange(fn) {
