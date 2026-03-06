@@ -67,6 +67,24 @@ contextBridge.exposeInMainWorld('friday', {
     webSearch: (query) => ipcRenderer.invoke('app:webSearch', query),
     webDeepdive: (url) => ipcRenderer.invoke('app:webDeepdive', url),
 
+    // Connectors
+    openConnector: (type) => ipcRenderer.invoke('app:openConnector', type),
+
+    // Productivity Tools
+    gmailList: () => ipcRenderer.invoke('app:gmailList'),
+    gmailRead: (id) => ipcRenderer.invoke('app:gmailRead', id),
+    gmailSend: (args) => ipcRenderer.invoke('app:gmailSend', args),
+
+    calendarGoogleList: () => ipcRenderer.invoke('app:calendarGoogleList'),
+    calendarGoogleCreate: (event) => ipcRenderer.invoke('app:calendarGoogleCreate', event),
+
+    driveList: (query) => ipcRenderer.invoke('app:driveList', query),
+    driveRead: (fileId) => ipcRenderer.invoke('app:driveRead', fileId),
+
+    outlookList: () => ipcRenderer.invoke('app:outlookList'),
+    outlookSend: (args) => ipcRenderer.invoke('app:outlookSend', args),
+    calendarOutlookList: () => ipcRenderer.invoke('app:calendarOutlookList'),
+
     // Check browser extension connection
     browserPing: () => ipcRenderer.invoke('browser:ping'),
 

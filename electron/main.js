@@ -7,7 +7,9 @@ const { app, globalShortcut, ipcMain, BrowserWindow, session, shell, Tray, Menu,
 const { createHUD, toggleHUD, hideHUD, getWindow } = require('./hud');
 const sidecar = require('./sidecar-launcher');
 const pipeClient = require('./pipe-client');
-const { registerDeepLink, setMainWindow } = require('./auth-main');
+const searchTools = require('./search-tools');
+const productivityTools = require('./productivity-tools');
+const { registerDeepLink, setMainWindow, handleDeepLinkUrl } = require('./auth-main');
 
 // Register deep link early, before app ready
 registerDeepLink();
@@ -241,6 +243,65 @@ ipcMain.handle('app:webDeepdive', async (_, url) => {
     } catch (e) {
         return { error: e.message };
     }
+});
+
+ipcMain.handle('app:openConnector', async () => {
+    // Direct users to Clerk's hosted profile page to manage social connections
+    const clerkProfileUrl = 'https://singular-alien-87.accounts.dev/user';
+    await shell.openExternal(clerkProfileUrl);
+    return { success: true };
+});
+
+// ── Productivity Tools ──
+
+ipcMain.handle('app:gmailList', async () => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.gmailList(currentUser.id);
+});
+
+ipcMain.handle('app:gmailRead', async (_, id) => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.gmailRead(currentUser.id, id);
+});
+
+ipcMain.handle('app:gmailSend', async (_, args) => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.gmailSend(currentUser.id, args);
+});
+
+ipcMain.handle('app:calendarGoogleList', async () => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.calendarGoogleList(currentUser.id);
+});
+
+ipcMain.handle('app:calendarGoogleCreate', async (_, event) => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.calendarGoogleCreate(currentUser.id, event);
+});
+
+ipcMain.handle('app:driveList', async (_, query) => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.driveList(currentUser.id, query);
+});
+
+ipcMain.handle('app:driveRead', async (_, fileId) => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.driveRead(currentUser.id, fileId);
+});
+
+ipcMain.handle('app:outlookList', async () => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.outlookList(currentUser.id);
+});
+
+ipcMain.handle('app:outlookSend', async (_, args) => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.outlookSend(currentUser.id, args);
+});
+
+ipcMain.handle('app:calendarOutlookList', async () => {
+    if (!currentUser) return { error: 'Not authenticated' };
+    return await productivityTools.calendarOutlookList(currentUser.id);
 });
 
 // ── Shared Tools Registry ────────────────────────────────────────────────

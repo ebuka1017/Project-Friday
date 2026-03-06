@@ -473,6 +473,60 @@ CRITICAL RULES:
                 response = res || { error: 'Deep-dive failed' };
                 window.friday.addMessage('result', `🌊 Deep-dive: ${call.args.url}`);
             }
+            // ── Gmail ──
+            else if (call.name === 'gmail_list') {
+                const res = await window.friday.gmailList();
+                response = res || { error: 'Failed to list Gmail' };
+                window.friday.addMessage('result', `📧 Gmail: Listed messages`);
+            }
+            else if (call.name === 'gmail_read') {
+                const res = await window.friday.gmailRead(call.args.id);
+                response = res || { error: 'Failed to read Gmail' };
+                window.friday.addMessage('result', `📧 Gmail: Read message ${call.args.id}`);
+            }
+            else if (call.name === 'gmail_send') {
+                const res = await window.friday.gmailSend(call.args);
+                response = res || { error: 'Failed to send Gmail' };
+                window.friday.addMessage('result', `📧 Gmail: Sent to ${call.args.to}`);
+            }
+            // ── Google Calendar ──
+            else if (call.name === 'calendar_google_list') {
+                const res = await window.friday.calendarGoogleList();
+                response = res || { error: 'Failed' };
+                window.friday.addMessage('result', `📅 Google Cal: Listed events`);
+            }
+            else if (call.name === 'calendar_google_create') {
+                const res = await window.friday.calendarGoogleCreate(call.args);
+                response = res || { error: 'Failed' };
+                window.friday.addMessage('result', `📅 Google Cal: Created event`);
+            }
+            // ── Google Drive ──
+            else if (call.name === 'drive_list') {
+                const res = await window.friday.driveList(call.args.query);
+                response = res || { error: 'Failed' };
+                window.friday.addMessage('result', `📂 Drive: Searched "${call.args.query || ''}"`);
+            }
+            else if (call.name === 'drive_read') {
+                const res = await window.friday.driveRead(call.args.fileId);
+                response = res || { error: 'Failed' };
+                window.friday.addMessage('result', `📂 Drive: Read metadata for ${call.args.fileId}`);
+            }
+            // ── Outlook ──
+            else if (call.name === 'outlook_list') {
+                const res = await window.friday.outlookList();
+                response = res || { error: 'Failed' };
+                window.friday.addMessage('result', `📧 Outlook: Listed messages`);
+            }
+            else if (call.name === 'outlook_send') {
+                const res = await window.friday.outlookSend(call.args);
+                response = res || { error: 'Failed' };
+                window.friday.addMessage('result', `📧 Outlook: Sent to ${call.args.to}`);
+            }
+            else if (call.name === 'calendar_outlook_list') {
+                const res = await window.friday.calendarOutlookList();
+                response = res || { error: 'Failed' };
+                window.friday.addMessage('result', `📅 Outlook Cal: Listed events`);
+            }
             // ── Window Management Tools ──
             else if (call.name === 'window_list') {
                 const res = await window.friday.sidecar('window.list', {});

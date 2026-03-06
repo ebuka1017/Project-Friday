@@ -650,9 +650,20 @@
         }
 
         .menu-toggle-opt.active {
-            background: var(--accent);
-            color: #fff;
+            background: var(--accent) !important;
+            color: #fff !important;
             box-shadow: 0 2px 8px var(--accent-glow);
+        }
+
+        .connector-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .connector-status {
+            font-size: 11px;
+            color: var(--text-muted);
         }
 
         /* ═══ Active Session View ═══ */
@@ -891,6 +902,7 @@
             border-color: var(--accent);
             box-shadow: 0 0 20px var(--accent-glow);
         }
+
 
         .vc-mic.listening {
             background: var(--accent);
@@ -2151,6 +2163,42 @@
                             <button class="settings-action-btn" id="installExtensionBtn">Install Extension</button>
                         </div>
                     </div>
+
+                    <h3 class="settings-section-title" style="margin-top:24px;">Connectors</h3>
+                    <p class="setting-desc" style="margin-bottom:12px;">Link external accounts to enable Email,
+                        Calendar, and Drive tools.</p>
+                    <div class="connectors-grid">
+                        <div class="connector-card" id="connGmail">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg"
+                                class="connector-icon" alt="Gmail">
+                            <span class="connector-name">Gmail</span>
+                            <span class="connector-status">Disconnected</span>
+                        </div>
+                        <div class="connector-card" id="connGoogleCalendar">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg"
+                                class="connector-icon" alt="Calendar">
+                            <span class="connector-name">Google Calendar</span>
+                            <span class="connector-status">Disconnected</span>
+                        </div>
+                        <div class="connector-card" id="connGoogleDrive">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg"
+                                class="connector-icon" alt="Drive">
+                            <span class="connector-name">Google Drive</span>
+                            <span class="connector-status">Read-only only</span>
+                        </div>
+                        <div class="connector-card" id="connOutlook">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg"
+                                class="connector-icon" alt="Outlook">
+                            <span class="connector-name">Outlook</span>
+                            <span class="connector-status">Disconnected</span>
+                        </div>
+                        <div class="connector-card" id="connOutlookCalendar">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg"
+                                class="connector-icon" alt="Outlook Calendar">
+                            <span class="connector-name">Outlook Calendar</span>
+                            <span class="connector-status">Disconnected</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="settings-section">
@@ -3151,6 +3199,59 @@
 
                 if (settingsVoiceModeToggle) settingsVoiceModeToggle.addEventListener('click', handleVoiceModeClick);
                 if (appVoiceModeToggle) appVoiceModeToggle.addEventListener('click', handleVoiceModeClick);
+
+                // Spacebar activation
+                window.addEventListener('keydown', async (e) => {
+                    if (e.code === 'Space') {
+                        const activeEl = document.activeElement;
+                        const isInput = activeEl && (
+                            activeEl.tagName === 'INPUT' ||
+                            activeEl.tagName === 'TEXTAREA' ||
+                            activeEl.isContentEditable
+                        );
+                        if (isInput || e.repeat) return;
+
+                        e.preventDefault();
+                        const state = await window.friday.getState();
+
+                        if (state.voiceMode === 'ptt') {
+                            window.friday.startVoice();
+                        } else {
+                            // Toggle for handsfree
+                            if (state.status === 'listening' || state.status === 'thinking' || state.status === 'speaking') {
+                                window.friday.stopVoice();
+                            } else {
+                                window.friday.startVoice();
+                            }
+                        }
+                    }
+                });
+
+                window.addEventListener('keyup', async (e) => {
+                    if (e.code === 'Space') {
+                        const state = await window.friday.getState();
+                        if (state.voiceMode === 'ptt') {
+                            window.friday.stopVoice();
+                        }
+                    }
+                });
+
+                // ── Connectors ──────────────────────────────────────────────────
+                const connectors = ['connGmail', 'connGoogleCalendar', 'connGoogleDrive', 'connOutlook', 'connOutlookCalendar'];
+                connectors.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.addEventListener('click', async () => {
+                            const name = el.querySelector('.connector-name').textContent;
+                            window.friday.showNotification({
+                                title: 'Connector Requested',
+                                body: `Redirecting to authenticate with ${name}...`
+                            });
+                            // Trigger mock or real OAuth flow
+                            window.friday.openConnector(id.replace('conn', '').toLowerCase());
+                        });
+                    }
+                });
 
                 // Keep checkbox in sync with state
                 const origApplyState = applyState;

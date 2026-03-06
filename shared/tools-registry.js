@@ -32,6 +32,106 @@ const BrowserTools = [
         }
     },
     {
+        name: 'web_deepdive',
+        description: 'Scrape a specific URL into Markdown for deep context or analysis.',
+        parameters: {
+            type: 'object',
+            properties: {
+                url: { type: 'string', description: 'The absolute URL to scrape.' }
+            },
+            required: ['url']
+        }
+    },
+    // ── Email Tools ──
+    {
+        name: 'gmail_list',
+        description: 'List the 10 most recent email message IDs and snippets from Gmail.',
+        parameters: { type: 'object', properties: {} }
+    },
+    {
+        name: 'gmail_read',
+        description: 'Read the full content of a specific Gmail message.',
+        parameters: {
+            type: 'object',
+            properties: { id: { type: 'string', description: 'The message ID to read.' } },
+            required: ['id']
+        }
+    },
+    {
+        name: 'gmail_send',
+        description: 'Send a new email message via Gmail.',
+        parameters: {
+            type: 'object',
+            properties: {
+                to: { type: 'string', description: 'Recipient email address.' },
+                subject: { type: 'string', description: 'Subject of the email.' },
+                body: { type: 'string', description: 'Body text of the email.' }
+            },
+            required: ['to', 'subject', 'body']
+        }
+    },
+    // ── Calendar Tools ──
+    {
+        name: 'calendar_google_list',
+        description: 'List primary Google Calendar events.',
+        parameters: { type: 'object', properties: {} }
+    },
+    {
+        name: 'calendar_google_create',
+        description: 'Create a new event in the primary Google Calendar.',
+        parameters: {
+            type: 'object',
+            properties: {
+                summary: { type: 'string', description: 'Event title.' },
+                start: { type: 'object', description: 'Start time (e.g., {dateTime: "2024-03-10T10:00:00Z"}).' },
+                end: { type: 'object', description: 'End time.' }
+            },
+            required: ['summary', 'start', 'end']
+        }
+    },
+    // ── Drive Tools ──
+    {
+        name: 'drive_list',
+        description: 'Search and list files in Google Drive.',
+        parameters: {
+            type: 'object',
+            properties: { query: { type: 'string', description: 'Search query (e.g., "name contains \'report\'").' } }
+        }
+    },
+    {
+        name: 'drive_read',
+        description: 'Get metadata and download/export links for a Google Drive file.',
+        parameters: {
+            type: 'object',
+            properties: { fileId: { type: 'string', description: 'The file ID to read.' } },
+            required: ['fileId']
+        }
+    },
+    // ── Outlook/Graph Tools ──
+    {
+        name: 'outlook_list',
+        description: 'List recent Outlook email messages.',
+        parameters: { type: 'object', properties: {} }
+    },
+    {
+        name: 'outlook_send',
+        description: 'Send a new email via Outlook.',
+        parameters: {
+            type: 'object',
+            properties: {
+                to: { type: 'string', description: 'Recipient email.' },
+                subject: { type: 'string', description: 'Subject.' },
+                body: { type: 'string', description: 'Body content.' }
+            },
+            required: ['to', 'subject', 'body']
+        }
+    },
+    {
+        name: 'calendar_outlook_list',
+        description: 'List recent Outlook calendar events.',
+        parameters: { type: 'object', properties: {} }
+    },
+    {
         name: "open_default_browser",
         description: "Open a URL in the user's default system browser.",
         parameters: {
