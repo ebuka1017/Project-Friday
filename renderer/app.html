@@ -656,14 +656,53 @@
         }
 
         .connector-name {
-            font-size: 13px;
-            font-weight: 500;
+            font-size: 14px;
+            font-weight: 600;
             color: var(--text);
         }
 
         .connector-status {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
+        }
+
+        .connectors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .connector-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .connector-card:hover {
+            border-color: var(--accent);
+            background: var(--bg-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .connector-icon {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .connector-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
         /* ═══ Active Session View ═══ */
@@ -2169,34 +2208,44 @@
                         Calendar, and Drive tools.</p>
                     <div class="connectors-grid">
                         <div class="connector-card" id="connGmail">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg"
+                            <img src="https://cdn.brandfetch.io/id5o3EIREg/w/800/h/601/theme/dark/symbol.png?c=1bxid64Mup7aczewSAYMX&t=1696475443284"
                                 class="connector-icon" alt="Gmail">
-                            <span class="connector-name">Gmail</span>
-                            <span class="connector-status">Disconnected</span>
+                            <div class="connector-info">
+                                <span class="connector-name">Gmail</span>
+                                <span class="connector-status">Disconnected</span>
+                            </div>
                         </div>
                         <div class="connector-card" id="connGoogleCalendar">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg"
+                            <img src="https://cdn.brandfetch.io/id6O2oGzv-/w/800/h/800/theme/dark/idMX2_OMSc.png?c=1bxid64Mup7aczewSAYMX&t=1755572706253"
                                 class="connector-icon" alt="Calendar">
-                            <span class="connector-name">Google Calendar</span>
-                            <span class="connector-status">Disconnected</span>
+                            <div class="connector-info">
+                                <span class="connector-name">Google Calendar</span>
+                                <span class="connector-status">Disconnected</span>
+                            </div>
                         </div>
                         <div class="connector-card" id="connGoogleDrive">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg"
+                            <img src="https://cdn.brandfetch.io/id6O2oGzv-/w/800/h/714/theme/dark/idncaAgFGT.png?c=1bxid64Mup7aczewSAYMX&t=1755572716016"
                                 class="connector-icon" alt="Drive">
-                            <span class="connector-name">Google Drive</span>
-                            <span class="connector-status">Read-only only</span>
+                            <div class="connector-info">
+                                <span class="connector-name">Google Drive</span>
+                                <span class="connector-status">Read-only only</span>
+                            </div>
                         </div>
                         <div class="connector-card" id="connOutlook">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg"
+                            <img src="https://cdn.brandfetch.io/idgdw68PEO/w/900/h/842/theme/dark/logo.jpeg?c=1bxid64Mup7aczewSAYMX&t=1667605535117"
                                 class="connector-icon" alt="Outlook">
-                            <span class="connector-name">Outlook</span>
-                            <span class="connector-status">Disconnected</span>
+                            <div class="connector-info">
+                                <span class="connector-name">Outlook</span>
+                                <span class="connector-status">Disconnected</span>
+                            </div>
                         </div>
                         <div class="connector-card" id="connOutlookCalendar">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg"
+                            <img src="https://cdn.brandfetch.io/idgdw68PEO/w/900/h/842/theme/dark/logo.jpeg?c=1bxid64Mup7aczewSAYMX&t=1667605535117"
                                 class="connector-icon" alt="Outlook Calendar">
-                            <span class="connector-name">Outlook Calendar</span>
-                            <span class="connector-status">Disconnected</span>
+                            <div class="connector-info">
+                                <span class="connector-name">Outlook Calendar</span>
+                                <span class="connector-status">Disconnected</span>
+                            </div>
                         </div>
                     </div>
                 </div>

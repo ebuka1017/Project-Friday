@@ -9,7 +9,24 @@
     "build": "npm run build:sidecar && electron-builder",
     "test:pipe": "node electron/test-pipe.js"
   },
+  "author": "Project Friday Team",
+  "license": "MIT",
   "build": {
+    "compression": "store",
+    "appId": "com.projectfriday.app",
+    "productName": "Friday",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "zip",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true
+    },
     "protocols": [
       {
         "name": "Project Friday",
@@ -19,8 +36,6 @@
       }
     ]
   },
-  "author": "Project Friday",
-  "license": "MIT",
   "devDependencies": {
     "electron": "^34.0.0",
     "electron-builder": "^25.0.0"
