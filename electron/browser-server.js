@@ -181,40 +181,43 @@ class BrowserServer {
         return await this.sendRequest('cdp', { command, args });
     }
 
-    /** Resolve target using Phase 1 (A11y) */
-    async resolveWebTarget(target) {
-        // Phase 1: Accessibility tree
-        try {
-            const axTree = await this.sendCDP("Accessibility.getFullAXTree");
-            const nodes = axTree.nodes || [];
+    /** Resolve target using Phase 1 (A11y) with retries */
+    async resolveWebTarget(target, retries = 3) {
+        for (let i = 0; i < retries; i++) {
+            // Phase 1: Accessibility tree
+            try {
+                const axTree = await this.sendCDP("Accessibility.getFullAXTree");
+                const nodes = axTree.nodes || [];
 
-            const targetLower = target.toLowerCase();
-            let candidates = [];
+                const targetLower = target.toLowerCase();
+                let candidates = [];
 
-            for (let node of nodes) {
-                let name = node.name && node.name.value ? node.name.value.toLowerCase() : "";
+                for (let node of nodes) {
+                    let name = node.name && node.name.value ? node.name.value.toLowerCase() : "";
 
-                if (name && (name === targetLower || name.includes(targetLower))) {
-                    candidates.push({ node, score: name === targetLower ? 0 : 1 });
-                }
-            }
-
-            if (candidates.length > 0) {
-                candidates.sort((a, b) => a.score - b.score);
-                const bestNode = candidates[0].node;
-
-                if (bestNode.backendDOMNodeId) {
-                    const boxResult = await this.sendCDP("DOM.getBoxModel", { backendNodeId: bestNode.backendDOMNodeId });
-                    const content = boxResult.model.content;
-                    if (content && content.length >= 8) {
-                        const x = content[0], y = content[1];
-                        const w = content[2] - content[0], h = content[5] - content[1];
-                        return { x: Math.floor(x + w / 2), y: Math.floor(y + h / 2) };
+                    if (name && (name === targetLower || name.includes(targetLower))) {
+                        candidates.push({ node, score: name === targetLower ? 0 : 1 });
                     }
                 }
+
+                if (candidates.length > 0) {
+                    candidates.sort((a, b) => a.score - b.score);
+                    const bestNode = candidates[0].node;
+
+                    if (bestNode.backendDOMNodeId) {
+                        const boxResult = await this.sendCDP("DOM.getBoxModel", { backendNodeId: bestNode.backendDOMNodeId });
+                        const content = boxResult.model.content;
+                        if (content && content.length >= 8) {
+                            const x = content[0], y = content[1];
+                            const w = content[2] - content[0], h = content[5] - content[1];
+                            return { x: Math.floor(x + w / 2), y: Math.floor(y + h / 2) };
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("[BrowserServer] A11y Resolve Error:", e);
             }
-        } catch (e) {
-            console.error("[BrowserServer] A11y Resolve Error:", e);
+            if (i < retries - 1) await new Promise(r => setTimeout(r, 1000));
         }
         return null;
     }

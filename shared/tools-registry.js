@@ -1,16 +1,16 @@
-// ═══════════════════════════════════════════════════════════════════════
-// shared/tools-registry.js — Master Registry for Gemini Agent Tools
+// =========================================================================
+// shared/tools-registry.js - Master Registry for Gemini Agent Tools
 // Centralizes tool definitions for both VoiceClient and Async Sub-Agents.
-// ═══════════════════════════════════════════════════════════════════════
+// =========================================================================
 
 const BrowserTools = [
     {
         name: "navigate_browser",
         description: "Navigate the browser to a URL. The URL must be in the user's allowlist.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                url: { type: "STRING", description: "The full URL to navigate to" }
+                url: { type: "string", description: "The full URL to navigate to" }
             },
             required: ["url"]
         }
@@ -18,15 +18,15 @@ const BrowserTools = [
     {
         name: "read_browser_dom",
         description: "Read the current browser page title, URL, and DOM text. Useful for understanding what's on the screen.",
-        parameters: { type: "OBJECT", properties: {} }
+        parameters: { type: "object", properties: {} }
     },
     {
         name: "evaluate_browser_js",
         description: "Execute JavaScript in the active browser tab. Use for clicking, scrolling, extracting data.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                script: { type: "STRING", description: "JavaScript code to execute" }
+                script: { type: "string", description: "JavaScript code to execute" }
             },
             required: ["script"]
         }
@@ -83,8 +83,22 @@ const BrowserTools = [
             type: 'object',
             properties: {
                 summary: { type: 'string', description: 'Event title.' },
-                start: { type: 'object', description: 'Start time (e.g., {dateTime: "2024-03-10T10:00:00Z"}).' },
-                end: { type: 'object', description: 'End time.' }
+                start: {
+                    type: 'object',
+                    description: 'Start time object.',
+                    properties: {
+                        dateTime: { type: 'string', description: 'ISO 8601 timestamp (e.g., 2024-03-10T10:00:00Z)' },
+                        timeZone: { type: 'string', description: 'Timezone ID.' }
+                    }
+                },
+                end: {
+                    type: 'object',
+                    description: 'End time object.',
+                    properties: {
+                        dateTime: { type: 'string', description: 'ISO 8601 timestamp' },
+                        timeZone: { type: 'string', description: 'Timezone ID' }
+                    }
+                }
             },
             required: ['summary', 'start', 'end']
         }
@@ -135,9 +149,9 @@ const BrowserTools = [
         name: "open_default_browser",
         description: "Open a URL in the user's default system browser.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                url: { type: "STRING", description: "The URL to open" }
+                url: { type: "string", description: "The URL to open" }
             },
             required: ["url"]
         }
@@ -145,43 +159,43 @@ const BrowserTools = [
     {
         name: "browser_back",
         description: "Navigate back in the browser history.",
-        parameters: { type: "OBJECT", properties: {} }
+        parameters: { type: "object", properties: {} }
     },
     {
         name: "browser_forward",
         description: "Navigate forward in the browser history.",
-        parameters: { type: "OBJECT", properties: {} }
+        parameters: { type: "object", properties: {} }
     },
     {
         name: "web_click",
         description: "Click an element on the webpage. Provide its CSS selector, its semantic accessible name (e.g. 'Submit Form'), or exact coordinates 'x,y' if taking an annotated screenshot.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                target: { type: "STRING", description: "CSS selector, exact text name, or 'x,y'" }
+                selector: { type: "string", description: "CSS selector, exact text name, or 'x,y'" }
             },
-            required: ["target"]
+            required: ["selector"]
         }
     },
     {
         name: "web_type",
         description: "Type text into an input field on the webpage. Provide its CSS selector, its semantic accessible name, or exact coordinates 'x,y'.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                target: { type: "STRING", description: "CSS selector, exact text name, or 'x,y'" },
-                text: { type: "STRING", description: "The text to type" }
+                selector: { type: "string", description: "CSS selector, exact text name, or 'x,y'" },
+                text: { type: "string", description: "The text to type" }
             },
-            required: ["target", "text"]
+            required: ["selector", "text"]
         }
     },
     {
         name: "web_screenshot",
         description: "Captures a screenshot of the active browser tab. If annotated is true, draws numbered boxes over interactive elements (Set-of-Marks) before capturing.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                annotated: { type: "BOOLEAN", description: "If true, draws numbered boxes on elements." }
+                annotated: { type: "boolean", description: "If true, draws numbered boxes on elements." }
             }
         }
     }
@@ -191,15 +205,15 @@ const DesktopTools = [
     {
         name: "window_list",
         description: "List all currently open windows on the desktop (returns title and handle).",
-        parameters: { type: "OBJECT", properties: {} }
+        parameters: { type: "object", properties: {} }
     },
     {
         name: "window_focus",
         description: "Bring a specific window to the foreground and focus it.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                handle: { type: "NUMBER", description: "The window handle (HWND) to focus, obtained from window_list" }
+                handle: { type: "number", description: "The window handle (HWND) to focus, obtained from window_list" }
             },
             required: ["handle"]
         }
@@ -208,9 +222,9 @@ const DesktopTools = [
         name: "window_close",
         description: "Close a specific window gracefully.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                handle: { type: "NUMBER", description: "The window handle (HWND) to close, obtained from window_list" }
+                handle: { type: "number", description: "The window handle (HWND) to close, obtained from window_list" }
             },
             required: ["handle"]
         }
@@ -219,9 +233,9 @@ const DesktopTools = [
         name: "desktop_type_string",
         description: "Type a string into the currently focused application on the desktop.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                text: { type: "STRING", description: "The text to type" }
+                text: { type: "string", description: "The text to type" }
             },
             required: ["text"]
         }
@@ -230,9 +244,9 @@ const DesktopTools = [
         name: "desktop_send_chord",
         description: "Send a keyboard shortcut. Examples: 'Ctrl+C', 'Alt+Tab', 'Win+E', 'Enter', 'Ctrl+Shift+Esc'.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                chord: { type: "STRING", description: "The keyboard shortcut to send" } // Note: Sub-agents used 'keys' before, aligning to 'chord'
+                chord: { type: "string", description: "The keyboard shortcut to send" }
             },
             required: ["chord"]
         }
@@ -241,10 +255,10 @@ const DesktopTools = [
         name: "desktop_click_at",
         description: "Click at specific screen coordinates.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                x: { type: "NUMBER", description: "X coordinate" },
-                y: { type: "NUMBER", description: "Y coordinate" }
+                x: { type: "number", description: "X coordinate" },
+                y: { type: "number", description: "Y coordinate" }
             },
             required: ["x", "y"]
         }
@@ -253,10 +267,10 @@ const DesktopTools = [
         name: "desktop_find_element",
         description: "Find a UI element by name using Windows UI Automation. Returns element info if found.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                name: { type: "STRING", description: "The name or text of the element to find" },
-                controlType: { type: "STRING", description: "Optional: Button, Edit, Text, Window, etc." }
+                name: { type: "string", description: "The name or text of the element to find" },
+                controlType: { type: "string", description: "Optional: Button, Edit, Text, Window, etc." }
             },
             required: ["name"]
         }
@@ -264,20 +278,20 @@ const DesktopTools = [
     {
         name: "desktop_dump_tree",
         description: "Get a tree of UI elements of the currently focused window. Shows element names, types, and coordinates. Useful for understanding what's on screen before interacting.",
-        parameters: { type: "OBJECT", properties: {} }
+        parameters: { type: "object", properties: {} }
     },
     {
         name: "process_list",
         description: "List all running processes with visible windows. Returns name, PID, and memory usage. Use this to find processes to kill or focus.",
-        parameters: { type: "OBJECT", properties: {} }
+        parameters: { type: "object", properties: {} }
     },
     {
         name: "process_kill",
         description: "Terminate a process by its PID.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                pid: { type: "NUMBER", description: "The Process ID (PID) to terminate" }
+                pid: { type: "number", description: "The Process ID (PID) to terminate" }
             },
             required: ["pid"]
         }
@@ -289,9 +303,9 @@ const FileSystemTools = [
         name: "fs_list_directory",
         description: "List the contents of a directory on the local file system.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                path: { type: "STRING", description: "The absolute path of the directory to list" }
+                path: { type: "string", description: "The absolute path of the directory to list" }
             },
             required: ["path"]
         }
@@ -300,9 +314,9 @@ const FileSystemTools = [
         name: "fs_read_file",
         description: "Read the text content of a file on the local file system.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                path: { type: "STRING", description: "The absolute path of the file to read" }
+                path: { type: "string", description: "The absolute path of the file to read" }
             },
             required: ["path"]
         }
@@ -311,10 +325,10 @@ const FileSystemTools = [
         name: "fs_write_file",
         description: "Write text content to a file on the local file system. Will overwrite if the file exists.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                path: { type: "STRING", description: "The absolute path of the file to write to" },
-                content: { type: "STRING", description: "The text content to write" }
+                path: { type: "string", description: "The absolute path of the file to write to" },
+                content: { type: "string", description: "The text content to write" }
             },
             required: ["path", "content"]
         }
@@ -325,15 +339,26 @@ const SystemTools = [
     {
         name: "take_screenshot",
         description: "Captures a screenshot of the entire screen. Use this to verify the result of a tool call or to see what the user sees. Returns a JPEG image.",
-        parameters: { type: "OBJECT", properties: {} }
+        parameters: { type: "object", properties: {} }
+    },
+    {
+        name: "browse_visual",
+        description: "Delegate a complex browsing task to a specialized Visual Assistant. The assistant can 'see' the browser and interact with it precisely using screenshots. Use this for tasks that require high visual precision or multi-step navigation that might be difficult for the text-based browser tools. Returns immediately with a jobId.",
+        parameters: {
+            type: "object",
+            properties: {
+                taskDescription: { type: "string", description: "Detailed instructions for the visual assistant (e.g., 'Find the cheapest flight from JFK to LAX on Expedia')." }
+            },
+            required: ["taskDescription"]
+        }
     },
     {
         name: "delegate_task",
         description: "Spawn a background sub-agent to complete a long-running or complex task asynchronously. The sub-agent has access to all your desktop and browser tools. This tool returns immediately with a jobId so you can keep talking to the user. You will be notified when it finishes.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                taskDescription: { type: "STRING", description: "Detailed, step-by-step instructions for what the background agent should do. E.g. 'Navigate to gmail.com, find the compose button...'" }
+                taskDescription: { type: "string", description: "Detailed, step-by-step instructions for what the background agent should do. E.g. 'Navigate to gmail.com, find the compose button...'" }
             },
             required: ["taskDescription"]
         }
@@ -341,16 +366,16 @@ const SystemTools = [
     {
         name: "get_system_info",
         description: "Get comprehensive system information including CPU, Memory, Disk, Battery, and OS details.",
-        parameters: { type: "OBJECT", properties: {} }
+        parameters: { type: "object", properties: {} }
     },
     {
         name: "show_notification",
         description: "Show a native OS notification to the user.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                title: { type: "STRING", description: "The title of the notification" },
-                body: { type: "STRING", description: "The body text of the notification" }
+                title: { type: "string", description: "The title of the notification" },
+                body: { type: "string", description: "The body text of the notification" }
             },
             required: ["title", "body"]
         }
@@ -359,12 +384,12 @@ const SystemTools = [
         name: "show_message_dialog",
         description: "Show a native message box dialog with buttons. Returns the index of the clicked button.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                title: { type: "STRING", description: "The title of the dialog box" },
-                message: { type: "STRING", description: "The message text" },
-                type: { type: "STRING", description: "The type of dialog: info, warning, error, question" },
-                buttons: { type: "ARRAY", items: { type: "STRING" }, description: "Array of button labels" }
+                title: { type: "string", description: "The title of the dialog box" },
+                message: { type: "string", description: "The message text" },
+                type: { type: "string", description: "The type of dialog: info, warning, error, question" },
+                buttons: { type: "array", items: { type: "string" }, description: "Array of button labels" }
             },
             required: ["title", "message"]
         }
@@ -376,9 +401,9 @@ const SubAgentOnlyTools = [
         name: "finish_task",
         description: "Call this when the task is successfully completed.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                summary: { type: "STRING", description: "Summary of what was done" }
+                summary: { type: "string", description: "Summary of what was done" }
             },
             required: ["summary"]
         }
@@ -390,13 +415,13 @@ const WorldTools = [
         name: "http_request",
         description: "Perform a raw HTTP request (GET, POST, etc.). Useful for simple API interactions without a browser.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                url: { type: "STRING", description: "The full URL of the request" },
-                method: { type: "STRING", description: "The HTTP method (GET, POST, PUT, DELETE, etc.)", default: "GET" },
-                data: { type: "OBJECT", description: "The request body for POST/PUT requests" },
-                params: { type: "OBJECT", description: "URL query parameters" },
-                headers: { type: "OBJECT", description: "HTTP headers" }
+                url: { type: "string", description: "The full URL of the request" },
+                method: { type: "string", description: "The HTTP method (GET, POST, PUT, DELETE, etc.)", default: "GET" },
+                data: { type: "object", description: "The request body for POST/PUT requests", properties: {} },
+                params: { type: "object", description: "URL query parameters", properties: {} },
+                headers: { type: "object", description: "HTTP headers", properties: {} }
             },
             required: ["url"]
         }
@@ -404,15 +429,15 @@ const WorldTools = [
     {
         name: "get_user_profile",
         description: "Get the profile of the currently signed-in user (name, email, ID).",
-        parameters: { type: "OBJECT", properties: {} }
+        parameters: { type: "object", properties: {} }
     },
     {
         name: "web_search",
         description: "Search the web for information using physical/neural search (Exa). Returns a list of relevant links and titles. Best for finding specific sources or latest info.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                query: { type: "STRING", description: "The search query" }
+                query: { type: "string", description: "The search query" }
             },
             required: ["query"]
         }
@@ -421,16 +446,92 @@ const WorldTools = [
         name: "web_deepdive",
         description: "Scrape a specific URL into clean, LLM-ready Markdown (Firecrawl). Use this when you need deep context from a specific page or link found during search.",
         parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
-                url: { type: "STRING", description: "The URL to scrape" }
+                url: { type: "string", description: "The URL to scrape" }
             },
             required: ["url"]
         }
     }
 ];
 
-// Re-usable arrays for different contexts
+// Tool subset optimized for voice agents to stay under message size limits
+const getVoiceTools = () => [
+    {
+        name: "navigate_browser",
+        description: "Go to a URL. Must be in allowlist.",
+        parameters: {
+            type: "object",
+            properties: { url: { type: "string" } },
+            required: ["url"]
+        }
+    },
+    {
+        name: "read_browser_dom",
+        description: "Read page content (title, URL, text).",
+        parameters: { type: "object", properties: {} }
+    },
+    {
+        name: "open_default_browser",
+        description: "Open URL in system browser.",
+        parameters: {
+            type: "object",
+            properties: { url: { type: "string" } },
+            required: ["url"]
+        }
+    },
+    {
+        name: "desktop_type_string",
+        description: "Type text into focused app.",
+        parameters: {
+            type: "object",
+            properties: { text: { type: "string" } },
+            required: ["text"]
+        }
+    },
+    {
+        name: "desktop_send_chord",
+        description: "Send shortcut (e.g. 'Ctrl+C').",
+        parameters: {
+            type: "object",
+            properties: { chord: { type: "string" } },
+            required: ["chord"]
+        }
+    },
+    {
+        name: "take_screenshot",
+        description: "Capture screen to see state.",
+        parameters: { type: "object", properties: {} }
+    },
+    {
+        name: "delegate_task",
+        description: "Spawn sub-agent for complex tasks.",
+        parameters: {
+            type: "object",
+            properties: { taskDescription: { type: "string" } },
+            required: ["taskDescription"]
+        }
+    },
+    {
+        name: "browse_visual",
+        description: "Delegate to visual assistant.",
+        parameters: {
+            type: "object",
+            properties: { taskDescription: { type: "string" } },
+            required: ["taskDescription"]
+        }
+    },
+    {
+        name: "web_search",
+        description: "Search web for information.",
+        parameters: {
+            type: "object",
+            properties: { query: { type: "string" } },
+            required: ["query"]
+        }
+    }
+];
+
 const getAllTools = () => [
     ...BrowserTools,
     ...DesktopTools,
@@ -455,5 +556,6 @@ module.exports = {
     WorldTools,
     SubAgentOnlyTools,
     getAllTools,
-    getSubAgentTools
+    getSubAgentTools,
+    getVoiceTools
 };

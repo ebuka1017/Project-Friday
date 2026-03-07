@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('friday', {
 
     // Get dynamic tool registry
     getAgentTools: () => ipcRenderer.invoke('app:getAgentTools'),
+    getVoiceTools: () => ipcRenderer.invoke('app:getVoiceTools'),
 
     // Take a screenshot of the screen
     takeScreenshot: () => ipcRenderer.invoke('app:takeScreenshot'),
@@ -171,7 +172,9 @@ contextBridge.exposeInMainWorld('friday', {
         deleteSession: (id) => ipcRenderer.invoke('db:deleteSession', id),
         setMemory: (key, value, desc) => ipcRenderer.invoke('db:setMemory', key, value, desc),
         getMemory: (key) => ipcRenderer.invoke('db:getMemory', key),
-        getAllMemories: () => ipcRenderer.invoke('db:getAllMemories')
+        getAllMemories: () => ipcRenderer.invoke('db:getAllMemories'),
+        setSecret: (key, value) => ipcRenderer.invoke('db:setSecret', key, value),
+        getSecret: (key) => ipcRenderer.invoke('db:getSecret', key)
     },
 
     // Extension Installer

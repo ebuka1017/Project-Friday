@@ -18,10 +18,20 @@ class RecorderProcessor extends AudioWorkletProcessor {
 
         const channel = input[0];
 
+        // Calculate RMS (Energy) for VAD
+        let sumSquared = 0;
         for (let i = 0; i < channel.length; i++) {
+            sumSquared += channel[i] * channel[i];
             this.buffer[this.framesInQueue++] = channel[i];
 
             if (this.framesInQueue >= this.bufferSize) {
+                const rms = Math.sqrt(sumSquared / this.bufferSize);
+
+                // If RMS exceeds threshold (0.015 is a decent starting point for speech)
+                if (rms > 0.015) {
+                    this.port.postMessage({ type: 'vad_speech', rms });
+                }
+
                 // Convert Float32 [-1.0, 1.0] to Int16 [-32768, 32767]
                 const int16Buffer = new Int16Array(this.bufferSize);
                 for (let j = 0; j < this.bufferSize; j++) {
@@ -29,11 +39,12 @@ class RecorderProcessor extends AudioWorkletProcessor {
                     int16Buffer[j] = s < 0 ? s * 0x8000 : s * 0x7FFF;
                 }
 
-                // Send chunk to main thread
-                this.port.postMessage(int16Buffer.buffer, [int16Buffer.buffer]);
+                // Send PCM data to main thread
+                this.port.postMessage({ type: 'audio_data', buffer: int16Buffer.buffer }, [int16Buffer.buffer]);
 
-                // Reset queue
+                // Reset
                 this.framesInQueue = 0;
+                sumSquared = 0;
                 this.buffer = new Float32Array(this.bufferSize);
             }
         }

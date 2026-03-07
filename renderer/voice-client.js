@@ -17,7 +17,7 @@ class VoiceClient {
 
         // Gemini Live API parameters
         this.host = 'generativelanguage.googleapis.com';
-        this.baseModel = 'models/gemini-2.0-flash-exp'; // Fallback
+        this.baseModel = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
         this.model = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 
         // Listen for background task completions
@@ -48,7 +48,7 @@ class VoiceClient {
 
             // Load dynamic tool registry
             try {
-                this.agentTools = await window.friday.getAgentTools();
+                this.agentTools = await window.friday.getVoiceTools();
                 console.log(`[VoiceClient] Loaded ${this.agentTools.length} tools from registry`);
             } catch (e) {
                 console.error('[VoiceClient] Failed to load tool registry:', e);
@@ -102,8 +102,9 @@ class VoiceClient {
     }
 
     _buildSystemInstruction() {
-        const skillsText = this.skillsList.length > 0
-            ? `\n\nYou have access to the following skill categories that you can use for reference:\n${this.skillsList.map(s => `- ${s}`).join('\n')}`
+        const skillsCount = this.skillsList.length;
+        const skillsInfo = skillsCount > 0
+            ? `\n\nYou have access to ${skillsCount} specialized skills/workflows that you can use for reference when needed.`
             : '';
 
         return `Your name is Friday. You are an AI desktop assistant on a Windows PC. Be concise and conversational.
@@ -113,13 +114,17 @@ You have these tools:
 - Browser: navigate_browser, read_browser_dom, evaluate_browser_js, open_default_browser
 - Vision: take_screenshot (captures the screen so you can see what's happening)
 - Async: delegate_task (spawn a background agent to do work for you asynchronously)
+- Visual Browsing: browse_visual (delegate to a specialized vision-based browser assistant)
 
 CRITICAL RULES:
 - NEVER claim a tool succeeded unless you received a success response.
 - If a tool call was cancelled or returned an error, tell the user it failed and why.
 - After using a tool, use take_screenshot to verify the result if unsure.
 - If the browser extension is not connected, tell the user to open Chrome with the Friday extension.
-- Be honest about failures. Do not hallucinate results.${skillsText}`;
+- SEARCH STRATEGY:
+  * If the user explicitly asks you to 'search for' something (e.g. 'Search for pizza near me'), use 'open_default_browser' or 'navigate_browser' to perform the search in their view.
+  * If you need to search for information to HELP you answer a question or clarify context (internal research), use the 'web_search' tool without opening the user's browser tabs.
+- Be honest about failures. Do not hallucinate results.${skillsInfo}`;
     }
 
     async onWsOpen() {
@@ -130,22 +135,22 @@ CRITICAL RULES:
         const setupMessage = {
             setup: {
                 model: this.model,
-                generationConfig: {
-                    responseModalities: ["AUDIO"],
-                    speechConfig: {
-                        voiceConfig: {
-                            prebuiltVoiceConfig: {
-                                voiceName: "Puck"
+                generation_config: {
+                    response_modalities: ["AUDIO"],
+                    speech_config: {
+                        voice_config: {
+                            prebuilt_voice_config: {
+                                voice_name: "Puck"
                             }
                         }
                     }
                 },
-                systemInstruction: {
+                system_instruction: {
                     parts: [{ text: this._buildSystemInstruction() }]
                 },
                 tools: [
                     {
-                        functionDeclarations: this.agentTools
+                        function_declarations: this.agentTools
                     }
                 ]
             }
@@ -154,6 +159,37 @@ CRITICAL RULES:
 
         // 2. Start Microphone Capture
         await this.startMicrophone();
+    }
+
+    async handleInterruption() {
+        // If the agent is speaking or thinking, we interrupt
+        const state = await window.friday.getState();
+        if (state.status === 'speaking' || state.status === 'thinking') {
+            console.log('[VoiceClient] Interrupting agent...');
+
+            // 1. Instantly stop local playback
+            this.clearPlayback();
+
+            // 2. Clear state/UI
+            window.friday.setState({ status: 'listening' });
+
+            // 3. Inform Gemini about the interruption (Clear the model's current output queue)
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                const interruptMsg = {
+                    clientContent: {
+                        turns: [],
+                        turnComplete: true
+                    }
+                };
+                this.ws.send(JSON.stringify(interruptMsg));
+            }
+        }
+    }
+
+    clearPlayback() {
+        // We can't easily "stop" already scheduled sources without keeping tracking of them all
+        // but we can at least stop scheduling NEW ones and reset the timer.
+        this.nextPlayTime = 0;
     }
 
     async startMicrophone() {
@@ -175,12 +211,17 @@ CRITICAL RULES:
             this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-worklet');
 
             this.workletNode.port.onmessage = (event) => {
-                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                    const base64 = this.arrayBufferToBase64(event.data);
+                if (event.data.type === 'vad_speech') {
+                    this.handleInterruption();
+                    return;
+                }
+
+                if (event.data.type === 'audio_data' && this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    const base64 = this.arrayBufferToBase64(event.data.buffer);
                     const msg = {
                         realtimeInput: {
                             mediaChunks: [{
-                                mimeType: "audio/pcm;rate=16000",
+                                mimeType: "audio/l16;rate=16000",
                                 data: base64
                             }]
                         }
@@ -343,13 +384,13 @@ CRITICAL RULES:
                 window.friday.addMessage('result', `🔜 Navigated Forward`);
             }
             else if (call.name === 'web_click') {
-                const res = await window.friday.browser.click(call.args.target);
+                const res = await window.friday.browser.click(call.args.selector);
                 response = { success: res || false };
                 if (res && res.error) response = res;
-                window.friday.addMessage('result', `🖱️ Web Click: ${call.args.target.substring(0, 20)}`);
+                window.friday.addMessage('result', `🖱️ Web Click: ${call.args.selector.substring(0, 20)}`);
             }
             else if (call.name === 'web_type') {
-                const res = await window.friday.browser.type(call.args.target, call.args.text);
+                const res = await window.friday.browser.type(call.args.selector, call.args.text);
                 response = { success: res || false };
                 if (res && res.error) response = res;
                 window.friday.addMessage('result', `⌨️ Web Type: ${call.args.text.substring(0, 15)}`);

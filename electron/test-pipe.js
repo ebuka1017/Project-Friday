@@ -6,7 +6,7 @@
 
 const net = require('net');
 
-const PIPE_PATH = '\\\\.\\pipe\\friday-sidecar';
+const PIPE_PATH = '\\\\.\\pipe\\friday-sidecar-v2';
 
 async function main() {
     console.log('--- Friday Sidecar Pipe Test ---');

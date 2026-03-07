@@ -27,9 +27,15 @@ const fsTools = require('./fs-tools');
 const sysinfoTools = require('./sysinfo-tools');
 const notificationTools = require('./notification-tools');
 const networkTools = require('./network-tools');
-const searchTools = require('./search-tools');
-require('./clerk-fetch-user');
-require('dotenv').config();
+// Load environment variables from app root
+const envPath = app.isPackaged
+    ? path.join(process.resourcesPath, '.env')
+    : path.join(__dirname, '..', '.env');
+
+require('dotenv').config({ path: envPath });
+console.log(`[friday] Environment loaded from: ${envPath}`);
+if (process.env.GEMINI_API_KEY) console.log('[friday] GEMINI_API_KEY is present');
+else console.warn('[friday] GEMINI_API_KEY is MISSING after load');
 
 // Override console to broadcast logs to renderer
 const originalConsoleLog = console.log;
@@ -75,6 +81,7 @@ let currentUser = null;
 ipcMain.handle('auth:setStatus', (_, status, user) => {
     isAuthenticated = status;
     currentUser = user || null;
+    setState({ currentUser }); // Sync to shared state for sub-agents
     console.log(`[Auth] User status: ${status}, User: ${currentUser?.email || 'none'}`);
     return true;
 });
@@ -98,6 +105,14 @@ ipcMain.handle('voice:start', () => {
 ipcMain.handle('voice:stop', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('voice:control', 'stop');
+    }
+});
+
+// Window Management (Redundant batch removed, consolidated below)
+
+ipcMain.handle('app:close', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.close();
     }
 });
 
@@ -307,6 +322,10 @@ ipcMain.handle('app:calendarOutlookList', async () => {
 // ── Shared Tools Registry ────────────────────────────────────────────────
 ipcMain.handle('app:getAgentTools', () => {
     return toolsRegistry.getAllTools();
+});
+
+ipcMain.handle('app:getVoiceTools', () => {
+    return toolsRegistry.getVoiceTools();
 });
 
 // ── Native File System Tools ─────────────────────────────────────────────
@@ -543,7 +562,6 @@ ipcMain.handle('sidecar:send', async (_, method, params) => {
     if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
     if (!pipeClient.isConnected) return { error: 'Engine not connected' };
     try {
-        // Audit log destructive sidecar actions
         const actionableMethods = ['input.typeString', 'input.sendChord', 'input.clickAt', 'process.kill'];
         if (actionableMethods.includes(method)) {
             db.logAudit(`sidecar_${method}`, params).catch(e => console.error('[Audit]', e));
@@ -651,6 +669,17 @@ ipcMain.handle('browser:ping', async () => {
 
 ipcMain.handle('tasks:list', () => subAgents.getAllTasks());
 
+ipcMain.handle('app:browseVisual', (_, taskDescription) => {
+    if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
+    console.log(`[friday] Delegating VISUAL task: ${taskDescription}`);
+    const jobId = subAgents.startVisualTask(taskDescription, (res) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('voice:subAgentComplete', res);
+        }
+    });
+    return { jobId };
+});
+
 ipcMain.handle('app:delegateTask', (_, taskDescription) => {
     if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
     console.log(`[friday] Delegating task: ${taskDescription}`);
@@ -742,17 +771,11 @@ ipcMain.handle('db:deleteSession', async (_, id) => {
     return await db.deleteSession(id);
 });
 
-ipcMain.handle('db:setMemory', async (_, key, value, desc) => {
-    return await db.setMemory(key, value, desc);
-});
-
-ipcMain.handle('db:getMemory', async (_, key) => {
-    return await db.getMemory(key);
-});
-
-ipcMain.handle('db:getAllMemories', async () => {
-    return await db.getAllMemories();
-});
+ipcMain.handle('db:setMemory', (_, key, val, desc) => db.setMemory(key, val, desc));
+ipcMain.handle('db:getMemory', (_, key) => db.getMemory(key));
+ipcMain.handle('db:getAllMemories', () => db.getAllMemories());
+ipcMain.handle('db:setSecret', (_, key, val) => db.setSecret(key, val));
+ipcMain.handle('db:getSecret', (_, key) => db.getSecret(key));
 
 // ── Cleanup ──────────────────────────────────────────────────────────────
 

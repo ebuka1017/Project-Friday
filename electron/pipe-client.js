@@ -8,7 +8,7 @@ const net = require('net');
 const EventEmitter = require('events');
 
 const PIPE_PATH = '\\\\.\\pipe\\friday-sidecar-v2';
-const MAX_RETRIES = 20;
+const MAX_RETRIES = 40; // Increased from 20 to 40
 const RETRY_DELAY_MS = 500;
 const MAX_RECONNECT_ATTEMPTS = 50;
 const RECONNECT_BASE_DELAY_MS = 1000;
@@ -33,10 +33,14 @@ class PipeClient extends EventEmitter {
   connect() {
     return new Promise((resolve, reject) => {
       const tryConnect = () => {
+        console.log(`[pipe] Connecting to ${PIPE_PATH}...`);
         this._client = net.connect(PIPE_PATH);
 
         this._client.on('connect', () => {
           console.log('[pipe] Connected to sidecar');
+          this.reconnectAttempts = 0;
+          this.maxReconnectAttempts = 100; // Increase for background stability
+          this.reconnectDelay = 2000;
           this._connected = true;
           this._retries = 0;
           this._reconnectAttempts = 0; // Reset on successful connect
@@ -58,12 +62,17 @@ class PipeClient extends EventEmitter {
           if (err.code === 'ENOENT' && this._retries < MAX_RETRIES) {
             // Pipe not yet created — sidecar still starting
             this._retries++;
-            console.log(`[pipe] Sidecar not ready, retry ${this._retries}/${MAX_RETRIES}...`);
+            console.log(`[pipe] Sidecar not ready (ENOENT), retry ${this._retries}/${MAX_RETRIES}...`);
+            setTimeout(tryConnect, RETRY_DELAY_MS);
+          } else if (err.code === 'ETIMEDOUT' && !this._connected && this._retries < MAX_RETRIES) {
+            this._retries++;
+            console.log(`[pipe] Connection timed out (ETIMEDOUT), retry ${this._retries}/${MAX_RETRIES}...`);
             setTimeout(tryConnect, RETRY_DELAY_MS);
           } else if (!this._connected) {
+            console.error(`[pipe] Connection failed (${err.code}): ${err.message}`);
             reject(new Error(`[pipe] Failed to connect: ${err.message}`));
           } else {
-            console.error('[pipe] Connection error:', err.message);
+            console.error(`[pipe] Connection error (${err.code}):`, err.message);
           }
         });
 

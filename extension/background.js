@@ -43,6 +43,26 @@ function connectToFriday() {
 }
 
 // Keep connection alive
+chrome.runtime.onStartup.addListener(() => {
+    console.log("[Friday Bridge] Browser started - ensuring connection...");
+    connectToFriday();
+});
+
+chrome.runtime.onInstalled.addListener((details) => {
+    console.log("[Friday Bridge] Extension installed/updated:", details.reason);
+    connectToFriday();
+});
+
+// Periodic heartbeat to keep service worker alive
+chrome.alarms.create("heartbeat", { periodInMinutes: 1 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "heartbeat" && (!ws || ws.readyState !== WebSocket.OPEN)) {
+        console.log("[Friday Bridge] Heartbeat - reconnecting...");
+        connectToFriday();
+    }
+});
+
+// Initial connection
 connectToFriday();
 
 // ── Command Handling ───────────────────────────────────────────────────

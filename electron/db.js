@@ -5,7 +5,7 @@
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const { app } = require('electron');
+const { app, safeStorage } = require('electron');
 const fs = require('fs');
 
 class DatabaseManager {
@@ -205,6 +205,64 @@ class DatabaseManager {
                 (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows);
+                }
+            );
+        });
+    }
+
+    // ── Secrets (Encrypted) ─────────────────────────────────────────────┐
+
+    setSecret(key, value) {
+        return new Promise((resolve, reject) => {
+            try {
+                if (!safeStorage.isEncryptionAvailable()) {
+                    // Fallback to plain if absolutely necessary, but log a warning
+                    console.warn('[DB] Encryption not available. Storing secret as plain text.');
+                    return this.setMemory(key, value, "Unencrypted Secret").then(resolve).catch(reject);
+                }
+
+                const encrypted = safeStorage.encryptString(value);
+                this.db.run(
+                    `INSERT INTO memory (key, value, description) VALUES (?, ?, ?)
+                     ON CONFLICT(key) DO UPDATE SET value = excluded.value, description = excluded.description`,
+                    [key, encrypted, "Encrypted Secret"],
+                    function (err) {
+                        if (err) reject(err);
+                        else resolve();
+                    }
+                );
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+
+    getSecret(key) {
+        return new Promise((resolve, reject) => {
+            this.db.get(
+                `SELECT value FROM memory WHERE key = ?`,
+                [key],
+                (err, row) => {
+                    if (err) return reject(err);
+                    if (!row || !row.value) return resolve(null);
+
+                    try {
+                        // If it's a Buffer/Blob from SQLite, try to decrypt
+                        if (Buffer.isBuffer(row.value) || row.value instanceof Uint8Array) {
+                            if (!safeStorage.isEncryptionAvailable()) {
+                                return reject(new Error('Encryption unavailable for decryption'));
+                            }
+                            const decrypted = safeStorage.decryptString(Buffer.from(row.value));
+                            resolve(decrypted);
+                        } else {
+                            // Legacy plain text value
+                            resolve(row.value);
+                        }
+                    } catch (e) {
+                        console.error(`[DB] Decryption failed for key: ${key}`, e);
+                        // If decryption fails, it might be plain text or corrupt
+                        resolve(row.value);
+                    }
                 }
             );
         });

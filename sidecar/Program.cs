@@ -27,58 +27,66 @@ internal static class Program
         Console.WriteLine($"[sidecar] PID: {Environment.ProcessId}");
         Console.WriteLine($"[sidecar] Pipe: \\\\.\\pipe\\{PipeName}");
 
-        // Run the pipe server in a reconnect loop
+        int maxInstances = 5;
+        var tasks = new List<Task>();
+        for (int i = 0; i < maxInstances; i++)
+        {
+            tasks.Add(StartPipeListener(i));
+        }
+
+        await Task.WhenAll(tasks);
+    }
+
+    private static async Task StartPipeListener(int instanceId)
+    {
         while (true)
         {
             try
             {
-                await RunPipeSession();
+                await RunPipeSession(instanceId);
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[sidecar] Session error: {ex.Message}");
+                Console.Error.WriteLine($"[sidecar-{instanceId}] Session error: {ex.Message}");
             }
 
-            Console.WriteLine("[sidecar] Client disconnected. Waiting for new connection...");
-            await Task.Delay(500);
+            await Task.Delay(200);
         }
     }
 
-    private static async Task RunPipeSession()
+    private static async Task RunPipeSession(int instanceId)
     {
         using var server = new NamedPipeServerStream(
             PipeName,
             PipeDirection.InOut,
-            10, // Allow multiple instances to prevent "All pipe instances are busy"
+            10, // Max instances
             PipeTransmissionMode.Byte,
             PipeOptions.Asynchronous
         );
 
-        Console.WriteLine("[sidecar] Waiting for Electron to connect...");
         await server.WaitForConnectionAsync();
-        Console.WriteLine("[sidecar] Electron connected!");
+        Console.WriteLine($"[sidecar-{instanceId}] Electron connected!");
 
-        // CRITICAL: Use UTF8 without BOM — default Encoding.UTF8 prepends a BOM
-        // which corrupts the first JSON-RPC message sent to Electron.
-        var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        // CRITICAL: Use UTF8 without BOM
+        var utf8NoBom = new UTF8Encoding(false);
         using var reader = new StreamReader(server, utf8NoBom, leaveOpen: true);
         using var writer = new StreamWriter(server, utf8NoBom, leaveOpen: true) { AutoFlush = true };
 
-        // Read lines (newline-delimited JSON-RPC)
         while (server.IsConnected)
         {
             string? line = await reader.ReadLineAsync();
-            if (line == null) break; // Client disconnected
+            if (line == null) break;
 
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            Console.WriteLine($"[sidecar] ← {line}");
-
+            Console.WriteLine($"[sidecar-{instanceId}] ← {line}");
             string response = await DispatchMessage(line);
-            Console.WriteLine($"[sidecar] → {response}");
+            Console.WriteLine($"[sidecar-{instanceId}] → {response}");
 
             await writer.WriteLineAsync(response);
         }
+
+        Console.WriteLine($"[sidecar-{instanceId}] Client disconnected.");
     }
 
     /// <summary>

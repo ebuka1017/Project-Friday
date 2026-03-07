@@ -234,7 +234,8 @@
         .sidebar.collapsed .new-session-label,
         .sidebar.collapsed .sidebar-section,
         .sidebar.collapsed .systems-label,
-        .sidebar.collapsed .theme-text {
+        .sidebar.collapsed .theme-text,
+        .sidebar.collapsed .external-icon {
             display: none;
         }
 
@@ -752,6 +753,15 @@
         /* Empty state */
         .empty-state {
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .empty-state img {
+            display: block;
+            margin: 0 auto 16px;
         }
 
         .empty-state .icon {
@@ -1908,8 +1918,8 @@
                         <circle cx="12" cy="7" r="4" />
                     </svg>
                     <span class="nav-label">Profile</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"
-                        style="margin-left: auto; opacity: 0.6;">
+                    <svg class="external-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        width="12" height="12" style="margin-left: auto; opacity: 0.6;">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                         <polyline points="15 3 21 3 21 9" />
                         <line x1="10" y1="14" x2="21" y2="3" />
@@ -2590,6 +2600,21 @@
                     } catch {
                         systemsDot.classList.remove('connected');
                         systemsLabel.textContent = 'Systems: error';
+                    }
+                }
+
+                async function checkBrowserStatus() {
+                    try {
+                        const connected = await window.friday.browser.connect();
+                        if (browserStatusBadge) {
+                            browserStatusBadge.className = 'status-badge ' + (connected ? 'connected' : 'disconnected');
+                            browserStatusBadge.textContent = connected ? 'Connected' : 'Disconnected';
+                        }
+                        if (browserConnectionDesc) {
+                            browserConnectionDesc.textContent = connected ? 'Extension active' : 'Extension not detected';
+                        }
+                    } catch (e) {
+                        console.warn('[BrowserStatus] Check failed:', e);
                     }
                 }
 

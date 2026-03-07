@@ -1,6 +1,6 @@
 {
   "name": "friday",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Friday — Autonomous Voice-Native AI Knowledge Worker for Windows",
   "main": "electron/main.js",
   "scripts": {
@@ -9,22 +9,44 @@
     "build": "npm run build:sidecar && electron-builder",
     "test:pipe": "node electron/test-pipe.js"
   },
-  "author": "Project Friday Team",
+  "author": "Isaac Okwuzi <isaacokwuzi@gmail.com> (https://x.com/nothiro__)",
   "license": "MIT",
   "build": {
     "compression": "store",
     "appId": "com.projectfriday.app",
     "productName": "Friday",
+    "copyright": "Copyright © 2026 Isaac Okwuzi",
     "directories": {
       "output": "dist"
     },
     "win": {
-      "target": "zip",
+      "target": "nsis",
       "icon": "build/icon.png"
     },
+    "extraResources": [
+      {
+        "from": "sidecar/bin/Release/net9.0-windows/win-x64/publish/",
+        "to": "sidecar/",
+        "filter": [
+          "Sidecar.exe",
+          "*.dll",
+          "*.json"
+        ]
+      },
+      ".env"
+    ],
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "shared/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
     "nsis": {
-      "oneClick": true,
-      "allowToChangeInstallationDirectory": false,
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
     },
     "protocols": [

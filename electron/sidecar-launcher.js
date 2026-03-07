@@ -3,7 +3,7 @@
 // Spawns and manages the lifecycle of the Native AOT sidecar binary.
 // ═══════════════════════════════════════════════════════════════════════
 
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -29,11 +29,24 @@ function getSidecarPath() {
         }
     }
 
-    // Fallback: assume we're in production and it's next to us
-    const prodPath = path.join(process.resourcesPath || __dirname, 'sidecar', 'Sidecar.exe');
-    if (fs.existsSync(prodPath)) return prodPath;
+    // Fallback: assume we're in production and it's in the resources folder
+    const prodPaths = [
+        path.join(process.resourcesPath, 'sidecar', 'Sidecar.exe'),
+        path.join(process.resourcesPath, 'Sidecar.exe'),
+        path.join(path.dirname(process.execPath), 'resources', 'sidecar', 'Sidecar.exe'),
+        path.join(path.dirname(process.execPath), 'Sidecar.exe'),
+        path.join(process.cwd(), 'Sidecar.exe'),
+        path.join(process.cwd(), 'resources', 'sidecar', 'Sidecar.exe')
+    ];
 
-    console.error('[sidecar] Sidecar binary not found! Searched:', devPaths.join('\n'));
+    for (const p of prodPaths) {
+        if (fs.existsSync(p)) {
+            console.log('[sidecar] Found in production at:', p);
+            return p;
+        }
+    }
+
+    console.error('[sidecar] Sidecar binary not found! Searched production and dev paths.');
     return null;
 }
 
@@ -51,9 +64,15 @@ function launch() {
 
     console.log('[sidecar] Launching:', exePath);
 
+    // Ensure no zombie sidecars are running
+    try {
+        execSync('taskkill /F /IM Sidecar.exe /T', { stdio: 'ignore' });
+    } catch (e) { /* ignore if not running */ }
+
     sidecarProcess = spawn(exePath, [], {
         stdio: ['ignore', 'pipe', 'pipe'],
         windowsHide: true,
+        cwd: path.dirname(exePath)
     });
 
     // Forward sidecar stdout/stderr to Electron console

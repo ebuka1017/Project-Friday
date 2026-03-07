@@ -49,13 +49,13 @@
     function initAuth() {
         // ─── Deep Link Callbacks (from preload.js) ──────────────────────────────────
 
-        window.friday.onAuthSuccess(({ token }) => {
+        window.friday.onAuthSuccess(async ({ token }) => {
             let user = null;
             try {
                 const payload = JSON.parse(atob(token.split(".")[1]));
                 user = {
                     id: payload.sub,
-                    email: payload.email, // Note: standard Clerk sessions might not have email on the session JWT by default unless customized, but we can decode it if present.
+                    email: payload.email,
                     name: payload.name || payload.username || payload.sub,
                     imageUrl: payload.image_url,
                 };
@@ -67,9 +67,10 @@
             setState({ status: "authenticated", token, user, error: null });
 
             try {
-                localStorage.setItem("clerk_session_token", token);
+                await window.friday.db.setSecret("clerk_session_token", token);
+                console.log('[AuthRenderer] Session token secured in DB.');
             } catch (e) {
-                console.error('[AuthRenderer] LocalStorage err:', e);
+                console.error('[AuthRenderer] DB secure storage err:', e);
             }
         });
 
@@ -77,50 +78,62 @@
             setState({ status: "error", error, token: null, user: null });
         });
 
-        window.friday.onAuthSignedOut(() => {
+        window.friday.onAuthSignedOut(async () => {
             setState({ status: "idle", token: null, user: null, error: null });
             try {
+                // Clear from both for safety during transition
                 localStorage.removeItem("clerk_session_token");
+                await window.friday.db.setSecret("clerk_session_token", "");
             } catch { }
         });
 
         // ─── Restore session on app load ─────────────────────────────────────────────
 
-        try {
-            const saved = localStorage.getItem("clerk_session_token");
-            if (saved) {
-                console.log('[AuthRenderer] Restoring session from localStorage...');
-                // Need to decode to restore user obj
-                let user = null;
-                try {
-                    const payload = JSON.parse(atob(saved.split(".")[1]));
-                    // Optional: Check expiry (exp)
-                    const now = Math.floor(Date.now() / 1000);
-                    if (payload.exp && payload.exp < now) {
-                        console.log('[AuthRenderer] Session expired.');
-                        localStorage.removeItem("clerk_session_token");
-                        setState({ status: "idle" });
-                        return;
-                    }
-
-                    user = {
-                        id: payload.sub,
-                        email: payload.email,
-                        name: payload.name || payload.username || payload.sub,
-                        imageUrl: payload.image_url,
-                    };
-                } catch {
-                    user = { id: 'unknown', name: 'User' };
+        (async () => {
+            try {
+                // 1. Migration check: if in localStorage, move to secret DB
+                const legacy = localStorage.getItem("clerk_session_token");
+                if (legacy) {
+                    console.log('[AuthRenderer] Migrating legacy session to secure storage...');
+                    await window.friday.db.setSecret("clerk_session_token", legacy);
+                    localStorage.removeItem("clerk_session_token");
                 }
 
-                setState({ status: "authenticated", token: saved, user });
-            } else {
-                console.log('[AuthRenderer] No saved session found.');
+                // 2. Load from secure storage
+                const saved = await window.friday.db.getSecret("clerk_session_token");
+                if (saved && saved.length > 10) { // basic check for token validity
+                    console.log('[AuthRenderer] Restoring session from secure storage...');
+                    let user = null;
+                    try {
+                        const payload = JSON.parse(atob(saved.split(".")[1]));
+                        const now = Math.floor(Date.now() / 1000);
+                        if (payload.exp && payload.exp < now) {
+                            console.log('[AuthRenderer] Session expired.');
+                            await window.friday.db.setSecret("clerk_session_token", "");
+                            setState({ status: "idle" });
+                            return;
+                        }
+
+                        user = {
+                            id: payload.sub,
+                            email: payload.email,
+                            name: payload.name || payload.username || payload.sub,
+                            imageUrl: payload.image_url,
+                        };
+                    } catch {
+                        user = { id: 'unknown', name: 'User' };
+                    }
+
+                    setState({ status: "authenticated", token: saved, user });
+                } else {
+                    console.log('[AuthRenderer] No active session found.');
+                    setState({ status: "idle" });
+                }
+            } catch (e) {
+                console.error('[AuthRenderer] Restore/Migration err:', e);
                 setState({ status: "idle" });
             }
-        } catch (e) {
-            console.error('[AuthRenderer] Restore err:', e);
-        }
+        })();
     }
 
     window.fridayAuth = { initAuth, signIn, signOut, getAuthState, onAuthStateChange };

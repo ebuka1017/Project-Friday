@@ -29,6 +29,9 @@ const state = {
  * Update state and broadcast to all renderer windows.
  */
 function setState(patch) {
+    if (patch.theme) {
+        console.log(`[state] Theme changing to: ${patch.theme}`);
+    }
     Object.assign(state, patch);
     broadcast('state:update', { ...state });
 }
