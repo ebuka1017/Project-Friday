@@ -59,4 +59,4 @@ Friday is built on a distributed tripartite architecture:
 
 ---
 
-Built with ❤️ by Isaac Okwuzi ([@nothiro__](https://x.com/nothiro__))
+Built by Isaac Okwuzi ([@nothiro__](https://x.com/nothiro__))
