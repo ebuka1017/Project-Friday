@@ -91,6 +91,7 @@ contextBridge.exposeInMainWorld('friday', {
 
     // Delegate background task to sub-agent
     delegateTask: (taskDescription) => ipcRenderer.invoke('app:delegateTask', taskDescription),
+    browseVisual: (taskDescription) => ipcRenderer.invoke('app:browseVisual', taskDescription),
 
     // Minimize (hide) the HUD
     minimizeHUD: () => ipcRenderer.invoke('hud:minimize'),

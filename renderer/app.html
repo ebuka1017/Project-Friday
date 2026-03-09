@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' https://clerk.com https://*.clerk.accounts.dev; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.com https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws: wss: wss://*.googleapis.com https://*.googleapis.com https://*.clerk.accounts.dev; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'">
+        content="default-src 'self' https://clerk.com https://*.clerk.accounts.dev; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.com https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws: wss: wss://*.googleapis.com https://*.googleapis.com https://*.clerk.accounts.dev; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; img-src 'self' https: data:;">
+
     <title>Friday</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2697,11 +2698,12 @@
 
                 micBtn.addEventListener('click', async () => {
                     const state = await window.friday.getState();
-
                     if (state.voiceMode === 'handsfree') {
                         if (state.status === 'listening') {
                             window.VoiceClient.stop();
                         } else {
+                            // Immediate UI feedback
+                            window.friday.setState({ status: 'listening' });
                             window.VoiceClient.start();
                         }
                     }
@@ -3289,12 +3291,14 @@
                         const state = await window.friday.getState();
 
                         if (state.voiceMode === 'ptt') {
+                            window.friday.setState({ status: 'listening' }); // Immediate UI feedback
                             window.friday.startVoice();
                         } else {
                             // Toggle for handsfree
                             if (state.status === 'listening' || state.status === 'thinking' || state.status === 'speaking') {
                                 window.friday.stopVoice();
                             } else {
+                                window.friday.setState({ status: 'listening' }); // Immediate UI feedback
                                 window.friday.startVoice();
                             }
                         }

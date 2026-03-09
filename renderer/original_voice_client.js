@@ -1,7 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════
 // renderer/voice-client.js — Gemini Multimodal Live API Client
 // Handles WebRTC audio capture, WebSocket connection, and state sync.
-// Compliance: PCM 16kHz Mono, snake_case payloads, Field Manual v1.0 Prompt.
 // ═══════════════════════════════════════════════════════════════════════
 
 class VoiceClient {
@@ -12,9 +11,6 @@ class VoiceClient {
         this.mediaStream = null;
         this.workletNode = null;
         this.isConnected = false;
-        this.isInterrupted = false; // Flag for Iteration 8: block audio during interruption handshake
-        this.audioSentThisTurn = false; // New: prevents 1007 on empty turns
-        this.isAwaitingUserInput = false; // Flag for Iteration 9: guard against 1007 on immediate stop
 
         // Scheduled audio playback queue (fixes crackling)
         this.nextPlayTime = 0;
@@ -79,23 +75,18 @@ class VoiceClient {
             if (!ok) return;
         }
 
-        // ITERATION 10: If already connected, just ensure mic is active if needed
-        if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
-            console.log('[VoiceClient] Resuming existing session');
-            if (!this.isMicActive) {
-                await this.startMicrophone();
-            }
-            return;
-        }
+        if (this.isConnected) return;
 
         try {
-            this.isConnected = false; // Reset until open
+            // Reset audio queue
             this.nextPlayTime = 0;
 
+            // Ensure playback context is ready
             if (this.playbackCtx && this.playbackCtx.state === 'suspended') {
                 await this.playbackCtx.resume();
             }
 
+            // 1. Establish WebSocket Connection
             const url = `wss://${this.host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
             this.ws = new WebSocket(url);
 
@@ -113,103 +104,34 @@ class VoiceClient {
     _buildSystemInstruction() {
         const skillsCount = this.skillsList.length;
         const skillsInfo = skillsCount > 0
-            ? `\n\n## SKILLS REFERENCE\nYou have access to ${skillsCount} specialized skills/workflows. Refer to them for specific business logic or complex operation steps.`
+            ? `\n\nYou have access to ${skillsCount} specialized skills/workflows that you can use for reference when needed.`
             : '';
 
-        return `# ════════════════════════════════════════════════════════
-# FRIDAY — System Prompt v1.0
-# ════════════════════════════════════════════════════════
+        return `Your name is Friday. You are an AI desktop assistant on a Windows PC. Be concise and conversational.
 
-## IDENTITY
-You are Friday, an autonomous Windows desktop and browser automation agent. 
-You act with the same permissions as the logged-in user, taking direct actions via UI Automation and Chrome DevTools Protocol (CDP).
-When in doubt, prefer reversible actions and confirm before destructive operations.
+You have these tools:
+- Desktop: desktop_type_string, desktop_send_chord, desktop_click_at, desktop_find_element, desktop_dump_tree
+- Browser: navigate_browser, read_browser_dom, evaluate_browser_js, open_default_browser
+- Vision: take_screenshot (captures the screen so you can see what's happening)
+- Async: delegate_task (spawn a background agent to do work for you asynchronously)
+- Visual Browsing: browse_visual (delegate to a specialized vision-based browser assistant)
 
-## MISSION
-Your single purpose is to complete user-specified automation tasks accurately, efficiently, and safely on their PC.
-You succeed when all requested actions are confirmed executed and the user is notified of the outcome.
-You are NOT responsible for: interpreted vague intent, handling auth secrets, or making purchases without explicit approval.
-
-## ENVIRONMENT
-- OS: Windows 11
-- Working directory: d:\\Program Files\\Project Friday
-- Browser: Chromium (Friday Extension connected via CDP)
-- Capabilities: Real-time Audio, Vision, and Tool Use
-- Context: Multimodal Live Session
-
-## TOOLS
-You have access to a suite of desktop and browser control tools. Use them to perceive state and take action:
-
-**TOOL USE POLICY**
-BEFORE any tool call:
-1. State what you intend to do and why.
-2. Verify pre-conditions (Is the target window focused? Is the element visible?).
-3. Choose the MOST SPECIFIC tool available.
-
-AFTER each tool call:
-1. Evaluate the result — expected or unexpected?
-2. If unexpected: do NOT blindly continue.
-
-**TOOL DEFINITIONS**
-- \`desktop_type_string\`: Types text into the focused window/element. Use for: forms, terminal input, search bars. Do NOT use for keyboard shortcuts.
-- \`desktop_send_chord\`: Sends keyboard shortcuts (e.g. 'control+c', 'alt+f4', 'enter'). Essential for: app navigation, closing windows, submitting forms without a click target.
-- \`desktop_click_at\`: Performs a mouse click at (x, y) coordinates. use when: element is visible but non-interactive via UI Automation.
-- \`desktop_find_element\`: Searches UI elements by name/type. Use to: get coordinates and verify existence of native buttons/fields.
-- \`desktop_dump_tree\`: Snapshots the Windows UI hierarchy. Use for: structural discovery in native apps.
-- \`navigate_browser\`: Loads a URL in the Friday Chromium instance. Primary entry point for all web-based tasks.
-- \`read_browser_dom\`: Extracts the AXTree of the active tab. Use for: reliable identification of interactive elements (buttons, links).
-- \`evaluate_browser_js\`: Runs JS in the browser context. Use for: custom data scraping, complex state checks, or DOM manipulation.
-- \`take_screenshot\`: Captures the full screen. Use for: verifying state, OCR (if needed), or when stuck and needing to "see" the screen.
-- \`delegate_task\`: Spawns a background agent for complex/long-running work. Use to: remain responsive to the user during CPU-heavy tasks.
-
-## SPECIALIST SUB-AGENTS YOU MAY SPAWN
-- \`browser_agent\`: Your helper in the browser. Handles A11y + vision-based browser navigation. Best for complex, multi-step web tasks (5+ steps).
-- \`dom_reader\`: Specialized for deep page content extraction and data scraping.
-- \`file_agent\`: Handles native file system read/write operations.
-
-## REASONING PROTOCOL
-For non-trivial tasks, follow this BEFORE any action:
-1. UNDERSTAND: Restate the task in your own words. What is the desired end state?
-2. PLAN: List steps in order, flagging IRREVERSIBLE steps (deletion, submission).
-3. EXECUTE: Execute one step at a time, evaluate result, then proceed.
-4. VERIFY: Confirm end state matches desired state. Never declare false success.
-
-## CONSTRAINTS
-- NEVER claim a tool succeeded without a success response.
-- NEVER retry a failing tool call more than 3 times.
-- ALWAYS ask for confirmation before irreversible actions (deleting files, form submissions).
-- ESCALATE if a task requires actions outside your defined capabilities.
-
-## OUTPUT FORMAT
-- Be concise and conversational in your audio responses. 
-- When providing data or results, summarize clearly.
-- Limit responses to 3-4 sentences maximum.
-
-## ERROR PROTOCOL
-If a tool call fails:
-1. Retry 1: same parameters.
-2. Retry 2: modified approach or different tool.
-3. Retry 3: STOP and report the error to the user.
-4. LOOP DETECTION: If same tool + same params twice in a row, STOP and report.
-
-## SUB-AGENT DELEGATION
-Delegate complex or long-running tasks using 'delegate_task' to your specialist sub-agents (like \`browser_agent\`). 
-Provide ALL 6 fields:
-1. OBJECTIVE: One sentence of exactly what to produce.
-2. OUTPUT FORMAT: Exact schema required.
-3. TOOLS ALLOWED: Explicit list only.
-4. SCOPE BOUNDARY: What to NOT do.
-5. EFFORT BUDGET: Max tool calls (e.g. 5 calls for simple lookup).
-6. HANDOFF CONDITION: When to return (e.g. "after finding 3 results").${skillsInfo}`;
+CRITICAL RULES:
+- NEVER claim a tool succeeded unless you received a success response.
+- If a tool call was cancelled or returned an error, tell the user it failed and why.
+- After using a tool, use take_screenshot to verify the result if unsure.
+- If the browser extension is not connected, tell the user to open Chrome with the Friday extension.
+- SEARCH STRATEGY:
+  * If the user explicitly asks you to 'search for' something (e.g. 'Search for pizza near me'), use 'open_default_browser' or 'navigate_browser' to perform the search in their view.
+  * If you need to search for information to HELP you answer a question or clarify context (internal research), use the 'web_search' tool without opening the user's browser tabs.
+- Be honest about failures. Do not hallucinate results.${skillsInfo}`;
     }
 
     async onWsOpen() {
         console.log('[VoiceClient] WebSocket connected');
         this.isConnected = true;
 
-        if (!this.ws) return;
-
-        // Send initial setup message (Standardized snake_case)
+        // Send initial setup message with system instruction + tools
         const setupMessage = {
             setup: {
                 model: this.model,
@@ -227,29 +149,41 @@ Provide ALL 6 fields:
                     parts: [{ text: this._buildSystemInstruction() }]
                 },
                 tools: [
-                    { google_search: {} },
-                    { function_declarations: this.agentTools }
+                    {
+                        function_declarations: this.agentTools
+                    }
                 ]
             }
         };
+        this.ws.send(JSON.stringify(setupMessage));
 
-        if (this.ws.readyState === WebSocket.OPEN) {
-            console.log('[VoiceClient] Sending SETUP compliant with Field Manual v1.0...');
-            this.ws.send(JSON.stringify(setupMessage));
-            // We do NOT start the microphone here. We wait for 'setupComplete' message.
-        }
+        // 2. Start Microphone Capture
+        await this.startMicrophone();
     }
 
-    handleInterruption() {
-        if (!this.isConnected) return;
-        console.log('[VoiceClient] Interrupting agent...');
-        this.isInterrupted = true;
+    async handleInterruption() {
+        // If the agent is speaking or thinking, we interrupt
+        const state = await window.friday.getState();
+        if (state.status === 'speaking' || state.status === 'thinking') {
+            console.log('[VoiceClient] Interrupting agent...');
 
-        // Stop current microphone
-        this.stopMicrophone();
+            // 1. Instantly stop local playback
+            this.clearPlayback();
 
-        // ITERATION 13: Silenced. Do not send any frames on interrupt.
-        // Let the server handle the turn close internally.
+            // 2. Clear state/UI
+            window.friday.setState({ status: 'listening' });
+
+            // 3. Inform Gemini about the interruption (Clear the model's current output queue)
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                const interruptMsg = {
+                    clientContent: {
+                        turns: [],
+                        turnComplete: true
+                    }
+                };
+                this.ws.send(JSON.stringify(interruptMsg));
+            }
+        }
     }
 
     clearPlayback() {
@@ -259,12 +193,7 @@ Provide ALL 6 fields:
     }
 
     async startMicrophone() {
-        if (this.isMicActive) return;
         try {
-            this.isMicActive = true;
-            this.isAwaitingUserInput = false; // Reset when user starts talking
-            this.audioSentThisTurn = false; // Reset for a new turn
-
             this.mediaStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     sampleRate: 16000,
@@ -288,19 +217,11 @@ Provide ALL 6 fields:
                 }
 
                 if (event.data.type === 'audio_data' && this.ws && this.ws.readyState === WebSocket.OPEN) {
-                    // ITERATION 8: If we are in the middle of an interruption handshake, do NOT send audio.
-                    // This prevents 1007 errors where the server gets audio before it's ready post-interrupt.
-                    if (this.isInterrupted) return;
-
-                    // ITERATION 9: Reset waiting flag on first audio chunk
-                    if (this.isAwaitingUserInput) this.isAwaitingUserInput = false;
-
                     const base64 = this.arrayBufferToBase64(event.data.buffer);
-                    this.audioSentThisTurn = true; // ITERATION 14: Confirm audio sent for turn boundary
                     const msg = {
-                        realtime_input: {
-                            media_chunks: [{
-                                mime_type: "audio/pcm;rate=16000",
+                        realtimeInput: {
+                            mediaChunks: [{
+                                mimeType: "audio/l16;rate=16000",
                                 data: base64
                             }]
                         }
@@ -313,11 +234,11 @@ Provide ALL 6 fields:
             this.workletNode.connect(this.audioContext.destination);
 
             window.friday.setState({ status: 'listening' });
-            console.log('[VoiceClient] Microphone capture started (16kHz PCM compliant)');
+            console.log('[VoiceClient] Microphone capture started');
 
         } catch (e) {
             console.error('[VoiceClient] Mic error:', e);
-            window.friday.addMessage('error', `Microphone failed: ${e.message} `);
+            window.friday.addMessage('error', `Microphone failed: ${e.message}`);
             window.friday.setState({ status: 'idle' });
         }
     }
@@ -326,7 +247,7 @@ Provide ALL 6 fields:
         console.log('[VoiceClient] WebSocket closed:', event.code);
         this.isConnected = false;
         if (event.code !== 1000) {
-            window.friday.addMessage('error', `Voice connection closed unexpectedly(code: ${event.code})`);
+            window.friday.addMessage('error', `Voice connection closed unexpectedly (code: ${event.code})`);
         }
     }
 
@@ -354,7 +275,6 @@ Provide ALL 6 fields:
             // Log setup completion
             if (data.setupComplete) {
                 console.log('[VoiceClient] Setup complete, session ready');
-                this.startMicrophone();
                 return;
             }
 
@@ -398,27 +318,10 @@ Provide ALL 6 fields:
 
                 if (data.serverContent.turnComplete) {
                     console.log('[VoiceClient] Turn complete');
-                    this.isInterrupted = false;
-                    this.isAwaitingUserInput = true;
-
                     window.friday.getState().then(state => {
                         if (state.voiceMode === 'handsfree') {
-                            // Calculate delay until playback finishes
-                            let delayMs = 100; // Minimal safety buffer
-                            if (this.playbackCtx) {
-                                const remaining = (this.nextPlayTime - this.playbackCtx.currentTime) * 1000;
-                                if (remaining > 0) delayMs = remaining + 150;
-                            }
-
-                            console.log(`[VoiceClient] Hands-free resumption in ${Math.round(delayMs)}ms...`);
-                            setTimeout(async () => {
-                                const latestState = await window.friday.getState();
-                                // Only restart if still in hands-free and session is active
-                                if (latestState.voiceMode === 'handsfree' && this.ws && this.ws.readyState === WebSocket.OPEN) {
-                                    window.friday.setState({ status: 'listening' });
-                                    this.startMicrophone();
-                                }
-                            }, delayMs);
+                            console.log('[VoiceClient] Resuming hands-free listening...');
+                            window.friday.setState({ status: 'listening' });
                         } else {
                             window.friday.setState({ status: 'idle' });
                         }
@@ -433,7 +336,7 @@ Provide ALL 6 fields:
     async handleFunctionCall(call) {
         console.log('[VoiceClient] Agent called function:', call.name, call.args);
         window.friday.setState({ status: 'working' });
-        window.friday.addMessage('action', `🔧 ${call.name} (${JSON.stringify(call.args || {}).substring(0, 100)})`);
+        window.friday.addMessage('action', `🔧 ${call.name}(${JSON.stringify(call.args || {}).substring(0, 100)})`);
 
         let response = { success: false, error: 'Unknown function' };
 
@@ -452,18 +355,18 @@ Provide ALL 6 fields:
                 }
 
                 if (!allowed) {
-                    response = { success: false, error: `Domain not in allowlist.User must add it in Browser settings.URL: ${url} ` };
+                    response = { success: false, error: `Domain not in allowlist. User must add it in Browser settings. URL: ${url}` };
                     window.friday.addMessage('error', `Blocked: ${url} not in allowlist`);
                 } else {
-                    const res = await window.friday.navigate(url);
+                    const res = await window.friday.browser.navigate(url);
                     response = { success: res || false };
-                    window.friday.addMessage('result', `✅ Navigated to ${url} `);
+                    window.friday.addMessage('result', `✅ Navigated to ${url}`);
                 }
             }
             else if (call.name === 'read_browser_dom') {
                 const dom = await window.friday.browser.getDOM();
                 response = dom || { error: 'Failed to read DOM (Is extension connected?)' };
-                window.friday.addMessage('result', `📄 Read DOM(${JSON.stringify(response).length} chars)`);
+                window.friday.addMessage('result', `📄 Read DOM (${JSON.stringify(response).length} chars)`);
             }
             else if (call.name === 'evaluate_browser_js') {
                 const res = await window.friday.browser.evaluate(call.args.script);
@@ -484,13 +387,13 @@ Provide ALL 6 fields:
                 const res = await window.friday.browser.click(call.args.selector);
                 response = { success: res || false };
                 if (res && res.error) response = res;
-                window.friday.addMessage('result', `🖱️ Web Click: ${call.args.selector.substring(0, 20)} `);
+                window.friday.addMessage('result', `🖱️ Web Click: ${call.args.selector.substring(0, 20)}`);
             }
             else if (call.name === 'web_type') {
                 const res = await window.friday.browser.type(call.args.selector, call.args.text);
                 response = { success: res || false };
                 if (res && res.error) response = res;
-                window.friday.addMessage('result', `⌨️ Web Type: ${call.args.text.substring(0, 15)} `);
+                window.friday.addMessage('result', `⌨️ Web Type: ${call.args.text.substring(0, 15)}`);
             }
             else if (call.name === 'web_screenshot') {
                 if (call.args.annotated) {
@@ -505,16 +408,16 @@ Provide ALL 6 fields:
                 if (b64Data) {
                     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                         const imgMsg = {
-                            client_content: {
+                            clientContent: {
                                 turns: [{
                                     role: "user",
                                     parts: [{
-                                        inline_data: { mime_type: "image/jpeg", data: b64Data }
+                                        inlineData: { mimeType: "image/jpeg", data: b64Data }
                                     }, {
                                         text: call.args.annotated ? "Here is the annotated browser screenshot. Find the number corresponding to your target and reply with a web_click or web_type using the exact 'x,y' coordinates of the element center." : "Here is the browser screenshot."
                                     }]
                                 }],
-                                turn_complete: true
+                                turnComplete: true
                             }
                         };
                         this.ws.send(JSON.stringify(imgMsg));
@@ -547,19 +450,19 @@ Provide ALL 6 fields:
             else if (call.name === 'desktop_send_chord') {
                 const res = await window.friday.sidecar('input.sendChord', { keys: call.args.chord });
                 response = res || { success: true };
-                window.friday.addMessage('result', `🎹 Sent ${call.args.chord} `);
+                window.friday.addMessage('result', `🎹 Sent ${call.args.chord}`);
             }
             else if (call.name === 'desktop_click_at') {
                 const res = await window.friday.sidecar('input.clickAt', { x: call.args.x, y: call.args.y });
                 response = res || { success: true };
-                window.friday.addMessage('result', `🖱️ Clicked at(${call.args.x}, ${call.args.y})`);
+                window.friday.addMessage('result', `🖱️ Clicked at (${call.args.x}, ${call.args.y})`);
             }
             else if (call.name === 'desktop_find_element') {
                 const params = { name: call.args.name };
                 if (call.args.controlType) params.controlType = call.args.controlType;
                 const res = await window.friday.sidecar('uia.findElement', params);
                 response = res || { error: 'Element not found' };
-                window.friday.addMessage('result', `🔍 FindElement: ${call.args.name} `);
+                window.friday.addMessage('result', `🔍 FindElement: ${call.args.name}`);
             }
             else if (call.name === 'desktop_dump_tree') {
                 const res = await window.friday.sidecar('uia.dumpTree', {});
@@ -574,9 +477,8 @@ Provide ALL 6 fields:
             else if (call.name === 'process_kill') {
                 const res = await window.friday.sidecar('process.kill', { pid: call.args.pid });
                 response = res || { error: 'Failed to kill process' };
-                window.friday.addMessage('result', `💀 Terminated process PID ${call.args.pid} `);
+                window.friday.addMessage('result', `💀 Terminated process PID ${call.args.pid}`);
             }
-            // ── System & UI Tools ──
             else if (call.name === 'get_system_info') {
                 const info = await window.friday.getSystemInfo();
                 response = info || { error: 'Failed to get system info' };
@@ -585,18 +487,17 @@ Provide ALL 6 fields:
             else if (call.name === 'show_notification') {
                 const res = await window.friday.showNotification(call.args.title, call.args.body);
                 response = res || { success: true };
-                window.friday.addMessage('result', `🔔 Notification: ${call.args.title} `);
+                window.friday.addMessage('result', `🔔 Notification: ${call.args.title}`);
             }
             else if (call.name === 'show_message_dialog') {
                 const res = await window.friday.showMessageDialog(call.args);
                 response = res || { error: 'Failed to show dialog' };
                 window.friday.addMessage('result', `💬 Message Dialog shown`);
             }
-            // ── Network & Search ──
             else if (call.name === 'http_request') {
                 const res = await window.friday.httpRequest(call.args);
                 response = res || { error: 'Failed to perform HTTP request' };
-                window.friday.addMessage('result', `🌐 HTTP Request: ${call.args.method || 'GET'} ${call.args.url} `);
+                window.friday.addMessage('result', `🌐 HTTP Request: ${call.args.method || 'GET'} ${call.args.url}`);
             }
             else if (call.name === 'get_user_profile') {
                 const profile = await window.friday.getUserProfile();
@@ -606,59 +507,14 @@ Provide ALL 6 fields:
             else if (call.name === 'web_search') {
                 const res = await window.friday.webSearch(call.args.query);
                 response = res || { error: 'Search failed' };
-                window.friday.addMessage('result', `🔍 Searched: ${call.args.query} `);
+                window.friday.addMessage('result', `🔍 Searched: ${call.args.query}`);
             }
             else if (call.name === 'web_deepdive') {
                 const res = await window.friday.webDeepdive(call.args.url);
                 response = res || { error: 'Deep-dive failed' };
-                window.friday.addMessage('result', `🌊 Deep - dive: ${call.args.url} `);
+                window.friday.addMessage('result', `🌊 Deep-dive: ${call.args.url}`);
             }
-            // ── File System Tools ──
-            else if (call.name === 'fs_list_directory') {
-                const path = call.args.path || call.args.directory;
-                const res = await window.friday.fsListDirectory(path);
-                response = res;
-                if (res.success) window.friday.addMessage('result', `📁 Listed directory: ${path.substring(0, 30)} `);
-            }
-            else if (call.name === 'fs_read_file') {
-                const path = call.args.path || call.args.file;
-                const res = await window.friday.fsReadFileStr(path);
-                response = res;
-                if (res.success) window.friday.addMessage('result', `📄 Read file: ${path.substring(0, 30)}...`);
-            }
-            else if (call.name === 'fs_write_file') {
-                const path = call.args.path || call.args.file;
-                const content = call.args.content || call.args.text || call.args.data;
-                const res = await window.friday.fsWriteFileStr(path, content);
-                response = res;
-                if (res.success) window.friday.addMessage('result', `💾 Wrote file: ${path.substring(0, 30)}...`);
-            }
-            // ── Background Agents ──
-            else if (call.name === 'delegate_task') {
-                console.log('[VoiceClient] delegate_task raw args:', JSON.stringify(call.args));
-                // Robust property resolution for task description
-                const taskDesc = call.args.taskDescription ||
-                    call.args.task_description ||
-                    call.args.task ||
-                    call.args.prompt ||
-                    call.args.description;
-
-                if (!taskDesc) {
-                    console.error('[VoiceClient] delegate_task: Missing task description in args:', call.args);
-                    response = { success: false, error: "Missing task description argument." };
-                } else {
-                    const res = await window.friday.delegateTask(taskDesc);
-                    response = { success: true, jobId: res.jobId, message: `Task delegated successfully. Job ID: ${res.jobId}` };
-                    window.friday.addMessage('result', `🤖 Delegated task [${res.jobId}]: ${taskDesc.substring(0, 50)}...`);
-                }
-            }
-            else if (call.name === 'browse_visual') {
-                const taskDesc = call.args.taskDescription || call.args.task_description || call.args.task;
-                const res = await window.friday.browseVisual(taskDesc);
-                response = { success: true, jobId: res.jobId, message: `Visual browsing started. Job ID: ${res.jobId}` };
-                window.friday.addMessage('result', `👁️ Visual Browsing: ${taskDesc.substring(0, 50)}...`);
-            }
-            // ── Productivity & Connectors ──
+            // ── Gmail ──
             else if (call.name === 'gmail_list') {
                 const res = await window.friday.gmailList();
                 response = res || { error: 'Failed to list Gmail' };
@@ -667,49 +523,52 @@ Provide ALL 6 fields:
             else if (call.name === 'gmail_read') {
                 const res = await window.friday.gmailRead(call.args.id);
                 response = res || { error: 'Failed to read Gmail' };
-                window.friday.addMessage('result', `📧 Gmail: Read message ${call.args.id} `);
+                window.friday.addMessage('result', `📧 Gmail: Read message ${call.args.id}`);
             }
             else if (call.name === 'gmail_send') {
                 const res = await window.friday.gmailSend(call.args);
                 response = res || { error: 'Failed to send Gmail' };
-                window.friday.addMessage('result', `📧 Gmail: Sent to ${call.args.to} `);
+                window.friday.addMessage('result', `📧 Gmail: Sent to ${call.args.to}`);
             }
+            // ── Google Calendar ──
             else if (call.name === 'calendar_google_list') {
                 const res = await window.friday.calendarGoogleList();
-                response = res || { error: 'Failed to list Google Calendar' };
+                response = res || { error: 'Failed' };
                 window.friday.addMessage('result', `📅 Google Cal: Listed events`);
             }
             else if (call.name === 'calendar_google_create') {
                 const res = await window.friday.calendarGoogleCreate(call.args);
-                response = res || { error: 'Failed to create Google Calendar event' };
+                response = res || { error: 'Failed' };
                 window.friday.addMessage('result', `📅 Google Cal: Created event`);
             }
+            // ── Google Drive ──
             else if (call.name === 'drive_list') {
                 const res = await window.friday.driveList(call.args.query);
-                response = res || { error: 'Failed to list Google Drive' };
+                response = res || { error: 'Failed' };
                 window.friday.addMessage('result', `📂 Drive: Searched "${call.args.query || ''}"`);
             }
             else if (call.name === 'drive_read') {
                 const res = await window.friday.driveRead(call.args.fileId);
-                response = res || { error: 'Failed to read Google Drive file' };
+                response = res || { error: 'Failed' };
                 window.friday.addMessage('result', `📂 Drive: Read metadata for ${call.args.fileId}`);
             }
+            // ── Outlook ──
             else if (call.name === 'outlook_list') {
                 const res = await window.friday.outlookList();
-                response = res || { error: 'Failed to list Outlook' };
+                response = res || { error: 'Failed' };
                 window.friday.addMessage('result', `📧 Outlook: Listed messages`);
             }
             else if (call.name === 'outlook_send') {
                 const res = await window.friday.outlookSend(call.args);
-                response = res || { error: 'Failed to send Outlook' };
-                window.friday.addMessage('result', `📧 Outlook: Sent to ${call.args.to} `);
+                response = res || { error: 'Failed' };
+                window.friday.addMessage('result', `📧 Outlook: Sent to ${call.args.to}`);
             }
             else if (call.name === 'calendar_outlook_list') {
                 const res = await window.friday.calendarOutlookList();
-                response = res || { error: 'Failed to list Outlook Calendar' };
+                response = res || { error: 'Failed' };
                 window.friday.addMessage('result', `📅 Outlook Cal: Listed events`);
             }
-            // ── Window Management & OS Controls ──
+            // ── Window Management Tools ──
             else if (call.name === 'window_list') {
                 const res = await window.friday.sidecar('window.list', {});
                 response = res || { error: 'Failed to list windows' };
@@ -718,127 +577,105 @@ Provide ALL 6 fields:
             else if (call.name === 'window_focus') {
                 const res = await window.friday.sidecar('window.focus', { handle: call.args.handle });
                 response = res || { error: 'Failed to focus window' };
-                window.friday.addMessage('result', `🎯 Focused window handle ${call.args.handle} `);
+                window.friday.addMessage('result', `🎯 Focused window handle ${call.args.handle}`);
             }
             else if (call.name === 'window_close') {
                 const res = await window.friday.sidecar('window.close', { handle: call.args.handle });
                 response = res || { error: 'Failed to close window' };
-                window.friday.addMessage('result', `❌ Closed window handle ${call.args.handle} `);
+                window.friday.addMessage('result', `❌ Closed window handle ${call.args.handle}`);
             }
             else if (call.name === 'take_screenshot') {
                 const screenshot = await window.friday.takeScreenshot();
                 if (screenshot && screenshot.data) {
+                    // Send screenshot as inline image to Gemini
                     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                         const imgMsg = {
-                            client_content: {
+                            clientContent: {
                                 turns: [{
                                     role: "user",
                                     parts: [{
-                                        inline_data: {
-                                            mime_type: screenshot.mime_type || screenshot.mimeType,
+                                        inlineData: {
+                                            mimeType: screenshot.mimeType,
                                             data: screenshot.data
                                         }
                                     }, {
                                         text: "Here is the current screenshot of the screen."
                                     }]
                                 }],
-                                turn_complete: true
+                                turnComplete: true
                             }
                         };
                         this.ws.send(JSON.stringify(imgMsg));
-                        response = { success: true, message: 'Screenshot sent to your vision.' };
-                    } else {
-                        response = { error: "Voice connection not open to receive image." };
                     }
+                    response = { success: true, message: 'Screenshot captured and sent for analysis' };
                     window.friday.addMessage('result', `📸 Screenshot captured`);
                 } else {
-                    response = { error: 'Failed to capture screenshot' };
+                    response = { error: screenshot?.error || 'Failed to capture screenshot' };
                     window.friday.addMessage('error', `❌ Screenshot failed`);
                 }
             }
+            // ── File System Tools ──
+            else if (call.name === 'fs_list_directory') {
+                const res = await window.friday.fsListDirectory(call.args.path);
+                response = res;
+                if (res.success) window.friday.addMessage('result', `📁 Listed directory: ${call.args.path.substring(0, 30)}`);
+            }
+            else if (call.name === 'fs_read_file') {
+                const res = await window.friday.fsReadFileStr(call.args.path);
+                response = res;
+                if (res.success) window.friday.addMessage('result', `📄 Read file: ${call.args.path.substring(0, 30)}... (${res.content.length} chars)`);
+            }
+            else if (call.name === 'fs_write_file') {
+                const res = await window.friday.fsWriteFileStr(call.args.path, call.args.content);
+                response = res;
+                if (res.success) window.friday.addMessage('result', `💾 Wrote file: ${call.args.path.substring(0, 30)}...`);
+            }
+            else if (call.name === 'delegate_task') {
+                const res = await window.friday.delegateTask(call.args.taskDescription);
+                response = { success: true, jobId: res.jobId, message: `Task delegated successfully. Job ID: ${res.jobId}. You will be notified when it completes.` };
+                window.friday.addMessage('result', `🤖 Delegated task [${res.jobId}]: ${call.args.taskDescription.substring(0, 50)}...`);
+            }
         } catch (err) {
-            console.error(`[VoiceClient] Tool error(${call.name}): `, err);
+            console.error(`[VoiceClient] Tool error (${call.name}):`, err);
             response = { success: false, error: err.message };
-            window.friday.addMessage('error', `❌ ${call.name} failed: ${err.message} `);
+            window.friday.addMessage('error', `❌ ${call.name} failed: ${err.message}`);
         }
 
-        // Send function response back to Gemini (tool_response format for Live API compliance)
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.isAwaitingUserInput = false; // ITERATION 9
-
-            // ITERATION 9: Truncate and optimize tool response to prevent 1008
-            let serializedResponse = JSON.stringify(response);
-            if (serializedResponse.length > 10240) {
-                console.warn('[VoiceClient] Tool response too large, truncating...');
-                response = {
-                    warning: "Response truncated due to size limits.",
-                    excerpt: serializedResponse.substring(0, 5000) + "... [truncated]",
-                    totalLength: serializedResponse.length
-                };
+        // Send function response back to Gemini (toolResponse format for Live API)
+        const functionResponseMsg = {
+            toolResponse: {
+                functionResponses: [{
+                    name: call.name,
+                    id: call.id,
+                    response: response
+                }]
             }
+        };
 
-            const functionResponseMsg = {
-                tool_response: {
-                    function_responses: [{
-                        name: call.name,
-                        id: call.id,
-                        response: response
-                    }]
-                }
-            };
-
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(functionResponseMsg));
             console.log('[VoiceClient] Sent function response');
-        }
-    }
-
-    // ITERATION 9: Split large text payloads to prevent 1008
-    sendChunkedText(text) {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-        this.isAwaitingUserInput = false;
-
-        const CHUNK_SIZE = 4000;
-        for (let i = 0; i < text.length; i += CHUNK_SIZE) {
-            const chunk = text.slice(i, i + CHUNK_SIZE);
-            const isLast = (i + CHUNK_SIZE >= text.length);
-
-            const msg = {
-                client_content: {
-                    turns: [{
-                        role: "user",
-                        parts: [{ text: chunk }]
-                    }],
-                    turn_complete: isLast
-                }
-            };
-            this.ws.send(JSON.stringify(msg));
         }
     }
 
     // Called when a sub-agent spawned by delegate_task finishes
     handleSubAgentComplete(result) {
         console.log('[VoiceClient] Sub-agent finished:', result);
-        window.friday.addMessage('result', `🤖 Sub - agent ${result.jobId} finished.`);
+        window.friday.addMessage('result', `🤖 Sub-agent ${result.jobId} finished.`);
 
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            console.log('[VoiceClient] Sending sub-agent result (chunked)...');
-            this.sendChunkedText(`[SYSTEM NOTIFICATION] Background task ${result.jobId} completed. Result: ${result.result || result.error}`);
-
-            // ITERATION 14: Standardize barge-in notification
-            const bargeInMsg = {
-                tool_response: {
-                    function_responses: [{
-                        name: "delegate_task_callback", // Virtual ID for the server to acknowledge
-                        id: "callback-" + result.jobId,
-                        response: {
-                            jobId: result.jobId,
-                            status: "complete",
-                            scheduling: "INTERRUPT"
-                        }
-                    }]
+            const sysMsg = {
+                clientContent: {
+                    turns: [{
+                        role: "user",
+                        parts: [{
+                            text: `[SYSTEM NOTIFICATION] Background task ${result.jobId} completed. Result: ${result.result || result.error}`
+                        }]
+                    }],
+                    turnComplete: true
                 }
             };
-            this.ws.send(JSON.stringify(bargeInMsg));
+            this.ws.send(JSON.stringify(sysMsg));
         }
     }
 
@@ -880,72 +717,15 @@ Provide ALL 6 fields:
     }
 
     stop() {
-        // ITERATION 10: State-aware stop
-        // If user is currently talking (Mic active), stop mic and send turn_complete
-        // but KEEP the WebSocket open so the agent can respond.
-        if (this.isMicActive) {
-            console.log('[VoiceClient] Ending user turn (PTT release)');
-            this.stopMicrophone();
-
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                // ITERATION 13: Only send turn_complete if we actually SENT audio
-                // Correct frame shape: include parts:[] even if empty
-                if (!this.isAwaitingUserInput && this.audioSentThisTurn) {
-                    const stopMsg = {
-                        client_content: {
-                            turns: [{ role: "user", parts: [] }],
-                            turn_complete: true
-                        }
-                    };
-                    this.ws.send(JSON.stringify(stopMsg));
-                }
-            }
-            this.audioSentThisTurn = false; // Reset for next turn
-            return;
-        }
-
-        // If mic is NOT active, this is an explicit "End Session" request
-        console.log('[VoiceClient] Ending session (Explicit Stop)');
         this.isConnected = false;
 
         if (this.ws) {
             if (this.ws.readyState === WebSocket.OPEN) {
-                // ITERATION 14: Be extremely defensive about state transitions.
-                // If we are awaiting input (turn already ended) OR we just 
-                // interrupted the agent, do NOT send a manual turn_complete.
-                // This prevents 1011 errors during state collisions.
-                if (this.isAwaitingUserInput || this.isInterrupted) {
-                    console.log('[VoiceClient] Closing socket directly (State: ' + (this.isInterrupted ? 'Interrupted' : 'AwaitingInput') + ')');
-                    setTimeout(() => this.ws?.close(1000), 100);
-                } else {
-                    // Force turn_complete only if we are in a clean turn state
-                    console.log('[VoiceClient] Sending final turn_complete before close');
-                    const stopMsg = {
-                        client_content: {
-                            turns: [{ role: "user", parts: [] }],
-                            turn_complete: true
-                        }
-                    };
-                    this.ws.send(JSON.stringify(stopMsg));
-                    setTimeout(() => this.ws?.close(1000), 150); // Slightly more breath
-                }
+                this.ws.send(JSON.stringify({ clientContent: { turnComplete: true } }));
+                this.ws.close();
             }
             this.ws = null;
         }
-
-        this.stopMicrophone(); // Ensure everything is cleaned up
-        this.nextPlayTime = 0;
-
-        window.friday.getState().then(state => {
-            if (state && state.status !== 'idle') {
-                window.friday.setState({ status: 'idle' });
-            }
-        });
-    }
-
-    // Helper to dry up mic cleanup
-    stopMicrophone() {
-        this.isMicActive = false;
 
         if (this.workletNode) {
             this.workletNode.disconnect();
@@ -961,6 +741,16 @@ Provide ALL 6 fields:
             this.audioContext.close();
             this.audioContext = null;
         }
+
+        // Don't close playbackCtx — keep it alive for faster next start
+        this.nextPlayTime = 0;
+
+        window.friday.getState().then(state => {
+            if (state && state.status !== 'idle') {
+                window.friday.setState({ status: 'idle' });
+            }
+        });
+        console.log('[VoiceClient] Stopped');
     }
 
     // Helper: ArrayBuffer to Base64

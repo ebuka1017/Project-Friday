@@ -472,8 +472,32 @@ const getVoiceTools = () => [
         parameters: { type: "object", properties: {} }
     },
     {
+        name: "web_click",
+        description: "Click an element on the webpage (CSS selector or name).",
+        behavior: "NON_BLOCKING",
+        parameters: {
+            type: "object",
+            properties: { selector: { type: "string" } },
+            required: ["selector"]
+        }
+    },
+    {
+        name: "web_type",
+        description: "Type text into an input field on the webpage.",
+        behavior: "NON_BLOCKING",
+        parameters: {
+            type: "object",
+            properties: {
+                selector: { type: "string" },
+                text: { type: "string" }
+            },
+            required: ["selector", "text"]
+        }
+    },
+    {
         name: "open_default_browser",
         description: "Open URL in system browser.",
+        behavior: "NON_BLOCKING",
         parameters: {
             type: "object",
             properties: { url: { type: "string" } },
@@ -483,6 +507,7 @@ const getVoiceTools = () => [
     {
         name: "desktop_type_string",
         description: "Type text into focused app.",
+        behavior: "NON_BLOCKING",
         parameters: {
             type: "object",
             properties: { text: { type: "string" } },
@@ -492,11 +517,48 @@ const getVoiceTools = () => [
     {
         name: "desktop_send_chord",
         description: "Send shortcut (e.g. 'Ctrl+C').",
+        behavior: "NON_BLOCKING",
         parameters: {
             type: "object",
             properties: { chord: { type: "string" } },
             required: ["chord"]
         }
+    },
+    {
+        name: "fs_list_directory",
+        description: "List contents of a directory on disk.",
+        parameters: {
+            type: "object",
+            properties: { path: { type: "string" } },
+            required: ["path"]
+        }
+    },
+    {
+        name: "fs_read_file",
+        description: "Read text from a local file.",
+        parameters: {
+            type: "object",
+            properties: { path: { type: "string" } },
+            required: ["path"]
+        }
+    },
+    {
+        name: "show_notification",
+        description: "Show a native notification to the user.",
+        behavior: "NON_BLOCKING",
+        parameters: {
+            type: "object",
+            properties: {
+                title: { type: "string" },
+                body: { type: "string" }
+            },
+            required: ["title", "body"]
+        }
+    },
+    {
+        name: "get_system_info",
+        description: "Get CPU, RAM, and OS details.",
+        parameters: { type: "object", properties: {} }
     },
     {
         name: "take_screenshot",
@@ -506,6 +568,7 @@ const getVoiceTools = () => [
     {
         name: "delegate_task",
         description: "Spawn sub-agent for complex tasks.",
+        behavior: "NON_BLOCKING",
         parameters: {
             type: "object",
             properties: { taskDescription: { type: "string" } },
@@ -515,19 +578,11 @@ const getVoiceTools = () => [
     {
         name: "browse_visual",
         description: "Delegate to visual assistant.",
+        behavior: "NON_BLOCKING",
         parameters: {
             type: "object",
             properties: { taskDescription: { type: "string" } },
             required: ["taskDescription"]
-        }
-    },
-    {
-        name: "web_search",
-        description: "Search web for information.",
-        parameters: {
-            type: "object",
-            properties: { query: { type: "string" } },
-            required: ["query"]
         }
     }
 ];
