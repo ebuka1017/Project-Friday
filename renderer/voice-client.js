@@ -245,11 +245,9 @@ Provide ALL 6 fields:
         console.log('[VoiceClient] Interrupting agent...');
         this.isInterrupted = true;
 
-        // Stop current microphone
-        this.stopMicrophone();
-
-        // ITERATION 13: Silenced. Do not send any frames on interrupt.
-        // Let the server handle the turn close internally.
+        // ITERATION 15: Do NOT stop the microphone. 
+        // Interruption should only stop agent playback.
+        this.clearPlayback();
     }
 
     clearPlayback() {
@@ -288,6 +286,10 @@ Provide ALL 6 fields:
                 }
 
                 if (event.data.type === 'audio_data' && this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    // ITERATION 15: Mic Gating (PTT / Handsfree control)
+                    // Only send audio if the mic is "active" in the UI.
+                    if (!this.isMicActive) return;
+
                     // ITERATION 8: If we are in the middle of an interruption handshake, do NOT send audio.
                     // This prevents 1007 errors where the server gets audio before it's ready post-interrupt.
                     if (this.isInterrupted) return;
@@ -354,7 +356,14 @@ Provide ALL 6 fields:
             // Log setup completion
             if (data.setupComplete) {
                 console.log('[VoiceClient] Setup complete, session ready');
-                this.startMicrophone();
+
+                // ITERATION 15: Mode-aware auto-start. 
+                // Only auto-start the mic if we're not explicitly in PTT mode.
+                window.friday.getState().then(state => {
+                    if (state.voiceMode !== 'ptt') {
+                        this.startMicrophone();
+                    }
+                });
                 return;
             }
 
@@ -893,7 +902,7 @@ Provide ALL 6 fields:
                 if (!this.isAwaitingUserInput && this.audioSentThisTurn) {
                     const stopMsg = {
                         client_content: {
-                            turns: [{ role: "user", parts: [] }],
+                            // ITERATION 15: Simplified frame (omitting parts:[] if empty)
                             turn_complete: true
                         }
                     };
@@ -922,7 +931,6 @@ Provide ALL 6 fields:
                     console.log('[VoiceClient] Sending final turn_complete before close');
                     const stopMsg = {
                         client_content: {
-                            turns: [{ role: "user", parts: [] }],
                             turn_complete: true
                         }
                     };
