@@ -196,6 +196,10 @@ internal static class UiaHelper
         var element = FindRequiredElement(@params);
         var guid = typeof(IUIAutomationInvokePattern).GUID;
         var ptr = element.GetCurrentPatternAs(PatternIds.Invoke, ref guid);
+        if (ptr == IntPtr.Zero)
+        {
+            return new { error = $"Element '{element.get_CurrentName()}' does not support clicking/invoking." };
+        }
         var pattern = (IUIAutomationInvokePattern)Marshal.GetObjectForIUnknown(ptr);
         try
         {
@@ -219,6 +223,10 @@ internal static class UiaHelper
         var element = FindRequiredElement(@params);
         var guid = typeof(IUIAutomationValuePattern).GUID;
         var ptr = element.GetCurrentPatternAs(PatternIds.Value, ref guid);
+        if (ptr == IntPtr.Zero)
+        {
+            return new { error = $"Element '{element.get_CurrentName()}' does not support text input (ValuePattern)." };
+        }
         var pattern = (IUIAutomationValuePattern)Marshal.GetObjectForIUnknown(ptr);
         try
         {
@@ -267,6 +275,10 @@ internal static class UiaHelper
         var element = FindRequiredElement(@params);
         var guid = typeof(IUIAutomationTogglePattern).GUID;
         var ptr = element.GetCurrentPatternAs(PatternIds.Toggle, ref guid);
+        if (ptr == IntPtr.Zero)
+        {
+            return new { error = $"Element '{element.get_CurrentName()}' does not support toggling." };
+        }
         var pattern = (IUIAutomationTogglePattern)Marshal.GetObjectForIUnknown(ptr);
         try
         {

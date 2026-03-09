@@ -44,6 +44,7 @@ class PipeClient extends EventEmitter {
           this._connected = true;
           this._retries = 0;
           this._reconnectAttempts = 0; // Reset on successful connect
+          this.emit('connected'); // Tell the app we are alive!
           resolve();
         });
 
@@ -73,12 +74,15 @@ class PipeClient extends EventEmitter {
             reject(new Error(`[pipe] Failed to connect: ${err.message}`));
           } else {
             console.error(`[pipe] Connection error (${err.code}):`, err.message);
+            // ITERATION 17: Emit error for global monitoring
+            this.emit('error', err);
           }
         });
 
         this._client.on('close', () => {
           this._connected = false;
           console.log('[pipe] Disconnected from sidecar');
+          this.emit('disconnected'); // Tell the app to pause tools
           // Reject all pending requests
           for (const [id, { reject: rej, timer }] of this._pending) {
             clearTimeout(timer);
@@ -125,7 +129,16 @@ class PipeClient extends EventEmitter {
       this._pending.set(id, { resolve, reject, timer });
 
       const msg = JSON.stringify({ id, method, params }) + '\n';
-      this._client.write(msg, 'utf-8');
+      try {
+        if (!this._client || !this._client.writable) {
+          throw new Error("Socket is not writable");
+        }
+        this._client.write(msg, 'utf-8');
+      } catch (err) {
+        this._pending.delete(id);
+        clearTimeout(timer);
+        return reject(new Error(`[pipe] Write failed: ${err.message}`));
+      }
     });
   }
 

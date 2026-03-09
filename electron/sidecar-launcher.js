@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════
-// electron/sidecar-launcher.js — C# Sidecar Process Manager
+// sidecar/sidecar-launcher.js — C# Sidecar Process Manager
 // Spawns and manages the lifecycle of the Native AOT sidecar binary.
 // ═══════════════════════════════════════════════════════════════════════
 
-const { spawn, execSync } = require('child_process');
+const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -12,7 +12,7 @@ let sidecarProcess = null;
 /**
  * Resolve the path to the sidecar executable.
  * In dev mode: look in sidecar/bin/Debug or publish folder.
- * In production: look next to the Electron binary.
+ * In production: look next to the Friday binary.
  */
 function getSidecarPath() {
     const devPaths = [
@@ -64,34 +64,32 @@ function launch() {
 
     console.log('[sidecar] Launching:', exePath);
 
-    // Ensure no zombie sidecars are running
-    try {
-        execSync('taskkill /F /IM Sidecar.exe /T', { stdio: 'ignore' });
-    } catch (e) { /* ignore if not running */ }
+    // Ensure no zombie sidecars are running (Asynchronous cleanup)
+    exec('taskkill /F /IM Sidecar.exe /T', () => {
+        sidecarProcess = spawn(exePath, [], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            windowsHide: true,
+            cwd: path.dirname(exePath)
+        });
 
-    sidecarProcess = spawn(exePath, [], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        windowsHide: true,
-        cwd: path.dirname(exePath)
-    });
+        // Forward sidecar stdout/stderr to Friday console
+        sidecarProcess.stdout.on('data', (data) => {
+            process.stdout.write(`[sidecar:out] ${data}`);
+        });
 
-    // Forward sidecar stdout/stderr to Electron console
-    sidecarProcess.stdout.on('data', (data) => {
-        process.stdout.write(`[sidecar:out] ${data}`);
-    });
+        sidecarProcess.stderr.on('data', (data) => {
+            process.stderr.write(`[sidecar:err] ${data}`);
+        });
 
-    sidecarProcess.stderr.on('data', (data) => {
-        process.stderr.write(`[sidecar:err] ${data}`);
-    });
+        sidecarProcess.on('exit', (code, signal) => {
+            console.log(`[sidecar] Process exited with code ${code}, signal ${signal}`);
+            sidecarProcess = null;
+        });
 
-    sidecarProcess.on('exit', (code, signal) => {
-        console.log(`[sidecar] Process exited with code ${code}, signal ${signal}`);
-        sidecarProcess = null;
-    });
-
-    sidecarProcess.on('error', (err) => {
-        console.error('[sidecar] Failed to start:', err.message);
-        sidecarProcess = null;
+        sidecarProcess.on('error', (err) => {
+            console.error('[sidecar] Failed to start:', err.message);
+            sidecarProcess = null;
+        });
     });
 
     return true;

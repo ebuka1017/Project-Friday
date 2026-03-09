@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-// electron/browser-server.js — Extension WebSocket Bridge
+// electron/browser-server.js — Friday WebSocket Bridge
 // Hosts a local ws server that the Friday Chrome extension connects to.
 // Relays commands (navigate, DOM) from IPC to the extension debugger.
 // ═══════════════════════════════════════════════════════════════════════

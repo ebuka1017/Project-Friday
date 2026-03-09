@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 // sidecar/Program.cs — Friday Sidecar Entry Point
 // Named Pipe server with JSON-RPC message dispatcher.
-// Handles HUD click-through, UIA, and SendInput requests from Electron.
+// Handles HUD click-through, UIA, and SendInput requests from Friday.
 // ═══════════════════════════════════════════════════════════════════════
 
 using System.IO.Pipes;
@@ -65,7 +65,7 @@ internal static class Program
         );
 
         await server.WaitForConnectionAsync();
-        Console.WriteLine($"[sidecar-{instanceId}] Electron connected!");
+        Console.WriteLine($"[sidecar-{instanceId}] Friday connected!");
 
         // CRITICAL: Use UTF8 without BOM
         var utf8NoBom = new UTF8Encoding(false);
@@ -142,9 +142,9 @@ internal static class Program
     /// </summary>
     private static object HandleSetClickThrough(JsonNode? @params)
     {
-        // DEPRECATED: Electron handles this via setIgnoreMouseEvents(true, { forward: true })
+        // DEPRECATED: Friday handles this via setIgnoreMouseEvents(true, { forward: true })
         // Returning success without modifying the window style.
-        return new { success = true, note = "Click-through managed by Electron" };
+        return new { success = true, note = "Click-through managed by Friday" };
     }
 
     // ── Win32 Interop (fallback if CsWin32 doesn't generate these) ───────

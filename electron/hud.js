@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-// electron/hud.js — HUD Window Manager
+// electron/hud.js — Friday HUD Window Manager
 // Creates the transparent, always-on-top, draggable HUD overlay.
 // Uses CSS-based click-through (not WS_EX_TRANSPARENT) so the panel
 // itself remains interactive while the surrounding area passes clicks.

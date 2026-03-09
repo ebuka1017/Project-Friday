@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-// electron/sub-agents.js — Async Background Task Manager
+// electron/sub-agents.js — Friday Async Background Task Manager
 // Uses Gemini 1.5 Pro REST API to run headless tasks asynchronously
 // without blocking the main live voice session.
 // ═══════════════════════════════════════════════════════════════════════
@@ -210,11 +210,19 @@ class SubAgentManager {
 
     async _executeComputerUseAction(name, args) {
         // Computer Use model uses 0-999 coordinates.
-        // We need to scale them to the actual viewport size.
-        // For now, we assume 1280x720 or 1440x900 if not specified.
-        // Future: get actual viewport from browserServer.
-        const width = 1240; // Approx inner width
-        const height = 820; // Approx inner height
+        // ITERATION 16: Dynamically fetch actual viewport size
+        let width = 1240;
+        let height = 820;
+
+        try {
+            const dimensions = await browserServer.evaluate('({ w: window.innerWidth, h: window.innerHeight })');
+            if (dimensions && dimensions.w && dimensions.h) {
+                width = dimensions.w;
+                height = dimensions.h;
+            }
+        } catch (e) {
+            console.warn('[SubAgents] Failed to fetch viewport dimensions, using defaults:', e.message);
+        }
 
         const scale = (val, max) => Math.floor((val / 1000) * max);
 
@@ -274,8 +282,8 @@ class SubAgentManager {
 
         while (!isDone && turns < MAX_TURNS) {
             turns++;
-            // Send empty message to just "continue" and get next output
-            const result = await chat.sendMessage("");
+            // ITERATION 16: SDK Fix - avoid sending empty string
+            const result = await chat.sendMessage("Continue executing the plan.");
             const response = result.response;
 
             const task = this.tasks.get(jobId);
@@ -315,7 +323,11 @@ class SubAgentManager {
             // Execute the tool natively
             let toolRes = {};
             try {
-                toolRes = await this._executeNativeTool(name, args);
+                // ITERATION 16: Add 30s timeout to native tools
+                toolRes = await Promise.race([
+                    this._executeNativeTool(name, args),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Tool execution timed out (30s)')), 30000))
+                ]);
             } catch (err) {
                 toolRes = { error: err.message };
             }

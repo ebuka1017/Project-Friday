@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-// electron/db.js — Persistent Memory & Session Store
+// electron/db.js — Friday Persistent Memory & Session Store
 // Uses sqlite3 to store chat history, sub-agent traces, and context.
 // ═══════════════════════════════════════════════════════════════════════
 

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-// electron/state.js — Shared Agent State Manager
+// electron/state.js — Friday Shared Agent State Manager
 // Single source of truth for agent state. Broadcasts changes to all
 // renderer windows (HUD + main app) via IPC.
 // ═══════════════════════════════════════════════════════════════════════

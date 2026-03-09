@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-// electron/mcp-server.js — Model Context Protocol Server
+// electron/mcp-server.js — Friday Model Context Protocol Server
 // Exposes Friday's native desktop & browser capabilities to external
 // AI clients (like Claude Desktop) over Standard I/O.
 // ═══════════════════════════════════════════════════════════════════════

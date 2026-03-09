@@ -30,6 +30,18 @@ namespace Friday.Sidecar
         [DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
@@ -50,22 +62,26 @@ namespace Friday.Sidecar
                 if (IsWindowVisible(hWnd))
                 {
                     int length = GetWindowTextLength(hWnd);
-                    if (length > 0)
-                    {
-                        var builder = new StringBuilder(length + 1);
-                        GetWindowText(hWnd, builder, builder.Capacity);
-                        string title = builder.ToString();
-
-                        // Filter out common invisible or system overlay windows
-                        if (!string.IsNullOrWhiteSpace(title) && title != "Program Manager")
+                        if (length > 0)
                         {
-                            windows.Add(new
+                            var builder = new StringBuilder(length + 1);
+                            GetWindowText(hWnd, builder, builder.Capacity);
+                            string title = builder.ToString();
+
+                            // ITERATION 17: Filter out zero-sized windows (invisible background processes)
+                            GetWindowRect(hWnd, out var rect);
+                            bool hasSize = (rect.Right - rect.Left > 0) && (rect.Bottom - rect.Top > 0);
+
+                            // Filter out common invisible or system overlay windows
+                            if (!string.IsNullOrWhiteSpace(title) && title != "Program Manager" && hasSize)
                             {
-                                handle = hWnd.ToInt64(), // Pass as integer for JSON
-                                title = title
-                            });
+                                windows.Add(new
+                                {
+                                    handle = hWnd.ToInt64(), // Pass as integer for JSON
+                                    title = title
+                                });
+                            }
                         }
-                    }
                 }
                 return true; // Continue enumeration
             }, 0);

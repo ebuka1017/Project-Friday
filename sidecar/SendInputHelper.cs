@@ -58,6 +58,14 @@ internal static class SendInputHelper
     private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
     private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
     private const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
+    private const uint MOUSEEVENTF_VIRTUALDESK = 0x4000;
+
+    private const int SM_CXSCREEN = 0;
+    private const int SM_CYSCREEN = 1;
+    private const int SM_XVIRTUALSCREEN = 76;
+    private const int SM_YVIRTUALSCREEN = 77;
+    private const int SM_CXVIRTUALSCREEN = 78;
+    private const int SM_CYVIRTUALSCREEN = 79;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
@@ -201,11 +209,18 @@ internal static class SendInputHelper
             ?? throw new ArgumentException("y is required");
         string button = @params?["button"]?.GetValue<string>() ?? "left";
 
-        // Convert screen coordinates to normalized absolute coordinates (0–65535)
-        int screenW = GetSystemMetrics(0); // SM_CXSCREEN
-        int screenH = GetSystemMetrics(1); // SM_CYSCREEN
-        int normX = (x * 65535) / screenW;
-        int normY = (y * 65535) / screenH;
+        // ITERATION 17: Support Multi-Monitor (Virtual Desktop) scaling
+        int vScreenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        int vScreenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        int vScreenX = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        int vScreenY = GetSystemMetrics(SM_YVIRTUALSCREEN);
+
+        // Adjust for negative coordinates if secondary monitor is on the left/top
+        int adjustedX = x - vScreenX;
+        int adjustedY = y - vScreenY;
+
+        int normX = (int)((adjustedX * 65535.0) / (vScreenWidth - 1));
+        int normY = (int)((adjustedY * 65535.0) / (vScreenHeight - 1));
 
         uint downFlag = button == "right" ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
         uint upFlag = button == "right" ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;
@@ -221,7 +236,7 @@ internal static class SendInputHelper
                     {
                         dx = normX,
                         dy = normY,
-                        dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | downFlag,
+                        dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK | downFlag,
                     }
                 }
             },
@@ -234,7 +249,7 @@ internal static class SendInputHelper
                     {
                         dx = normX,
                         dy = normY,
-                        dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | upFlag,
+                        dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK | upFlag,
                     }
                 }
             },

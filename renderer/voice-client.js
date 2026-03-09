@@ -775,17 +775,34 @@ Provide ALL 6 fields:
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.isAwaitingUserInput = false; // ITERATION 9
 
-            // ITERATION 9: Truncate and optimize tool response to prevent 1008
+            // ITERATION 16: Payload Decoupling Fix
+            // If the response is too large for a standard tool_response frame (~64KB limit),
+            // we send a tiny dummy response to satisfy the protocol and stream the raw data via client_content.
             let serializedResponse = JSON.stringify(response);
-            if (serializedResponse.length > 10240) {
-                console.warn('[VoiceClient] Tool response too large, truncating...');
-                response = {
-                    warning: "Response truncated due to size limits.",
-                    excerpt: serializedResponse.substring(0, 5000) + "... [truncated]",
-                    totalLength: serializedResponse.length
+            if (serializedResponse.length > 30000) {
+                console.log('[VoiceClient] Payload massive. Decoupling tool_response and streaming via client_content...');
+
+                // 1. Send dummy response to Live API
+                const dummyResponseMsg = {
+                    tool_response: {
+                        function_responses: [{
+                            name: call.name,
+                            id: call.id,
+                            response: {
+                                status: "success",
+                                note: "Data is too large for a standard response. Streaming full raw result into your context now."
+                            }
+                        }]
+                    }
                 };
+                this.ws.send(JSON.stringify(dummyResponseMsg));
+
+                // 2. Stream actual payload
+                this.sendChunkedText(`[SYSTEM: Full Raw Output for tool '${call.name}']\n${serializedResponse}`);
+                return;
             }
 
+            // Standard tool_response for smaller payloads
             const functionResponseMsg = {
                 tool_response: {
                     function_responses: [{
@@ -902,7 +919,10 @@ Provide ALL 6 fields:
                 if (!this.isAwaitingUserInput && this.audioSentThisTurn) {
                     const stopMsg = {
                         client_content: {
-                            // ITERATION 15: Simplified frame (omitting parts:[] if empty)
+                            turns: [{
+                                role: "user",
+                                parts: [] // Satisfies the strict Protobuf schema
+                            }],
                             turn_complete: true
                         }
                     };
@@ -931,6 +951,10 @@ Provide ALL 6 fields:
                     console.log('[VoiceClient] Sending final turn_complete before close');
                     const stopMsg = {
                         client_content: {
+                            turns: [{
+                                role: "user",
+                                parts: [] // Satisfies strict Protobuf
+                            }],
                             turn_complete: true
                         }
                     };
@@ -972,12 +996,13 @@ Provide ALL 6 fields:
     }
 
     // Helper: ArrayBuffer to Base64
+    // ITERATION 16: Optimized conversion to prevent stack overflow and memory thrashing
     arrayBufferToBase64(buffer) {
-        let binary = '';
         const bytes = new Uint8Array(buffer);
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(bytes[i]);
+        let binary = '';
+        const chunk = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
         }
         return window.btoa(binary);
     }
