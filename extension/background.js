@@ -7,22 +7,33 @@
 const FRIDAY_WS_URL = "ws://127.0.0.1:8765";
 let ws = null;
 let attachedTabId = null;
+let connectionPending = false;
+const clientId = Math.random().toString(36).substring(2, 10);
 
 function connectToFriday() {
-    console.log("[Friday Bridge] Connecting to", FRIDAY_WS_URL);
-    ws = new WebSocket(FRIDAY_WS_URL);
+    if (connectionPending || (ws && ws.readyState === WebSocket.OPEN)) {
+        console.log("[Friday Bridge] Connection already active or pending. Skipping.");
+        return;
+    }
+
+    console.log(`[Friday Bridge] Connecting to ${FRIDAY_WS_URL} (ID: ${clientId})`);
+    connectionPending = true;
+    ws = new WebSocket(`${FRIDAY_WS_URL}?clientId=${clientId}`);
 
     ws.onopen = () => {
         console.log("[Friday Bridge] Connected to Friday App!");
+        connectionPending = false;
     };
 
     ws.onclose = () => {
         console.log("[Friday Bridge] Disconnected. Reconnecting in 3s...");
+        connectionPending = false;
         setTimeout(connectToFriday, 3000);
     };
 
     ws.onerror = (err) => {
         console.error("[Friday Bridge] WebSocket error", err);
+        connectionPending = false;
     };
 
     ws.onmessage = async (event) => {

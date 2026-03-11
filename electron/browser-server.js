@@ -21,21 +21,26 @@ class BrowserServer {
         this.wss = new WebSocket.Server({ port: this.port, host: '127.0.0.1' });
         console.log(`[BrowserServer] Listening for extension on ws://127.0.0.1:${this.port}`);
 
-        this.wss.on('connection', (ws) => {
-            console.log('[BrowserServer] Extension connected!');
+        this.wss.on('connection', (ws, req) => {
+            const url = new URL(req.url, `http://${req.headers.host}`);
+            const clientId = url.searchParams.get('clientId') || 'unknown';
+
+            console.log(`[BrowserServer] Extension connected! (ID: ${clientId})`);
 
             // Only allow one bridge connection at a time
             if (this.extensionSocket) {
+                console.log(`[BrowserServer] Kicking existing connection to make room for ${clientId}`);
                 this.extensionSocket.close();
             }
             this.extensionSocket = ws;
+            this.extensionSocket.clientId = clientId;
 
             ws.on('message', (message) => {
                 this.handleMessage(message);
             });
 
             ws.on('close', () => {
-                console.log('[BrowserServer] Extension disconnected.');
+                console.log(`[BrowserServer] Extension disconnected. (ID: ${ws.clientId || 'unknown'})`);
                 if (this.extensionSocket === ws) {
                     this.extensionSocket = null;
                     // Fail pending requests
