@@ -4,22 +4,56 @@
 // without blocking the main live voice session.
 // ═══════════════════════════════════════════════════════════════════════
 
-const searchTools = require('./search-tools');
-const productivityTools = require('./productivity-tools');
-const notificationTools = require('./notification-tools');
-const networkTools = require('./network-tools');
-const sysinfoTools = require('./sysinfo-tools');
-const { getState } = require('./state');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { VertexAI } = require('@google-cloud/vertexai');
 const browserServer = require('./browser-server');
 const toolsRegistry = require('../shared/tools-registry');
-const pipeClient = require('./pipe-client');
-const { shell } = require('electron');
+const toolExecutor = require('./tool-executor');
 
 class SubAgentManager {
     constructor() {
         this.tasks = new Map();
         this.taskCounter = 0;
+        this._initBackends();
+    }
+
+    _initBackends() {
+        // AI Studio (Standard)
+        if (process.env.GEMINI_API_KEY) {
+            this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            console.log('[SubAgents] AI Studio backend initialized.');
+        }
+
+        // GCP Vertex AI
+        if (process.env.GCP_PROJECT_ID && process.env.GCP_LOCATION) {
+            this.vertexAI = new VertexAI({
+                project: process.env.GCP_PROJECT_ID,
+                location: process.env.GCP_LOCATION
+            });
+            console.log(`[SubAgents] Vertex AI backend initialized (Project: ${process.env.GCP_PROJECT_ID}).`);
+        }
+    }
+
+    _getModel(modelName, systemInstruction = '', tools = []) {
+        // Prefer Vertex AI if configured
+        if (this.vertexAI) {
+            return this.vertexAI.getGenerativeModel({
+                model: modelName,
+                systemInstruction: systemInstruction,
+                tools: tools
+            });
+        }
+
+        // Fallback to AI Studio
+        if (this.genAI) {
+            return this.genAI.getGenerativeModel({
+                model: modelName,
+                systemInstruction: systemInstruction,
+                tools: tools
+            });
+        }
+
+        throw new Error('No AI backend (GEMINI_API_KEY or GCP_PROJECT_ID) configured');
     }
 
     getAllTasks() {
@@ -44,8 +78,12 @@ class SubAgentManager {
     }
 
     _startGenericTask(taskDescription, onComplete, isVisual) {
-        if (!process.env.GEMINI_API_KEY) {
-            onComplete({ error: 'GEMINI_API_KEY not set' });
+        try {
+            // Standardizing on Gemini 2.0 Flash for speed and reliability in background tasks.
+            // Complex visual tasks can use 1.5 Pro if needed, but 2.0 Flash Exp is the current target.
+            this._getModel(isVisual ? "gemini-2.0-flash-exp" : "gemini-2.0-flash-exp");
+        } catch (e) {
+            onComplete({ error: e.message });
             return null;
         }
 
@@ -83,32 +121,25 @@ class SubAgentManager {
     }
 
     async _runVisualAgentLoop(jobId, taskDescription) {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-computer-use-preview-10-2025",
-            // Note: The specific format for computer_use tool in Node SDK 
-            // is often passed as a tool with 'computer_use' property.
-            tools: [{
-                computer_use: {
-                    environment: "ENVIRONMENT_BROWSER"
-                }
-            }, {
-                functionDeclarations: [
-                    {
-                        name: "finish_task",
-                        description: "Call this when the task is successfully completed.",
-                        parameters: {
-                            type: "object",
-                            properties: {
-                                summary: { type: "string", description: "Summary of what was done" }
-                            },
-                            required: ["summary"]
-                        }
+        const model = this._getModel("gemini-2.5-computer-use-preview-10-2025", '', [{
+            computer_use: {
+                environment: "ENVIRONMENT_BROWSER"
+            }
+        }, {
+            functionDeclarations: [
+                {
+                    name: "finish_task",
+                    description: "Call this when the task is successfully completed.",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            summary: { type: "string", description: "Summary of what was done" }
+                        },
+                        required: ["summary"]
                     }
-                ]
-            }]
-        });
+                }
+            ]
+        }]);
 
         const chat = model.startChat();
         const MAX_TURNS = 15;
@@ -171,10 +202,10 @@ class SubAgentManager {
                     continue;
                 }
 
-                // Execute Computer Use action
+                // Execute Computer Use action via ToolExecutor
                 let toolRes = {};
                 try {
-                    toolRes = await this._executeComputerUseAction(name, args);
+                    toolRes = await toolExecutor.executeComputerUseAction(name, args);
                 } catch (err) {
                     toolRes = { error: err.message };
                 }
@@ -208,66 +239,15 @@ class SubAgentManager {
         return finalSummary;
     }
 
-    async _executeComputerUseAction(name, args) {
-        // Computer Use model uses 0-999 coordinates.
-        // ITERATION 16: Dynamically fetch actual viewport size
-        let width = 1240;
-        let height = 820;
-
-        try {
-            const dimensions = await browserServer.evaluate('({ w: window.innerWidth, h: window.innerHeight })');
-            if (dimensions && dimensions.w && dimensions.h) {
-                width = dimensions.w;
-                height = dimensions.h;
-            }
-        } catch (e) {
-            console.warn('[SubAgents] Failed to fetch viewport dimensions, using defaults:', e.message);
-        }
-
-        const scale = (val, max) => Math.floor((val / 1000) * max);
-
-        if (name === "click_at" || name === "hover_at") {
-            const x = scale(args.x, width);
-            const y = scale(args.y, height);
-            return await browserServer.clickTarget(`${x},${y}`);
-        } else if (name === "type_text_at") {
-            const x = scale(args.x, width);
-            const y = scale(args.y, height);
-            return await browserServer.typeTarget(`${x},${y}`, args.text);
-        } else if (name === "navigate") {
-            return await browserServer.navigate(args.url);
-        } else if (name === "go_back") {
-            return await browserServer.goBack();
-        } else if (name === "go_forward") {
-            return await browserServer.goForward();
-        } else if (name === "scroll_document") {
-            // Mapping direction to CDP scroll or script
-            const script = `window.scrollBy({ top: ${args.direction === 'down' ? 500 : (args.direction === 'up' ? -500 : 0)}, left: ${args.direction === 'right' ? 500 : (args.direction === 'left' ? -500 : 0)}, behavior: 'smooth' });`;
-            await browserServer.evaluate(script);
-            return { success: true };
-        } else if (name === "open_web_browser") {
-            return { success: true, message: "Browser already open." };
-        } else if (name === "wait_5_seconds") {
-            await new Promise(r => setTimeout(r, 5000));
-            return { success: true };
-        }
-
-        return { error: `Computer Use action ${name} not implemented.` };
-    }
-
     async _runAgentLoop(jobId, taskDescription) {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
         // Load tools from shared registry
         const tools = [{
             functionDeclarations: toolsRegistry.getSubAgentTools()
         }];
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-3.1-flash-lite-preview",
-            systemInstruction: "You are a headless background worker agent. You have native access to the user's desktop and browser. Complete the task assigned to you asynchronously. You MUST call the finish_task tool when you are completely done. Be efficient and use tools directly whenever possible.\n\nSEARCH STRATEGY:\n- If the task explicitly requires showing the user a search result, use `navigate_browser` or `open_default_browser`.\n- For all other research needed to complete your task, use `web_search` to keep the user's workspace clean.",
-            tools: tools
-        });
+        const systemInstruction = "You are a headless background worker agent. You have native access to the user's desktop and browser. Complete the task assigned to you asynchronously. You MUST call the finish_task tool when you are completely done. Be efficient and use tools directly whenever possible.\n\nSEARCH STRATEGY:\n- If the task explicitly requires showing the user a search result, use `navigate_browser` or `open_default_browser`.\n- For all other research needed to complete your task, use `web_search` to keep the user's workspace clean.";
+
+        const model = this._getModel("gemini-3.1-flash-lite-preview", systemInstruction, tools);
 
         const chat = model.startChat({
             history: [
@@ -282,7 +262,6 @@ class SubAgentManager {
 
         while (!isDone && turns < MAX_TURNS) {
             turns++;
-            // ITERATION 16: SDK Fix - avoid sending empty string
             const result = await chat.sendMessage("Continue executing the plan.");
             const response = result.response;
 
@@ -295,8 +274,6 @@ class SubAgentManager {
             const functionCalls = response.functionCalls();
 
             if (!functionCalls || functionCalls.length === 0) {
-                // If the model didn't call any functions, it just talked.
-                // We'll assume it's done or needs to be prompted again.
                 if (textResponse) {
                     finalSummary = textResponse;
                 }
@@ -320,12 +297,11 @@ class SubAgentManager {
                 break;
             }
 
-            // Execute the tool natively
+            // Execute the tool natively via ToolExecutor
             let toolRes = {};
             try {
-                // ITERATION 16: Add 30s timeout to native tools
                 toolRes = await Promise.race([
-                    this._executeNativeTool(name, args),
+                    toolExecutor.executeNativeTool(name, args),
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Tool execution timed out (30s)')), 30000))
                 ]);
             } catch (err) {
@@ -346,124 +322,6 @@ class SubAgentManager {
         }
 
         return finalSummary;
-    }
-
-    async _executeNativeTool(name, args) {
-        const state = getState();
-        const userId = state.currentUser?.id;
-
-        // Desktop
-        if (name === 'desktop_type_string') {
-            return await pipeClient.send('input.typeString', { text: args.text });
-        } else if (name === 'desktop_send_chord') {
-            return await pipeClient.send('input.sendChord', { keys: args.chord });
-        } else if (name === 'desktop_click_at') {
-            return await pipeClient.send('input.clickAt', { x: args.x, y: args.y });
-        } else if (name === 'desktop_find_element') {
-            const params = { name: args.name };
-            if (args.controlType) params.controlType = args.controlType;
-            return await pipeClient.send('uia.findElement', params);
-        } else if (name === 'desktop_dump_tree') {
-            return await pipeClient.send('uia.dumpTree', {});
-        } else if (name === 'process_list') {
-            return await pipeClient.send('process.list', {});
-        } else if (name === 'process_kill') {
-            return await pipeClient.send('process.kill', { pid: args.pid });
-        }
-        // Window Management
-        else if (name === 'window_list') {
-            return await pipeClient.send('window.list', {});
-        } else if (name === 'window_focus') {
-            return await pipeClient.send('window.focus', { handle: args.handle });
-        } else if (name === 'window_close') {
-            return await pipeClient.send('window.close', { handle: args.handle });
-        }
-        // Browser
-        else if (name === 'navigate_browser') {
-            return await browserServer.navigate(args.url);
-        } else if (name === 'read_browser_dom') {
-            return await browserServer.getDOM();
-        } else if (name === 'evaluate_browser_js') {
-            return await browserServer.evaluate(args.script);
-        } else if (name === 'open_default_browser') {
-            await shell.openExternal(args.url);
-            return { success: true };
-        } else if (name === 'browser_back') {
-            return await browserServer.goBack();
-        } else if (name === 'browser_forward') {
-            return await browserServer.goForward();
-        } else if (name === 'web_click') {
-            return await browserServer.clickTarget(args.selector);
-        } else if (name === 'web_type') {
-            return await browserServer.typeTarget(args.selector, args.text);
-        }
-        // File System
-        else if (name === 'fs_list_directory') {
-            return await fsTools.listDirectory(args.path);
-        } else if (name === 'fs_read_file') {
-            return await fsTools.readFileStr(args.path);
-        } else if (name === 'fs_write_file') {
-            return await fsTools.writeFileStr(args.path, args.content);
-        }
-        // World / Search
-        else if (name === 'web_search') {
-            return await searchTools.webSearch(args.query);
-        } else if (name === 'web_deepdive') {
-            return await searchTools.webDeepdive(args.url);
-        }
-        // Productivity (Gmail)
-        else if (name === 'gmail_list') {
-            if (!userId) return { error: 'AUTH_REQUIRED: User not signed in' };
-            return await productivityTools.gmailList(userId);
-        } else if (name === 'gmail_read') {
-            if (!userId) return { error: 'AUTH_REQUIRED' };
-            return await productivityTools.gmailRead(userId, args.id);
-        } else if (name === 'gmail_send') {
-            if (!userId) return { error: 'AUTH_REQUIRED' };
-            return await productivityTools.gmailSend(userId, args);
-        }
-        // Google Cal
-        else if (name === 'calendar_google_list') {
-            if (!userId) return { error: 'AUTH_REQUIRED' };
-            return await productivityTools.calendarGoogleList(userId);
-        } else if (name === 'calendar_google_create') {
-            if (!userId) return { error: 'AUTH_REQUIRED' };
-            return await productivityTools.calendarGoogleCreate(userId, args);
-        }
-        // Google Drive
-        else if (name === 'drive_list') {
-            if (!userId) return { error: 'AUTH_REQUIRED' };
-            return await productivityTools.driveList(userId, args.query);
-        } else if (name === 'drive_read') {
-            if (!userId) return { error: 'AUTH_REQUIRED' };
-            return await productivityTools.driveRead(userId, args.fileId);
-        }
-        // Outlook
-        else if (name === 'outlook_list') {
-            if (!userId) return { error: 'AUTH_REQUIRED' };
-            return await productivityTools.outlookList(userId);
-        } else if (name === 'outlook_send') {
-            if (!userId) return { error: 'AUTH_REQUIRED' };
-            return await productivityTools.outlookSend(userId, args);
-        } else if (name === 'calendar_outlook_list') {
-            if (!userId) return { error: 'AUTH_REQUIRED' };
-            return await productivityTools.calendarOutlookList(userId);
-        }
-        // System / Notification
-        else if (name === 'get_system_info') {
-            return await sysinfoTools.getSystemInfo();
-        } else if (name === 'show_notification') {
-            return notificationTools.showNotification(args.title, args.body);
-        } else if (name === 'show_message_dialog') {
-            return await notificationTools.showMessageDialog(args);
-        } else if (name === 'http_request') {
-            return await networkTools.httpRequest(args);
-        } else if (name === 'get_user_profile') {
-            const profile = await getState().currentUser;
-            return profile || { error: 'Not signed in' };
-        }
-
-        throw new Error(`Unknown tool: ${name}`);
     }
 }
 

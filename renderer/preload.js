@@ -8,7 +8,10 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('friday', {
     // Get securely injected environment variables
     getGeminiKey: () => ipcRenderer.invoke('env:getGeminiKey'),
+    getVertexToken: () => ipcRenderer.invoke('auth:getVertexToken'),
     getClerkKey: () => ipcRenderer.invoke('env:getClerkKey'),
+    getGcpProject: () => ipcRenderer.invoke('env:getGcpProject'),
+    getGcpLocation: () => ipcRenderer.invoke('env:getGcpLocation'),
     setAuthStatus: (status) => ipcRenderer.invoke('auth:setStatus', status),
 
     // OS-Level Auth integrations

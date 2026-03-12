@@ -19,10 +19,10 @@ class VoiceClient {
         // Scheduled audio playback queue (fixes crackling)
         this.nextPlayTime = 0;
 
-        // Gemini Live API parameters
-        this.host = 'generativelanguage.googleapis.com';
-        this.baseModel = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
-        this.model = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+        // Google Cloud Vertex AI parameters
+        this.project = ''; // Will be loaded from env via main
+        this.location = 'us-central1';
+        this.model = 'gemini-2.0-flash-exp';
 
         // Listen for background task completions
         window.friday.onSubAgentComplete((result) => this.handleSubAgentComplete(result));
@@ -36,10 +36,11 @@ class VoiceClient {
     async init() {
         try {
             this.apiKey = await window.friday.getGeminiKey();
-            if (!this.apiKey) {
-                console.error('[VoiceClient] GEMINI_API_KEY missing from environment.');
-                window.friday.addMessage('error', 'Error: GEMINI_API_KEY is missing from .env');
-                return false;
+            this.project = await window.friday.getGcpProject();
+            this.location = await window.friday.getGcpLocation();
+
+            if (!this.project) {
+                console.warn('[VoiceClient] GCP_PROJECT_ID missing. Remote Vertex AI might fail.');
             }
 
             // Pre-load skills list for system instruction
@@ -96,7 +97,19 @@ class VoiceClient {
                 await this.playbackCtx.resume();
             }
 
-            const url = `wss://${this.host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
+            // Fetch Vertex AI Auth Token
+            const token = await window.friday.getVertexToken();
+            if (!token) {
+                console.error('[VoiceClient] Failed to obtain Vertex AI access token.');
+                window.friday.addMessage('error', 'Error: Failed to authenticate with GCP (Vertex AI)');
+                return;
+            }
+
+            // Vertex AI Bidi Endpoint (Multimodal Live)
+            // Format: wss://{location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:streamGenerateContent
+            const url = `wss://${this.location}-aiplatform.googleapis.com/v1/projects/${this.project}/locations/${this.location}/publishers/google/models/${this.model}:streamGenerateContent?access_token=${token}`;
+
+            console.log(`[VoiceClient] Connecting to Vertex AI: ${this.location} (Project: ${this.project})`);
             this.ws = new WebSocket(url);
 
             this.ws.onopen = this.onWsOpen.bind(this);
