@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdn.hugeicons.com/font/free/stroke-rounded.css">
 </head>
 
 <body>
@@ -21,7 +22,7 @@
         <div class="container-wide nav-content">
             <a href="index.html" class="logo">
                 <img src="assets/logo.png" alt="Friday Logo">
-                <span class="text-gradient-blue">FRIDAY</span>
+                <span class="text-gradient-green">FRIDAY</span>
             </a>
 
             <nav class="nav-links">
@@ -32,17 +33,7 @@
 
             <div class="nav-actions">
                 <button class="theme-toggle-btn glass" id="themeBtn" title="Toggle theme">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="5" />
-                        <line x1="12" y1="1" x2="12" y2="3" />
-                        <line x1="12" y1="21" x2="12" y2="23" />
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                        <line x1="1" y1="12" x2="3" y2="12" />
-                        <line x1="21" y1="12" x2="23" y2="12" />
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                    </svg>
+                    <i class="hugeicons-sun-01" id="themeIcon"></i>
                 </button>
                 <button class="btn btn-primary" id="downloadNavBtn">Get Friday</button>
             </div>
@@ -55,7 +46,7 @@
             <div class="container">
                 <div class="hero-content" data-reveal>
                     <div class="badge glass">Friday v1.0 — Desktop AI Evolution</div>
-                    <h1 class="text-gradient-blue">The technical OS companion.</h1>
+                    <h1 class="text-gradient-green">The technical OS companion.</h1>
                     <p>Friday lives on your computer to help you manage files, automate regular tasks, and control your OS through a simple interface.</p>
                     <div class="cta-group">
                         <button class="btn btn-primary">Start Using Friday</button>
@@ -69,18 +60,14 @@
         <section id="features" class="features section-padding">
             <div class="container">
                 <div class="section-header" data-reveal>
-                    <h2 class="text-gradient-blue" style="font-size: 3.5rem; text-align: center; margin-bottom: 24px;">Desktop Native Intelligence</h2>
+                    <h2 class="text-gradient-green" style="font-size: 3.5rem; text-align: center; margin-bottom: 24px;">Desktop Native Intelligence</h2>
                     <p style="text-align: center; color: var(--text-secondary); max-width: 600px; margin: 0 auto 60px;">The power of cloud AI, with the context of your local machine.</p>
                 </div>
 
                 <div class="feature-grid">
                     <div class="feature-card" data-reveal>
                         <div class="feature-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                                <line x1="8" y1="21" x2="16" y2="21" />
-                                <line x1="12" y1="17" x2="12" y2="21" />
-                            </svg>
+                            <i class="hugeicons-computer-programming-01"></i>
                         </div>
                         <h3>System Control</h3>
                         <p>Control your OS settings, windows, and processes through a natural language interface. Total
@@ -89,9 +76,7 @@
 
                     <div class="feature-card" data-reveal>
                         <div class="feature-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                            </svg>
+                            <i class="hugeicons-folder-02"></i>
                         </div>
                         <h3>File Management</h3>
                         <p>Friday understands your local file system. Organize downloads, search documents, and refactor
@@ -100,10 +85,7 @@
 
                     <div class="feature-card" data-reveal>
                         <div class="feature-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                            </svg>
+                            <i class="hugeicons-locked-01"></i>
                         </div>
                         <h3>Local Privacy</h3>
                         <p>Your data stays on your machine. Friday uses OS-level encryption to store your secrets and
@@ -117,25 +99,31 @@
         <section id="use-cases" class="use-cases section-padding glass" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
             <div class="container">
                 <div class="section-header" data-reveal>
-                    <h2 class="text-gradient-blue" style="font-size: 3.5rem; text-align: center; margin-bottom: 24px;">Built for Power Users</h2>
+                    <h2 class="text-gradient-green" style="font-size: 3.5rem; text-align: center; margin-bottom: 24px;">Built for Power Users</h2>
                     <p style="text-align: center; color: var(--text-secondary); max-width: 700px; margin: 0 auto 80px;">Friday specializes in the technical tasks that keep you away from your real work.</p>
                 </div>
 
                 <div class="feature-grid">
                     <div class="feature-card glass" data-reveal>
-                        <div class="badge" style="margin-bottom: 20px; color: var(--accent);">Developer Velocity</div>
+                        <div class="feature-icon" style="width: 32px; height: 32px; margin-bottom: 20px;">
+                            <i class="hugeicons-terminal-01" style="font-size: 1.5rem;"></i>
+                        </div>
                         <h3>Code & Terminal</h3>
                         <p>Ask Friday to refactor a component across your entire project, or have it explain a complex legacy script directly from your terminal context.</p>
                     </div>
 
                     <div class="feature-card glass" data-reveal>
-                        <div class="badge" style="margin-bottom: 20px; color: var(--accent);">File Automation</div>
+                        <div class="feature-icon" style="width: 32px; height: 32px; margin-bottom: 20px;">
+                            <i class="hugeicons-folder-favorite-01" style="font-size: 1.5rem;"></i>
+                        </div>
                         <h3>Smart Workspace</h3>
                         <p>"Find all screenshots from last week, group them by date, and move them to my Project Assets folder." Friday handles the grunt work.</p>
                     </div>
 
                     <div class="feature-card glass" data-reveal>
-                        <div class="badge" style="margin-bottom: 20px; color: var(--accent);">Deep Integration</div>
+                        <div class="feature-icon" style="width: 32px; height: 32px; margin-bottom: 20px;">
+                            <i class="hugeicons-settings-01" style="font-size: 1.5rem;"></i>
+                        </div>
                         <h3>System Native</h3>
                         <p>Control your system volume, manage active windows, or search deep within your document history—all through natural voice or text commands.</p>
                     </div>
@@ -169,7 +157,7 @@
         <section class="cta-section section-padding">
             <div class="container">
                 <div class="final-cta glass" style="padding: 100px 40px; border-radius: var(--radius-lg); text-align: center; background: radial-gradient(circle at top right, var(--accent-glow), transparent);" data-reveal>
-                    <h2 class="text-gradient-blue" style="font-size: 4rem; margin-bottom: 24px;">Transform your desktop with Friday.</h2>
+                    <h2 class="text-gradient-green" style="font-size: 4rem; margin-bottom: 24px;">Transform your desktop with Friday.</h2>
                     <p style="color: var(--text-secondary); margin-bottom: 48px; font-size: 1.4rem; max-width: 800px; margin-left: auto; margin-right: auto;">Join the next generation of power users who are redefining their workflow with native AI intelligence.</p>
                     <div class="cta-group" style="justify-content: center;">
                         <button class="btn btn-primary" style="padding: 20px 60px; font-size: 1.2rem;">Download for Windows</button>

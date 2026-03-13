@@ -19,18 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function initTheme() {
   const themeBtn = document.getElementById('themeBtn');
+  const themeIcon = document.getElementById('themeIcon') || themeBtn.querySelector('i');
   const root = document.documentElement;
 
   // Load saved theme
   const savedTheme = localStorage.getItem('friday-theme') || 'dark';
-  if (savedTheme === 'light') {
-    root.classList.add('theme-light');
-  }
+  root.setAttribute('data-theme', savedTheme);
+  updateThemeIcon(savedTheme, themeIcon);
 
   themeBtn.addEventListener('click', () => {
-    root.classList.toggle('theme-light');
-    const currentTheme = root.classList.contains('theme-light') ? 'light' : 'dark';
+    const currentTheme = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    root.setAttribute('data-theme', currentTheme);
     localStorage.setItem('friday-theme', currentTheme);
+    updateThemeIcon(currentTheme, themeIcon);
 
     // Add a micro-animation to the button
     themeBtn.style.transform = 'scale(0.9) rotate(15deg)';
@@ -38,6 +39,15 @@ function initTheme() {
       themeBtn.style.transform = 'scale(1) rotate(0)';
     }, 150);
   });
+}
+
+function updateThemeIcon(theme, icon) {
+  if (!icon) return;
+  if (theme === 'light') {
+    icon.className = 'hugeicons-moon-01';
+  } else {
+    icon.className = 'hugeicons-sun-01';
+  }
 }
 
 /**

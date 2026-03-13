@@ -4,10 +4,10 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
-    /* ── Vibrant Tech Palette (Inspired by get.tech / Radix) ── */
-    --accent: #2173F8; /* Primary Tech Blue */
-    --accent-hover: #133D8D;
-    --accent-glow: rgba(33, 115, 248, 0.3);
+    /* ── Friday Green Palette ── */
+    --accent: #539E4F; /* App Green */
+    --accent-hover: #458d41;
+    --accent-glow: rgba(83, 158, 79, 0.3);
     
     /* Dark Mode (Default) */
     --bg: #0A0C12;
@@ -130,8 +130,8 @@ h4 {
     border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.text-gradient-blue {
-    background: linear-gradient(135deg, #2173F8 0%, #00ffd5 100%);
+.text-gradient-green {
+    background: linear-gradient(135deg, var(--accent) 0%, #a3e635 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -463,15 +463,15 @@ header.scrolled {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, #65b861 100%);
     color: white;
-    box-shadow: 0 4px 14px 0 rgba(33, 115, 248, 0.39);
+    box-shadow: 0 4px 14px 0 rgba(83, 158, 79, 0.3);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(33, 115, 248, 0.45);
-    background: linear-gradient(135deg, #3b82f6 0%, var(--accent) 100%);
+    box-shadow: 0 6px 20px rgba(83, 158, 79, 0.4);
+    background: linear-gradient(135deg, #65b861 0%, var(--accent) 100%);
 }
 
 .btn-secondary {
