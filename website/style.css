@@ -109,13 +109,42 @@ h4 {
     -webkit-text-fill-color: transparent;
 }
 
-/* ── Layout ────────────────────────────────────────────────────────────── */
-
 .container,
 .container-wide {
     max-width: 2200px;
     margin: 0 auto;
     padding: 0 40px;
+}
+
+/* ── Utilities ────────────────────────────────────────────────────────── */
+
+.glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+}
+
+[data-theme="light"] .glass {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.text-gradient-blue {
+    background: linear-gradient(135deg, #2173F8 0%, #00ffd5 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.section-padding {
+    padding: 160px 0;
+}
+
+@media (max-width: 768px) {
+    .section-padding {
+        padding: 80px 0;
+    }
 }
 
 section {
@@ -434,26 +463,26 @@ header.scrolled {
 }
 
 .btn-primary {
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 4px 20px var(--accent-glow);
+    background: linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%);
+    color: white;
+    box-shadow: 0 4px 14px 0 rgba(33, 115, 248, 0.39);
 }
 
 .btn-primary:hover {
-    transform: scale(1.02);
-    filter: brightness(1.1);
-    box-shadow: 0 8px 30px var(--accent-glow);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(33, 115, 248, 0.45);
+    background: linear-gradient(135deg, #3b82f6 0%, var(--accent) 100%);
 }
 
 .btn-secondary {
-    background: var(--bg-surface);
-    color: var(--text);
+    background: var(--bg-card);
     border: 1px solid var(--border);
+    color: var(--text);
 }
 
 .btn-secondary:hover {
     background: var(--bg-hover);
-    border-color: var(--text-muted);
+    border-color: var(--accent);
 }
 
 .theme-toggle-btn {
