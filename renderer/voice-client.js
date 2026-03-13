@@ -241,9 +241,7 @@ Provide ALL 6 fields:
 
         if (this.ws.readyState === WebSocket.OPEN) {
             console.log('[VoiceClient] Sending SETUP compliant with Bidi v1beta...');
-            const payloadStr = JSON.stringify(setupMessage);
-            console.log('[VoiceClient] Setup payload:', payloadStr);
-            this.ws.send(payloadStr);
+            this.ws.send(JSON.stringify(setupMessage));
             // We do NOT start the microphone here. We wait for 'setupComplete' message.
         }
     }
