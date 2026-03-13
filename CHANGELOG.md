@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0-gcp] - 2026-03-13
+### Enterprise Local Strategy
+- **Vertex AI Integration**: Successfully transitioned background sub-agents and experimental live voice sessions to the **Vertex AI SDK** for enterprise reliability.
+- **Cloud Connector**: Added a WebSocket-based bridge (`electron/cloud-connector.js`) to allow remote hub agents to command the local PC's toolset.
+- **Secure ADC Authentication**: Implemented Google Application Default Credentials for local-to-cloud resource management.
+- **Sub-Agent Upgrades**: Optimized the reasoning loop in `electron/sub-agents.js` using Vertex AI project-scoped models.
+- **Production Clerk Sync**: Integrated custom domain support (`clerk.algospend.tech`) for secure authentication in corporate environments.
+
 ## [0.2.0] - 2026-03-09
 ### Added
 - **Global Branding**: Renamed "Electron" to "Friday" across all core services, comments, and internal handshakes.
