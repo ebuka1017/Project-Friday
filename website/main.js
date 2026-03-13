@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollHeader();
   initRevealAnimations();
   initCTAs();
+  initNavbarToggle();
+  initTabs();
+  initAccordions();
 });
 
 /**

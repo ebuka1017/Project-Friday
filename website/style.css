@@ -383,53 +383,6 @@ section {
 /* ── FAQs / Accordion (get.tech Clone) ── */
 .accordion {
     border-bottom: 1px solid var(--border);
-}
-
-.accordion__header {
-    padding: 2rem 0;
-    font-size: 1.3rem;
-    font-weight: 500;
-    color: var(--text);
-    cursor: pointer;
-}
-
-.accordion__body {
-    max-height: 0;
-    overflow: hidden;
-    transition: var(--transition);
-}
-
-.accordion.active .accordion__body {
-    max-height: 200px;
-    padding-bottom: 2rem;
-}
-
-.accordion.active i {
-    transform: rotate(45deg);
-    color: var(--accent);
-}
-
-/* ── Footer (get.tech Clone) ── */
-.footer {
-    font-size: 1.1rem;
-    color: var(--text-muted);
-}
-
-.footer__links {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.footer__links a {
-    color: var(--text-muted);
-    text-transform: lowercase;
-}
-
-.footer__links a:hover {
-    color: var(--accent);
-}
-
 /* ── Header ────────────────────────────────────────────────────────────── */
 
 header {
