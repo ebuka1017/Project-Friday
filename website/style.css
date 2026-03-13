@@ -29,10 +29,10 @@
     /* Design System */
     --font: 'DM Sans', -apple-system, system-ui, sans-serif;
     --font-display: 'Funnel Display', sans-serif;
-    --radius: 6px;
-    --radius-lg: 12px;
-    --radius-pill: 8px;
-    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --radius: 8px;
+    --radius-lg: 16px;
+    --radius-pill: 50px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
     --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
@@ -133,10 +133,60 @@ h4 {
 }
 
 .text-gradient-green {
-    background: linear-gradient(135deg, var(--accent) 0%, #a3e635 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, #86efac 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+/* ── Buttons (Polished) ── */
+.btn {
+    font-family: var(--font);
+    font-weight: 500;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-pill) !important;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white !important;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px var(--accent-glow);
+}
+
+.btn-outlined {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text) !important;
+}
+
+.btn-outlined:hover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+}
+
+.theme-toggle-btn {
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.theme-toggle-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+[data-theme="light"] .theme-toggle-btn {
+    background: var(--bg-card);
 }
 
 .section-padding {
