@@ -43,11 +43,11 @@ function initTheme() {
 
 function updateThemeIcon(theme, icon) {
   if (!icon) return;
-  // Ensure we use the correct classes for the HugeIcons CDN font
+  // Ensure we use the correct classes for the HugeIcons CDN font (hgi prefix)
   if (theme === 'light') {
-    icon.className = 'hugeicons-moon-01';
+    icon.className = 'hgi hgi-stroke hgi-moon-01';
   } else {
-    icon.className = 'hugeicons-sun-01';
+    icon.className = 'hgi hgi-stroke hgi-sun-01';
   }
 }
 
