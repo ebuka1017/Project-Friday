@@ -90,6 +90,65 @@ function initRevealAnimations() {
 }
 
 /**
+ * Navbar Toggle
+ */
+function initNavbarToggle() {
+  const navToggle = document.getElementById('navbar-toggle');
+  const navMenu = document.querySelector('.navbar__menu ul');
+
+  if (navToggle && navMenu) {
+    navToggle.addEventListener('click', () => {
+      navMenu.classList.toggle('active');
+    });
+  }
+}
+
+/**
+ * Tabs Logic
+ */
+function initTabs() {
+  const tabHeaders = document.querySelectorAll('.usecases-tabs__heading h3');
+  const tabContents = document.querySelectorAll('.usecases-tabs__domain-list');
+
+  tabHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+      const tabId = header.getAttribute('data-tab');
+
+      tabHeaders.forEach(h => h.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      tabContents.forEach(c => c.classList.add('d-none'));
+
+      header.classList.add('active');
+      const targetContent = document.getElementById(`tab-${tabId}`);
+      if (targetContent) {
+        targetContent.classList.add('active');
+        targetContent.classList.remove('d-none');
+      }
+    });
+  });
+}
+
+/**
+ * Accordion Logic
+ */
+function initAccordions() {
+  const accordions = document.querySelectorAll('.js-accordion');
+
+  accordions.forEach(acc => {
+    const header = acc.querySelector('.accordion__header');
+    header.addEventListener('click', () => {
+      acc.classList.toggle('active');
+      const body = acc.querySelector('.accordion__body');
+      if (acc.classList.contains('active')) {
+        body.classList.remove('d-none');
+      } else {
+        body.classList.add('d-none');
+      }
+    });
+  });
+}
+
+/**
  * Handle interactions for Download and CTAs
  */
 function initCTAs() {
