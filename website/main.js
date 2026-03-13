@@ -43,6 +43,7 @@ function initTheme() {
 
 function updateThemeIcon(theme, icon) {
   if (!icon) return;
+  // Ensure we use the correct classes for the HugeIcons CDN font
   if (theme === 'light') {
     icon.className = 'hugeicons-moon-01';
   } else {

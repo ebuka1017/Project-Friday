@@ -28,8 +28,9 @@
     
     /* Design System */
     --font: 'Inter', -apple-system, system-ui, sans-serif;
-    --radius: 12px;
-    --radius-lg: 24px;
+    --radius: 8px;
+    --radius-lg: 16px;
+    --radius-pill: 12px;
     --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
@@ -138,7 +139,7 @@ h4 {
 }
 
 .section-padding {
-    padding: 160px 0;
+    padding: 100px 0;
 }
 
 @media (max-width: 768px) {
@@ -148,7 +149,7 @@ h4 {
 }
 
 section {
-    padding: 120px 0;
+    padding: 80px 0;
 }
 
 /* ── Header ────────────────────────────────────────────────────────────── */
@@ -264,18 +265,18 @@ header.scrolled {
 }
 
 .hero h1 {
-    font-size: clamp(3rem, 8vw, 5.5rem);
+    font-size: clamp(2.5rem, 6vw, 4rem);
     font-weight: 800;
     line-height: 1.1;
     margin-bottom: 24px;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.03em;
 }
 
 .hero p {
-    font-size: clamp(1.1rem, 2vw, 1.4rem);
+    font-size: clamp(1rem, 1.5vw, 1.15rem);
     color: var(--text-secondary);
     margin-bottom: 40px;
-    max-width: 700px;
+    max-width: 600px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -442,12 +443,13 @@ header.scrolled {
 }
 
 .feature-card h3 {
-    font-size: 1.5rem;
-    margin-bottom: 16px;
+    font-size: 1.25rem;
+    margin-bottom: 12px;
 }
 
 .feature-card p {
     color: var(--text-secondary);
+    font-size: 0.95rem;
 }
 
 /* ── Buttons ───────────────────────────────────────────────────────────── */
