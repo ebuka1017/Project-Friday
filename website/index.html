@@ -11,191 +11,170 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Funnel+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css">
 </head>
 
 <body>
-    <!-- Header -->
-    <header id="header">
-        <div class="container nav-content">
-            <a href="#" class="logo">
-                <img src="assets/logo.png" alt="Friday Logo">
-                <span>FRIDAY</span>
+    <!-- Navbar Start -->
+    <nav class="navbar glass">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="index.html" class="navbar__logo">
+                <img src="assets/logo.png" alt="Friday Logo" style="height: 32px; margin-right: 10px;">
+                <span class="text-gradient-green" style="font-weight: 700; font-family: var(--font-display);">FRIDAY</span>
             </a>
 
-            <nav class="nav-links">
-                <a href="#features">Features</a>
-                <a href="#about">What is it?</a>
-                <a href="https://github.com/ebuka1017/Project-Friday" target="_blank">Open Source</a>
-            </nav>
-
-            <div class="nav-actions">
-                <button class="theme-toggle-btn" id="themeBtn" title="Toggle theme">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="5" />
-                        <line x1="12" y1="1" x2="12" y2="3" />
-                        <line x1="12" y1="21" x2="12" y2="23" />
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                        <line x1="1" y1="12" x2="3" y2="12" />
-                        <line x1="21" y1="12" x2="23" y2="12" />
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                    </svg>
+            <div class="navbar__menu">
+                <button id="navbar-toggle" aria-label="Menu Toggle">
+                    <i class="hgi hgi-stroke hgi-menu-01"></i>
                 </button>
-                <button class="btn btn-primary" id="downloadNavBtn">Download App</button>
+
+                <ul class="d-flex align-items-center gap-4">
+                    <li><a href="index.html">Product</a></li>
+                    <li><a href="about.html">Company</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li class="nav-actions">
+                        <button class="theme-toggle-btn glass" id="themeBtn" title="Toggle theme">
+                            <i class="hgi hgi-stroke hgi-sun-01" id="themeIcon"></i>
+                        </button>
+                        <a href="download.html" class="btn btn-primary" id="downloadNavBtn">Download Friday</a>
+                    </li>
+                </ul>
             </div>
         </div>
-    </header>
+    </nav>
+    <!-- Navbar End -->
 
-    <main>
-        <!-- Hero Section -->
-        <section class="hero">
+    <main class="main">
+        <!-- Hero Start -->
+        <section id="hero" class="hero section">
             <div class="container">
-                <div class="hero-content" data-reveal>
-                    <div class="badge">Introducing Friday v1.0 — Beta</div>
-                    <h1 class="text-gradient">Assistant for your desktop.</h1>
-                    <p>Friday lives on your computer to help you manage files, automate regular tasks, and control your OS through a simple interface.</p>
-                    <div class="cta-group">
-                        <button class="btn btn-primary">Download for Windows</button>
-                        <button class="btn btn-secondary">View Documentation</button>
-                    </div>
-                </div>
+                <div class="row">
+                    <div class="col d-flex flex-column justify-content-center">
+                        <div class="hero__content text-center">
+                            <h1 class="hero__heading">
+                                <div>
+                                    <span>the professional <br>desktop native <span class="text-gradient-green">AGENT</span></span>
+                                </div>
+                            </h1>
 
-                <div class="hero-visual" data-reveal>
-                    <div class="mockup-app">
-                        <div class="mockup-header">
-                            <div class="mockup-dot"></div>
-                            <div class="mockup-dot"></div>
-                            <div class="mockup-dot"></div>
-                        </div>
-                        <div class="mockup-body">
-                            <div class="mockup-sidebar">
-                                <div class="mockup-line" style="width: 100%;"></div>
-                                <div class="mockup-line"></div>
-                                <div class="mockup-line"></div>
-                                <div class="mockup-line"></div>
+                            <div class="hero__para">
+                                <p>A sharp, high-performance OS companion <br>built for technical workflows.</p>
                             </div>
-                            <div class="mockup-chat">
-                                <div class="mockup-msg"></div>
-                                <div class="mockup-msg alt"></div>
-                                <div class="mockup-msg"></div>
+                             <div class="hero__actions mt-5">
+                                 <a href="download.html" class="btn btn-primary btn-lg" style="padding: 18px 45px; font-size: 1.1rem; border-radius: 50px !important;">Download Desktop App</a>
+                                 <button class="btn btn-outlined btn-lg ms-3" style="padding: 18px 45px; font-size: 1.1rem; border-radius: 50px !important; border: 1px solid var(--border);">Documentation</button>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="hero-shape-1" class="hero-shapes"></div>
+            <div id="hero-shape-2" class="hero-shapes"></div>
+        </section>
+        <!-- Hero End -->
+
+        <!-- Usecases Start -->
+        <section class="usecases section">
+            <div class="container text-md-center">
+                <h2><span class="text-gradient-green">10K+ engineers</span> <br class="d-md-none">trust Friday for <br>their local workflows.</h2>
+                <p class="mt-3">A desktop native companion makes your technical identity unmissable.</p>
+
+                <div class="usecases-tabs mt-5">
+                    <div class="usecases-tabs__heading d-flex justify-content-center gap-4 flex-wrap">
+                        <h3 class="active" data-tab="0" role="button">Developers</h3>
+                        <h3 data-tab="1" role="button">Writers</h3>
+                        <h3 data-tab="2" role="button">Managers</h3>
+                        <h3 data-tab="3" role="button">Designers</h3>
+                    </div>
+
+                    <div class="usecases-tabs__content mt-4">
+                        <div class="usecases-tabs__domain-list active" id="tab-0">
+                            <div class="feature-grid">
+                                <div class="feature-card glass">
+                                    <div class="feature-icon"><i class="hgi hgi-stroke hgi-terminal-01"></i></div>
+                                    <h3>Terminal Integration</h3>
+                                    <p>Refactor code and run scripts directly through natural language.</p>
+                                </div>
+                                <div class="feature-card glass">
+                                    <div class="feature-icon"><i class="hgi hgi-stroke hgi-code"></i></div>
+                                    <h3>API Control</h3>
+                                    <p>Interact with your local services and APIs effortlessly.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="usecases-tabs__domain-list d-none" id="tab-1">
+                            <div class="feature-grid">
+                                <div class="feature-card glass">
+                                    <div class="feature-icon"><i class="hgi hgi-stroke hgi-file-01"></i></div>
+                                    <h3>Document Search</h3>
+                                    <p>Find and summarize any local file in seconds.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Additional tabs hidden for brevity -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Usecases End -->
+
+        <!-- FAQs Start -->
+        <section class="faqs section pb-5">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-5">
+                        <h2><span class="text-gradient-green">questions?</span> <br>consider them <br>answered.</h2>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="faqs__accordion">
+                            <div class="accordion js-accordion border-bottom py-3">
+                                <div class="accordion__header d-flex justify-content-between align-items-center" role="button">
+                                    <span>What is Friday, and who is it for?</span>
+                                    <i class="hgi hgi-stroke hgi-plus"></i>
+                                </div>
+                                <div class="accordion__body mt-2 d-none">
+                                    <p>Friday is a Desktop Native Agent for power users. It tells your OS, files, and tools that you're in control.</p>
+                                </div>
+                            </div>
+                            <div class="accordion js-accordion border-bottom py-3">
+                                <div class="accordion__header d-flex justify-content-between align-items-center" role="button">
+                                    <span>Is my data safe locally?</span>
+                                    <i class="hgi hgi-stroke hgi-plus"></i>
+                                </div>
+                                <div class="accordion__body mt-2 d-none">
+                                    <p>Yes. Friday follows a local-first philosophy. Your files stay on your machine, always.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="mockup-hud">
-                        <div class="mockup-hud-mic"></div>
-                        <div class="mockup-hud-line" style="width: 60%; margin: 10px auto;"></div>
-                        <div class="mockup-hud-line"></div>
-                        <div class="mockup-hud-line" style="width: 80%;"></div>
-                    </div>
                 </div>
             </div>
         </section>
-
-        <!-- Features Section -->
-        <section id="features" class="features">
-            <div class="container">
-                <div class="section-header" data-reveal>
-                    <h2 style="font-size: 3rem; margin-bottom: 60px; text-align: center;">Desktop Native Intelligence
-                    </h2>
-                </div>
-
-                <div class="feature-grid">
-                    <div class="feature-card" data-reveal>
-                        <div class="feature-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                                <line x1="8" y1="21" x2="16" y2="21" />
-                                <line x1="12" y1="17" x2="12" y2="21" />
-                            </svg>
-                        </div>
-                        <h3>System Control</h3>
-                        <p>Control your OS settings, windows, and processes through a natural language interface. Total
-                            control, zero friction.</p>
-                    </div>
-
-                    <div class="feature-card" data-reveal>
-                        <div class="feature-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                            </svg>
-                        </div>
-                        <h3>File Management</h3>
-                        <p>Friday understands your local file system. Organize downloads, search documents, and refactor
-                            code across your workspace.</p>
-                    </div>
-
-                    <div class="feature-card" data-reveal>
-                        <div class="feature-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                            </svg>
-                        </div>
-                        <h3>Local Privacy</h3>
-                        <p>Your data stays on your machine. Friday uses OS-level encryption to store your secrets and
-                            session history securely.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- About Section -->
-        <section id="about" class="about">
-            <div class="container">
-                <div class="feature-card"
-                    style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 60px; align-items: center;"
-                    data-reveal>
-                    <div class="about-image">
-                        <div
-                            style="background: var(--bg-card); padding: 40px; border-radius: var(--radius); border: 1px solid var(--border);">
-                            <h4 style="color: var(--accent); margin-bottom: 20px;">$ friday --status</h4>
-                            <p style="font-family: monospace; color: var(--text-muted);">Systems: Online<br>Privacy:
-                                Enabled<br>Encryption: AES-256<br>User: Verified</p>
-                        </div>
-                    </div>
-                    <div class="about-text">
-                        <h2>Why Project Friday?</h2>
-                        <p style="font-size: 1.1rem; margin-top: 24px;">Current AI tools are trapped in browser tabs.
-                            Friday breaks that barrier by living directly on your desktop, giving AI the context of your
-                            actual files and workflows while keeping your privacy intact via local processing.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Final CTA -->
-        <section class="cta-section">
-            <div class="container">
-                <div class="final-cta" style="background: var(--accent); color: white;" data-reveal>
-                    <h2 style="font-size: 3.5rem; margin-bottom: 24px;">Ready to meet Friday?</h2>
-                    <p style="color: rgba(255,255,255,0.8); margin-bottom: 40px; font-size: 1.25rem;">Join thousands of
-                        developers and power users who are redefining their desktop workflow.</p>
-                    <button class="btn btn-secondary"
-                        style="background: white; color: var(--accent); border: none; padding: 16px 48px; font-size: 1.1rem;">Download
-                        for Windows 10/11</button>
-                </div>
-            </div>
-        </section>
+        <!-- FAQs End -->
     </main>
 
-    <footer>
-        <div class="container footer-content">
-            <div class="logo">
-                <img src="assets/logo.png" alt="Friday Logo">
-                <span>FRIDAY</span>
-            </div>
-            <div class="footer-links">
-                <a href="terms.html">Terms</a>
-                <a href="privacy.html">Privacy</a>
-            </div>
-            <div class="footer-copyright">
-                © 2026 Project Friday.
+    <!-- Footer Start -->
+    <footer class="footer py-5 border-top">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6 footer__text">
+                    <span>© 2026 Project Friday. All Rights Reserved.</span>
+                </div>
+                <div class="col-md-6">
+                    <ul class="footer__links d-flex justify-content-end gap-3 mb-0">
+                        <li><a href="about.html">about</a></li>
+                        <li><a href="privacy.html">privacy policy</a></li>
+                        <li><a href="terms.html">legal</a></li>
+                        <li><a href="contact.html">contact</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </footer>
+    <!-- Footer End -->
 
     <script type="module" src="/main.js"></script>
 </body>

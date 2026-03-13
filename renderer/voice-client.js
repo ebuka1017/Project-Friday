@@ -19,11 +19,10 @@ class VoiceClient {
         // Scheduled audio playback queue (fixes crackling)
         this.nextPlayTime = 0;
 
-        // Google Cloud Vertex AI parameters
-        this.project = ''; // GCP Project ID
-        this.location = 'us-central1';
-        this.model = 'gemini-live-2.5-flash-native-audio';
-        this.gcpApiKey = null;
+        // Gemini Live API parameters
+        this.host = 'generativelanguage.googleapis.com';
+        this.baseModel = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+        this.model = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 
         // Listen for background task completions
         window.friday.onSubAgentComplete((result) => this.handleSubAgentComplete(result));
@@ -37,15 +36,10 @@ class VoiceClient {
     async init() {
         try {
             this.apiKey = await window.friday.getGeminiKey();
-            this.project = await window.friday.getGcpProject();
-            this.location = await window.friday.getGcpLocation();
-            this.gcpApiKey = await window.friday.getGcpApiKey();
-
-            if (!this.project) {
-                console.warn('[VoiceClient] GCP_PROJECT_ID missing — Vertex AI will fail.');
-            }
-            if (!this.gcpApiKey) {
-                console.warn('[VoiceClient] GCP_API_KEY missing — Vertex AI auth will fail.');
+            if (!this.apiKey) {
+                console.error('[VoiceClient] GEMINI_API_KEY missing from environment.');
+                window.friday.addMessage('error', 'Error: GEMINI_API_KEY is missing from .env');
+                return false;
             }
 
             // Pre-load skills list for system instruction
@@ -102,16 +96,7 @@ class VoiceClient {
                 await this.playbackCtx.resume();
             }
 
-            // Vertex AI Gemini Live API (BidiGenerateContent)
-            if (!this.gcpApiKey) {
-                console.error('[VoiceClient] No GCP_API_KEY configured.');
-                window.friday.addMessage('error', 'Error: GCP_API_KEY not set in .env');
-                return;
-            }
-
-            const url = `wss://${this.location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent?key=${this.gcpApiKey}`;
-
-            console.log(`[VoiceClient] Connecting to Vertex AI Live API: ${this.location} (Project: ${this.project})`);
+            const url = `wss://${this.host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
             this.ws = new WebSocket(url);
 
             this.ws.onopen = this.onWsOpen.bind(this);
@@ -227,7 +212,7 @@ Provide ALL 6 fields:
         // Send initial setup message (Standardized snake_case)
         const setupMessage = {
             setup: {
-                model: `projects/${this.project}/locations/${this.location}/publishers/google/models/${this.model}`,
+                model: this.model,
                 generation_config: {
                     response_modalities: ["AUDIO"],
                     speech_config: {
@@ -958,8 +943,8 @@ Provide ALL 6 fields:
                 // If we are awaiting input (turn already ended) OR we just 
                 // interrupted the agent, do NOT send a manual turn_complete.
                 // This prevents 1011 errors during state collisions.
-                if (this.isAwaitingUserInput || this.isInterrupted) {
-                    console.log('[VoiceClient] Closing socket directly (State: ' + (this.isInterrupted ? 'Interrupted' : 'AwaitingInput') + ')');
+                if (this.isAwaitingUserInput || this.isInterrupted || !this.audioSentThisTurn) {
+                    console.log('[VoiceClient] Closing socket directly (State: ' + (this.isInterrupted ? 'Interrupted' : (this.isAwaitingUserInput ? 'AwaitingInput' : 'NoAudioSent')) + ')');
                     setTimeout(() => this.ws?.close(1000), 100);
                 } else {
                     // Force turn_complete only if we are in a clean turn state
@@ -979,6 +964,7 @@ Provide ALL 6 fields:
             }
             this.ws = null;
         }
+
 
         this.stopMicrophone(); // Ensure everything is cleaned up
         this.nextPlayTime = 0;

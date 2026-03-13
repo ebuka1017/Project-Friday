@@ -3,13 +3,18 @@
    Interactivity, Theme Switching, and Reveal Animations
    ═══════════════════════════════════════════════════════════════════════ */
 
-import './style.css'
+// Note: style.css is loaded via <link> in HTML for standard browser compatibility
 
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[Friday] Website initializing...');
+  document.body.classList.add('js-enabled');
   initTheme();
   initScrollHeader();
   initRevealAnimations();
   initCTAs();
+  initNavbarToggle();
+  initTabs();
+  initAccordions();
 });
 
 /**
@@ -17,18 +22,19 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function initTheme() {
   const themeBtn = document.getElementById('themeBtn');
+  const themeIcon = document.getElementById('themeIcon') || themeBtn.querySelector('i');
   const root = document.documentElement;
 
   // Load saved theme
   const savedTheme = localStorage.getItem('friday-theme') || 'dark';
-  if (savedTheme === 'light') {
-    root.classList.add('theme-light');
-  }
+  root.setAttribute('data-theme', savedTheme);
+  updateThemeIcon(savedTheme, themeIcon);
 
   themeBtn.addEventListener('click', () => {
-    root.classList.toggle('theme-light');
-    const currentTheme = root.classList.contains('theme-light') ? 'light' : 'dark';
+    const currentTheme = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    root.setAttribute('data-theme', currentTheme);
     localStorage.setItem('friday-theme', currentTheme);
+    updateThemeIcon(currentTheme, themeIcon);
 
     // Add a micro-animation to the button
     themeBtn.style.transform = 'scale(0.9) rotate(15deg)';
@@ -36,6 +42,15 @@ function initTheme() {
       themeBtn.style.transform = 'scale(1) rotate(0)';
     }, 150);
   });
+}
+
+function updateThemeIcon(theme, icon) {
+  if (!icon) return;
+  if (theme === 'light') {
+    icon.className = 'hgi hgi-stroke hgi-moon-01';
+  } else {
+    icon.className = 'hgi hgi-stroke hgi-sun-01';
+  }
 }
 
 /**
@@ -58,7 +73,7 @@ function initScrollHeader() {
  */
 function initRevealAnimations() {
   const observerOptions = {
-    threshold: 0.15,
+    threshold: 0.05,
     rootMargin: '0px 0px -50px 0px'
   };
 
@@ -77,30 +92,68 @@ function initRevealAnimations() {
 }
 
 /**
- * Handle interactions for Download and CTAs
+ * Navbar Toggle
  */
-function initCTAs() {
-  const downloadBtns = document.querySelectorAll('.btn-primary, .btn-secondary');
+function initNavbarToggle() {
+  const navToggle = document.getElementById('navbar-toggle');
+  const navMenu = document.querySelector('.navbar__menu ul');
 
-  downloadBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const text = btn.textContent.toLowerCase();
-      if (text.includes('download')) {
-        console.log('[Friday] Triggering download sequence...');
-        // Placeholder for actual download logic
-        showDownloadFeedback(btn);
+  if (navToggle && navMenu) {
+    navToggle.addEventListener('click', () => {
+      navMenu.classList.toggle('active');
+    });
+  }
+}
+
+/**
+ * Tabs Logic
+ */
+function initTabs() {
+  const tabHeaders = document.querySelectorAll('.usecases-tabs__heading h3');
+  const tabContents = document.querySelectorAll('.usecases-tabs__domain-list');
+
+  tabHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+      const tabId = header.getAttribute('data-tab');
+
+      tabHeaders.forEach(h => h.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      tabContents.forEach(c => c.classList.add('d-none'));
+
+      header.classList.add('active');
+      const targetContent = document.getElementById(`tab-${tabId}`);
+      if (targetContent) {
+        targetContent.classList.add('active');
+        targetContent.classList.remove('d-none');
       }
     });
   });
 }
 
-function showDownloadFeedback(btn) {
-  const originalText = btn.textContent;
-  btn.textContent = 'Preparing Download...';
-  btn.classList.add('clicked');
+/**
+ * Accordion Logic
+ */
+function initAccordions() {
+  const accordions = document.querySelectorAll('.js-accordion');
 
-  setTimeout(() => {
-    btn.textContent = originalText;
-    btn.classList.remove('clicked');
-  }, 2000);
+  accordions.forEach(acc => {
+    const header = acc.querySelector('.accordion__header');
+    header.addEventListener('click', () => {
+      acc.classList.toggle('active');
+      const body = acc.querySelector('.accordion__body');
+      if (acc.classList.contains('active')) {
+        body.classList.remove('d-none');
+      } else {
+        body.classList.add('d-none');
+      }
+    });
+  });
+}
+
+
+/**
+ * Handle interactions for Download and CTAs (Simplified)
+ */
+function initCTAs() {
+  // No longer needed: buttons are <a> tags linking to download.html
 }

@@ -1,6 +1,6 @@
 {
   "name": "friday",
-  "version": "0.2.0",
+  "version": "0.2.4",
   "description": "Friday — Autonomous Voice-Native AI Knowledge Worker for Windows",
   "main": "electron/main.js",
   "scripts": {
@@ -32,6 +32,10 @@
           "*.dll",
           "*.json"
         ]
+      },
+      {
+        "from": "extension/",
+        "to": "extension/"
       },
       ".env"
     ],
@@ -65,12 +69,10 @@
   "dependencies": {
     "@clerk/clerk-js": "^6.0.0",
     "@dotlottie/player-component": "^2.7.12",
-    "@google-cloud/vertexai": "^1.10.0",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "axios": "^1.13.6",
     "dotenv": "^17.3.1",
-    "google-auth-library": "^10.6.1",
     "sqlite3": "^5.1.7",
     "systeminformation": "^5.31.3",
     "uuid": "^13.0.0",

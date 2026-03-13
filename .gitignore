@@ -21,3 +21,6 @@ Desktop.ini
 .vscode/
 *.suo
 *.user
+
+# Website Assets
+website/assets/*.exe

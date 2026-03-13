@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/assets/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Privacy Policy — Friday</title>
+    <title>About Friday — Personal Assistant for your Desktop</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Funnel+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -32,8 +32,8 @@
                     <li><a href="about.html">Company</a></li>
                     <li><a href="contact.html">Contact</a></li>
                     <li class="nav-actions">
-                        <button class="theme-toggle-btn glass" id="themeBtn" title="Toggle theme" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50% !important;">
-                            <i class="hgi hgi-stroke hgi-sun-01" id="themeIcon" style="font-size: 1.2rem;"></i>
+                        <button class="theme-toggle-btn glass" id="themeBtn" title="Toggle theme">
+                            <i class="hgi hgi-stroke hgi-sun-01" id="themeIcon"></i>
                         </button>
                         <a href="download.html" class="btn btn-primary" id="downloadNavBtn">Download Friday</a>
                     </li>
@@ -45,31 +45,28 @@
 
     <main>
         <section class="hero section-padding">
-            <div class="container legal-container">
-                <h1 class="text-gradient-green">Privacy Policy</h1>
-                <p>Last Updated: March 13, 2026</p>
-                
-                <h2>1. Principles</h2>
-                <p>Friday is built with a local-first philosophy. We believe your desktop data should stay on your machine. Our goal is to provide a powerful assistant without compromising your privacy.</p>
+            <div class="container">
+                <div class="hero-content" data-reveal>
+                    <h1 class="text-gradient-green">The Vision & Values</h1>
+                    <p>Friday is more than just a chatbot. It's a new way to interact with your digital world.</p>
+                </div>
+            </div>
+        </section>
 
-                <h2>2. Data Collection</h2>
-                <p><strong>Local Data:</strong> Friday processes your files, system information, and session history locally. This data is stored on your computer and is not uploaded to our servers.</p>
-                <p><strong>Authentication:</strong> We use Clerk for user authentication. When you sign in, Clerk manages your identity data according to their privacy policy. Friday only receives the necessary tokens to verify your session.</p>
-
-                <h2>3. AI Processing</h2>
-                <p>Friday interacts with AI models (like Gemini) via API. Only the specific prompts and context required to fulfill your requests are sent to the AI provider. We do not use your data to train our own models.</p>
-
-                <h2>4. Security</h2>
-                <p>Friday uses system-level encryption to protect your stored session data and any secrets (like API keys) you provide within the application.</p>
-
-                <h2>5. Changes to This Policy</h2>
-                <p>We may update this policy occasionally. Any significant changes will be reflected in the "Last Updated" date at the top of this page.</p>
-
-                <h2>6. Contact</h2>
-                <p>If you have questions about our privacy practices, please contact us through our official contact page.</p>
-
-                <div style="margin-top: 60px;">
-                    <a href="index.html" class="btn btn-secondary">Back to Home</a>
+        <section id="about-vision" class="about-vision">
+            <div class="container">
+                <div class="feature-card"
+                    style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 60px; align-items: center;"
+                    data-reveal>
+                    <div class="about-image">
+                        <img src="assets/about-v1.png" alt="Friday AI Collaboration" style="width: 100%; border-radius: var(--radius); box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                    </div>
+                    <div class="about-text">
+                        <h2>Why Project Friday?</h2>
+                        <p style="font-size: 1rem; margin-top: 16px;">Current AI tools are trapped in browser tabs.
+                            Friday breaks that barrier by living directly on your desktop, giving AI the context of your
+                            actual files and workflows while keeping your privacy intact via local processing.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -94,6 +91,8 @@
         </div>
     </footer>
     <!-- Footer End -->
+
+    <script type="module" src="/main.js"></script>
 </body>
 
 </html>
