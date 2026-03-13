@@ -4,7 +4,6 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 const { app, globalShortcut, ipcMain, BrowserWindow, session, shell, Tray, Menu, nativeImage } = require('electron');
-const { GoogleAuth } = require('google-auth-library');
 const { createHUD, toggleHUD, hideHUD, getWindow } = require('./hud');
 const sidecar = require('./sidecar-launcher');
 const pipeClient = require('./pipe-client');
