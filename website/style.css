@@ -107,16 +107,11 @@ h4 {
 
 /* ── Layout ────────────────────────────────────────────────────────────── */
 
-.container {
-    max-width: 1800px;
-    margin: 0 auto;
-    padding: 0 24px;
-}
-
+.container,
 .container-wide {
-    max-width: 100%;
+    max-width: 2200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 40px;
 }
 
 section {
@@ -143,12 +138,6 @@ header.scrolled {
     border-bottom: 1px solid var(--border);
 }
 
-.nav-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
 .logo {
     display: flex;
     align-items: center;
@@ -165,16 +154,23 @@ header.scrolled {
     border-radius: 8px;
 }
 
+.nav-content {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+}
+
 .nav-links {
     display: flex;
     align-items: center;
-    gap: 32px;
+    gap: 40px;
 }
 
 .nav-links a {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 500;
     color: var(--text-secondary);
+    transition: var(--transition);
 }
 
 .nav-links a:hover {
@@ -185,6 +181,7 @@ header.scrolled {
     display: flex;
     align-items: center;
     gap: 16px;
+    justify-self: end;
 }
 
 /* ── Hero ──────────────────────────────────────────────────────────────── */
@@ -440,19 +437,20 @@ footer {
 }
 
 .footer-content {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
 }
 
 .footer-links {
     display: flex;
-    gap: 24px;
+    gap: 32px;
 }
 
 .footer-links a {
     font-size: 0.9rem;
     color: var(--text-secondary);
+    transition: var(--transition);
 }
 
 .footer-links a:hover {
@@ -462,6 +460,7 @@ footer {
 .footer-copyright {
     font-size: 0.9rem;
     color: var(--text-muted);
+    justify-self: end;
 }
 
 /* ── Legal Pages ───────────────────────────────────────────────────────── */
