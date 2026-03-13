@@ -184,8 +184,8 @@ header.scrolled {
 /* ── Hero ──────────────────────────────────────────────────────────────── */
 
 .hero {
-    padding-top: 200px;
-    padding-bottom: 80px;
+    padding-top: 240px;
+    padding-bottom: 240px;
     text-align: center;
     position: relative;
 }
