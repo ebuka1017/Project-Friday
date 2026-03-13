@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanks for downloading Friday!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Funnel+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            background-color: var(--bg);
+            color: var(--text);
+        }
+        .download-message {
+            max-width: 600px;
+            padding: 40px;
+        }
+        h1 {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+        .back-link {
+            margin-top: 40px;
+            display: inline-block;
+            color: var(--accent);
+            font-weight: 500;
+        }
+    </style>
+    <!-- Auto-trigger download -->
+    <meta http-equiv="refresh" content="2;url=assets/Friday-Setup-0.2.1.exe">
+</head>
+<body>
+    <div class="download-message">
+        <h1 class="text-gradient-green">thanks for downloading friday...</h1>
+        <p>your download should start soon. if it doesn't, <a href="assets/Friday-Setup-0.2.1.exe" style="color: var(--accent); text-decoration: underline;">click here</a>.</p>
+        <a href="index.html" class="back-link">← back to home</a>
+    </div>
+</body>
+</html>

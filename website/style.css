@@ -189,6 +189,27 @@ h4 {
     background: var(--bg-card);
 }
 
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* Ensure consistent button height in navbar */
+.navbar .btn {
+    padding: 10px 25px;
+    height: 42px;
+}
+
+.navbar .theme-toggle-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50% !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .section-padding {
     padding: 80px 0;
 }
@@ -431,27 +452,9 @@ section {
 }
 
 /* ── FAQs / Accordion (get.tech Clone) ── */
-.accordion {
-    border-bottom: 1px solid var(--border);
-/* ── Header ────────────────────────────────────────────────────────────── */
-
-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 1000;
-    padding: 24px 0;
-    transition: var(--transition);
 }
 
-header.scrolled {
-    padding: 12px 0;
-    background: var(--bg-surface);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-}
+/* ── Navbar ── */
 
 .logo {
     display: flex;

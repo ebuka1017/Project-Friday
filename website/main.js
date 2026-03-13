@@ -150,31 +150,10 @@ function initAccordions() {
   });
 }
 
+
 /**
- * Handle interactions for Download and CTAs
+ * Handle interactions for Download and CTAs (Simplified)
  */
 function initCTAs() {
-  const downloadBtns = document.querySelectorAll('.btn-primary, .btn-secondary');
-
-  downloadBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const text = btn.textContent.toLowerCase();
-      if (text.includes('download')) {
-        console.log('[Friday] Triggering download sequence...');
-        // Placeholder for actual download logic
-        showDownloadFeedback(btn);
-      }
-    });
-  });
-}
-
-function showDownloadFeedback(btn) {
-  const originalText = btn.textContent;
-  btn.textContent = 'Preparing Download...';
-  btn.classList.add('clicked');
-
-  setTimeout(() => {
-    btn.textContent = originalText;
-    btn.classList.remove('clicked');
-  }, 2000);
+  // No longer needed: buttons are <a> tags linking to download.html
 }
