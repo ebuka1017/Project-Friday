@@ -24,3 +24,5 @@ Desktop.ini
 
 # Website Assets
 website/assets/*.exe
+
+*.env
