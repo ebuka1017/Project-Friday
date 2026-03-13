@@ -943,8 +943,8 @@ Provide ALL 6 fields:
                 // If we are awaiting input (turn already ended) OR we just 
                 // interrupted the agent, do NOT send a manual turn_complete.
                 // This prevents 1011 errors during state collisions.
-                if (this.isAwaitingUserInput || this.isInterrupted) {
-                    console.log('[VoiceClient] Closing socket directly (State: ' + (this.isInterrupted ? 'Interrupted' : 'AwaitingInput') + ')');
+                if (this.isAwaitingUserInput || this.isInterrupted || !this.audioSentThisTurn) {
+                    console.log('[VoiceClient] Closing socket directly (State: ' + (this.isInterrupted ? 'Interrupted' : (this.isAwaitingUserInput ? 'AwaitingInput' : 'NoAudioSent')) + ')');
                     setTimeout(() => this.ws?.close(1000), 100);
                 } else {
                     // Force turn_complete only if we are in a clean turn state
@@ -964,6 +964,7 @@ Provide ALL 6 fields:
             }
             this.ws = null;
         }
+
 
         this.stopMicrophone(); // Ensure everything is cleaned up
         this.nextPlayTime = 0;
