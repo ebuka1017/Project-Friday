@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-03-13
+### Consolidate & Refine (Merge GCP to Main)
+- **Branch Strategy**: Successfully merged production improvements from `GCP` branch while maintaining the **Google Generative AI SDK (AI Studio)** for live interactions.
+- **Clerk Production**: Fully transitioned to `clerk.algospend.tech` with localized logout and dynamic account profile routing.
+- **Website Refresh**: Added jargon-free index and legal pages ([Terms](file:///d:/Program%20Files/Project%20Friday/website/terms.html), [Privacy](file:///d:/Program%20Files/Project%20Friday/website/privacy.html)).
+- **Sub-Agent Refactor**: Background sub-agents updated to use direct Gemini-2.0-Flash reasoning via AI Studio SDK.
+- **UI Polish**: Simplified sign-out button label and removed redundant user metadata from sidebar.
+
+### GCP Branch Specifics (Enterprise Strategy)
+- **Vertex AI**: Implemented enterprise-grade reasoning via Vertex AI SDK for background tasks.
+- **Cloud Connector**: Added `electron/cloud-connector.js` for remote hub tool execution.
+- **Auth Hardening**: Integrated Google Application Default Credentials (ADC) for secure local-to-cloud handshakes.
+
 ## [0.2.0] - 2026-03-09
 ### Added
 - **Global Branding**: Renamed "Electron" to "Friday" across all core services, comments, and internal handshakes.
