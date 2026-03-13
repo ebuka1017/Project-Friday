@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.5] - 2026-03-13
+### Fixed
+- **Gemini Live Stability**: Resolved critical `1008` (Policy Violation) and `1007` (Invalid Payload) errors.
+- **Protocol Compliance**: Alaligned with the verified `v1beta` / `setup` / `snake_case` WebSocket protocol for Gemini 2.5 models.
+- **Tool Sanitization**: Implemented strict schema validation for tool declarations to ensure stable handshake with the Bidi backend.
+- **API Security**: Identified and resolved an issue with leaked API keys; standardized on production-ready `VoiceClient` settings.
+
 ## [0.3.0] - 2026-03-13
 ### Consolidate & Refine (Merge GCP to Main)
 - **Branch Strategy**: Successfully merged production improvements from `GCP` branch while maintaining the **Google Generative AI SDK (AI Studio)** for live interactions.
