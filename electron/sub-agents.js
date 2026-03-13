@@ -104,7 +104,7 @@ class SubAgentManager {
     }
 
     async _runVisualAgentLoop(jobId, taskDescription) {
-        const model = this._getModel("gemini-2.5-computer-use-preview-10-2025", '', [{
+        const model = this._getModel("gemini-2.0-flash-exp", '', [{
             computer_use: {
                 environment: "ENVIRONMENT_BROWSER"
             }

@@ -21,8 +21,8 @@ class VoiceClient {
 
         // Gemini Live API parameters
         this.host = 'generativelanguage.googleapis.com';
-        this.baseModel = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
-        this.model = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+        this.baseModel = 'models/gemini-2.0-flash-exp';
+        this.model = 'models/gemini-2.0-flash-exp';
 
         // Listen for background task completions
         window.friday.onSubAgentComplete((result) => this.handleSubAgentComplete(result));
