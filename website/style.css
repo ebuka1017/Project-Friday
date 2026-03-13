@@ -113,6 +113,12 @@ h4 {
     padding: 0 24px;
 }
 
+.container-wide {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
 section {
     padding: 120px 0;
 }
