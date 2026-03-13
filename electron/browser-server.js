@@ -24,26 +24,31 @@ class BrowserServer {
         this.wss.on('connection', (ws, req) => {
             const url = new URL(req.url, `http://${req.headers.host}`);
             const clientId = url.searchParams.get('clientId') || 'unknown';
+            const hadExisting = !!this.extensionSocket;
 
-            console.log(`[BrowserServer] Extension connected! (ID: ${clientId})`);
-
-            // Only allow one bridge connection at a time
+            // Silently close old socket if it exists
             if (this.extensionSocket) {
-                console.log(`[BrowserServer] Kicking existing connection to make room for ${clientId}`);
-                this.extensionSocket.close();
+                try { this.extensionSocket.close(4000, 'replaced'); } catch (e) {}
             }
+
             this.extensionSocket = ws;
             this.extensionSocket.clientId = clientId;
+
+            // Only log the first connection, not every service worker restart
+            if (!hadExisting) {
+                console.log(`[BrowserServer] Extension connected (ID: ${clientId})`);
+            }
 
             ws.on('message', (message) => {
                 this.handleMessage(message);
             });
 
-            ws.on('close', () => {
-                console.log(`[BrowserServer] Extension disconnected. (ID: ${ws.clientId || 'unknown'})`);
+            ws.on('close', (code) => {
                 if (this.extensionSocket === ws) {
                     this.extensionSocket = null;
-                    // Fail pending requests
+                    if (code !== 4000) {
+                        console.log(`[BrowserServer] Extension disconnected`);
+                    }
                     for (const [id, req] of this.pendingRequests.entries()) {
                         req.reject(new Error('Browser disconnected'));
                         this.pendingRequests.delete(id);
@@ -51,9 +56,7 @@ class BrowserServer {
                 }
             });
 
-            ws.on('error', (err) => {
-                console.error('[BrowserServer] Socket error:', err);
-            });
+            ws.on('error', () => {});
         });
     }
 

@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('friday', {
     getGeminiKey: () => ipcRenderer.invoke('env:getGeminiKey'),
     getVertexToken: () => ipcRenderer.invoke('auth:getVertexToken'),
     getClerkKey: () => ipcRenderer.invoke('env:getClerkKey'),
+    getClerkDomain: () => ipcRenderer.invoke('env:getClerkDomain'),
+    getClerkAccountUrl: () => ipcRenderer.invoke('env:getClerkAccountUrl'),
     getGcpProject: () => ipcRenderer.invoke('env:getGcpProject'),
     getGcpLocation: () => ipcRenderer.invoke('env:getGcpLocation'),
     getGcpApiKey: () => ipcRenderer.invoke('env:getGcpApiKey'),

@@ -12,6 +12,17 @@ Friday isn't just another chatbot; it's an **Action-Oriented Assistant**.
 - **Visual Intelligence**: Uses Gemini's "Computer Use" capability to navigate complex web UIs by "seeing" screenshots.
 - **Deep Desktop Integration**: A C# bridge using Windows UI Automation (UIA) allows Friday to click, type, and read elements in any native Windows application.
 - **Asynchronous Delegation**: Friday can spawn background "sub-agents" to complete long-running tasks while you continue to interact with it.
+- **Global Hotkey**: Press `Ctrl+Q` from anywhere to summon Friday instantly.
+
+## 🚀 Getting Started
+
+Friday is designed to be your background companion. Here's how to get the most out of it:
+
+1. **Summon Friday**: Press `Ctrl + Q` anytime, anywhere on your computer to bring up the Friday HUD.
+2. **Talk Naturally**: Click the microphone icon or simply start speaking if the mic is active. Friday understands natural voice commands.
+3. **Browser Control**: Open Chrome with the Friday Browser Bridge extension and ask Friday to "Search for X" or "Navigate to Y".
+4. **Sub-Agents**: If a task takes too long, Friday will spawn a sub-agent to handle it in the background while you stay in the flow.
+5. **Computer Use**: Friday can see your screen! Ask "What do you see?" or "Click on the blue button" to see it in action.
 
 ## 🏗️ Architecture: How It Works
 

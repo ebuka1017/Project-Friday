@@ -7,7 +7,7 @@ const path = require("path");
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const PROTOCOL = "friday";
-const DOMAIN = "singular-alien-87.clerk.accounts.dev";
+const DOMAIN = process.env.CLERK_DOMAIN || "singular-alien-87.clerk.accounts.dev";
 
 // ─── PKCE Helpers ────────────────────────────────────────────────────────────
 
@@ -33,6 +33,10 @@ function setMainWindow(win) {
 async function exchangeCodeForToken(code) {
     return new Promise((resolve, reject) => {
         const clientId = process.env.CLERK_CLIENT_ID || process.env.CLERK_PUBLISHABLE_KEY || "";
+        const clientSecret = process.env.CLERK_CLIENT_SECRET || "";
+        
+        console.log(`[auth-main] Exchange attempt: domain=${DOMAIN}, client_id=${clientId}`);
+
         const params = {
             grant_type: "authorization_code",
             client_id: clientId,
@@ -41,41 +45,50 @@ async function exchangeCodeForToken(code) {
             code_verifier: _pendingVerifier,
         };
 
-        if (process.env.CLERK_CLIENT_SECRET) {
-            params.client_secret = process.env.CLERK_CLIENT_SECRET;
+        if (clientSecret) {
+            params.client_secret = clientSecret;
         }
 
         const data = new URLSearchParams(params).toString();
+        const headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Content-Length": data.length,
+        };
 
         const options = {
             hostname: DOMAIN,
             port: 443,
             path: "/oauth/token",
             method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Content-Length": data.length,
-            },
+            headers: headers,
         };
+
+        console.log(`[auth-main] POST to https://${DOMAIN}/oauth/token with data: ${data.replace(clientSecret, '******')}`);
 
         const req = https.request(options, (res) => {
             let body = "";
             res.on("data", (chunk) => (body += chunk));
             res.on("end", () => {
                 try {
+                    console.log(`[auth-main] Token response status: ${res.statusCode}`);
                     const json = JSON.parse(body);
                     if (res.statusCode === 200) {
                         resolve(json);
                     } else {
+                        console.error("[auth-main] Exchange failed. Full body:", body);
                         reject(new Error(json.error_description || json.error || "Token exchange failed"));
                     }
                 } catch (e) {
+                    console.error("[auth-main] Parse error. Body was:", body);
                     reject(new Error("Failed to parse token response"));
                 }
             });
         });
 
-        req.on("error", (e) => reject(e));
+        req.on("error", (e) => {
+            console.error("[auth-main] Request error:", e);
+            reject(e);
+        });
         req.write(data);
         req.end();
     });
@@ -174,21 +187,23 @@ ipcMain.handle("auth:signIn", async () => {
     const challenge = generateCodeChallenge(verifier);
     _pendingVerifier = verifier;
 
-    const redirectUri = encodeURIComponent(`${PROTOCOL}://auth/callback`);
-    // OIDC requires a Client ID from Clerk Dashboard -> Settings -> OAuth Applications
+    const redirectUri = `${PROTOCOL}://auth/callback`;
     const clientId = process.env.CLERK_CLIENT_ID || process.env.CLERK_PUBLISHABLE_KEY || "";
 
-    const authorizeUrl =
-        `https://${DOMAIN}/oauth/authorize` +
-        `?response_type=code` +
-        `&client_id=${clientId}` +
-        `&redirect_uri=${redirectUri}` +
-        `&scope=${encodeURIComponent("openid profile email")}` +
-        `&code_challenge=${challenge}` +
-        `&code_challenge_method=S256`;
+    const params = new URLSearchParams({
+        response_type: "code",
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        scope: "openid profile email",
+        code_challenge: challenge,
+        code_challenge_method: "S256"
+    });
 
-    console.log('[auth-main] Opening authorize URL:', authorizeUrl);
-    console.log('[auth-main] Using Client ID:', clientId);
+    const authorizeUrl = `https://${DOMAIN}/oauth/authorize?${params.toString()}`;
+
+    console.log(`[auth-main] Opening authorize URL: ${authorizeUrl}`);
+    console.log(`[auth-main] !! IMPORTANT !! Ensure this Redirect URI is in your Clerk Dashboard: ${redirectUri}`);
+    
     await shell.openExternal(authorizeUrl);
     return { started: true };
 });

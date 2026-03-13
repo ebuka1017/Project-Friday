@@ -10,6 +10,16 @@ const sidecar = require('./sidecar-launcher');
 const pipeClient = require('./pipe-client');
 const searchTools = require('./search-tools');
 const productivityTools = require('./productivity-tools');
+const path = require('path');
+
+// ─── Environment Initialization ──────────────────────────────────────────────
+const envPath = process.env.NODE_ENV === 'development' || !app.isPackaged
+    ? path.join(__dirname, '..', '.env')
+    : path.join(process.resourcesPath, '.env');
+
+require('dotenv').config({ path: envPath });
+// ──────────────────────────────────────────────────────────────────────────────
+
 const { registerDeepLink, setMainWindow, handleDeepLinkUrl } = require('./auth-main');
 
 // Register deep link early, before app ready
@@ -22,7 +32,6 @@ const cloudConnector = require('./cloud-connector');
 const { startMCPServer } = require('./mcp-server');
 const db = require('./db');
 const { v4: uuidv4 } = require('uuid');
-const path = require('path');
 const { installExtension, detectBrowsers } = require("./extensionInstaller");
 const toolsRegistry = require('../shared/tools-registry');
 const fsTools = require('./fs-tools');
@@ -30,11 +39,6 @@ const sysinfoTools = require('./sysinfo-tools');
 const notificationTools = require('./notification-tools');
 const networkTools = require('./network-tools');
 // Load environment variables from app root
-const envPath = app.isPackaged
-    ? path.join(process.resourcesPath, '.env')
-    : path.join(__dirname, '..', '.env');
-
-require('dotenv').config({ path: envPath });
 console.log(`[friday] Environment loaded from: ${envPath}`);
 if (process.env.GEMINI_API_KEY) console.log('[friday] GEMINI_API_KEY is present');
 else console.warn('[friday] GEMINI_API_KEY is MISSING after load');
@@ -773,6 +777,10 @@ ipcMain.handle('env:getClerkKey', () => {
 ipcMain.handle('env:getGcpProject', () => process.env.GCP_PROJECT_ID || '');
 ipcMain.handle('env:getGcpLocation', () => process.env.GCP_LOCATION || 'us-central1');
 ipcMain.handle('env:getGcpApiKey', () => process.env.GCP_API_KEY || '');
+ipcMain.handle('env:getClerkDomain', () => process.env.CLERK_DOMAIN || 'singular-alien-87.clerk.accounts.dev');
+ipcMain.handle('env:getClerkAccountUrl', () => process.env.CLERK_ACCOUNT_URL || `https://${process.env.CLERK_DOMAIN || 'singular-alien-87.clerk.accounts.dev'}/user`);
+
+
 
 // ── Database IPC ──────────────────────────────────────────────────
 

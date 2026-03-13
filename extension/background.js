@@ -12,7 +12,6 @@ const clientId = Math.random().toString(36).substring(2, 10);
 
 function connectToFriday() {
     if (connectionPending || (ws && ws.readyState === WebSocket.OPEN)) {
-        console.log("[Friday Bridge] Connection already active or pending. Skipping.");
         return;
     }
 
@@ -25,10 +24,15 @@ function connectToFriday() {
         connectionPending = false;
     };
 
-    ws.onclose = () => {
-        console.log("[Friday Bridge] Disconnected. Reconnecting in 3s...");
+    ws.onclose = (event) => {
         connectionPending = false;
-        setTimeout(connectToFriday, 3000);
+        // Code 4000 = we were replaced by a newer extension instance — don't fight it
+        if (event.code === 4000) {
+            console.log("[Friday Bridge] Replaced by another instance. Stopping reconnect.");
+            return;
+        }
+        console.log("[Friday Bridge] Disconnected. Reconnecting in 5s...");
+        setTimeout(connectToFriday, 5000);
     };
 
     ws.onerror = (err) => {
@@ -53,28 +57,29 @@ function connectToFriday() {
     };
 }
 
-// Keep connection alive
-chrome.runtime.onStartup.addListener(() => {
-    console.log("[Friday Bridge] Browser started - ensuring connection...");
-    connectToFriday();
-});
+// Connect on browser start or extension update
+chrome.runtime.onStartup.addListener(() => connectToFriday());
+chrome.runtime.onInstalled.addListener(() => connectToFriday());
 
-chrome.runtime.onInstalled.addListener((details) => {
-    console.log("[Friday Bridge] Extension installed/updated:", details.reason);
-    connectToFriday();
-});
-
-// Periodic heartbeat to keep service worker alive
-chrome.alarms.create("heartbeat", { periodInMinutes: 1 });
-chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === "heartbeat" && (!ws || ws.readyState !== WebSocket.OPEN)) {
-        console.log("[Friday Bridge] Heartbeat - reconnecting...");
-        connectToFriday();
-    }
-});
-
-// Initial connection
+// Initial connection (runs each time service worker wakes)
 connectToFriday();
+
+// Handle messages from popup
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type === 'getStatus') {
+        sendResponse({ connected: ws && ws.readyState === WebSocket.OPEN });
+    } else if (msg.type === 'reconnect') {
+        // Force close existing and reconnect
+        if (ws) {
+            try { ws.close(); } catch (e) {}
+            ws = null;
+        }
+        connectionPending = false;
+        connectToFriday();
+        sendResponse({ ok: true });
+    }
+    return true; // keep channel open for async response
+});
 
 // ── Command Handling ───────────────────────────────────────────────────
 

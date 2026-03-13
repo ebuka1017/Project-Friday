@@ -7,13 +7,16 @@
         "debugger",
         "tabs",
         "activeTab",
-        "scripting",
-        "alarms"
+        "scripting"
     ],
     "host_permissions": [
         "<all_urls>"
     ],
     "background": {
         "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Friday Browser Bridge"
     }
 }
