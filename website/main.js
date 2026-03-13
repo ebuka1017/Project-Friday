@@ -3,9 +3,11 @@
    Interactivity, Theme Switching, and Reveal Animations
    ═══════════════════════════════════════════════════════════════════════ */
 
-import './style.css'
+// Note: style.css is loaded via <link> in HTML for standard browser compatibility
 
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[Friday] Website initializing...');
+  document.body.classList.add('js-enabled');
   initTheme();
   initScrollHeader();
   initRevealAnimations();
@@ -58,7 +60,7 @@ function initScrollHeader() {
  */
 function initRevealAnimations() {
   const observerOptions = {
-    threshold: 0.15,
+    threshold: 0.05,
     rootMargin: '0px 0px -50px 0px'
   };
 

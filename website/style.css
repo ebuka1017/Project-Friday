@@ -124,7 +124,7 @@ header {
 
 header.scrolled {
     padding: 12px 0;
-    background: rgba(var(--bg-surface-rgb), 0.8);
+    background: var(--bg-surface);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);
@@ -490,15 +490,56 @@ footer {
 
 /* ── Animations ────────────────────────────────────────────────────────── */
 
-[data-reveal] {
+body.js-enabled [data-reveal] {
     opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.8s ease, transform 0.8s ease;
+    transform: translateY(20px);
+    transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
 }
 
-[data-reveal].visible {
+body.js-enabled [data-reveal].visible {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* ── Contact & About Specifics ────────────────────────────────────────── */
+
+.contact-hero {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.contact-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    margin: 40px auto;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    font-size: 1.2rem;
+    color: var(--text);
+}
+
+.contact-item svg {
+    width: 24px;
+    height: 24px;
+    color: var(--accent);
+}
+
+.contact-item a:hover {
+    color: var(--accent);
+    text-decoration: underline;
 }
 
 /* Mobile Adjustments */
