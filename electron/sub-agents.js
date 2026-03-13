@@ -5,12 +5,12 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { VertexAI } = require('@google-cloud/vertexai');
 const browserServer = require('./browser-server');
 const toolsRegistry = require('../shared/tools-registry');
 const toolExecutor = require('./tool-executor');
 
 class SubAgentManager {
+
     constructor() {
         this.tasks = new Map();
         this.taskCounter = 0;
@@ -23,27 +23,9 @@ class SubAgentManager {
             this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             console.log('[SubAgents] AI Studio backend initialized.');
         }
-
-        // GCP Vertex AI
-        if (process.env.GCP_PROJECT_ID && process.env.GCP_LOCATION) {
-            this.vertexAI = new VertexAI({
-                project: process.env.GCP_PROJECT_ID,
-                location: process.env.GCP_LOCATION
-            });
-            console.log(`[SubAgents] Vertex AI backend initialized (Project: ${process.env.GCP_PROJECT_ID}).`);
-        }
     }
 
     _getModel(modelName, systemInstruction = '', tools = []) {
-        // Prefer Vertex AI if configured
-        if (this.vertexAI) {
-            return this.vertexAI.getGenerativeModel({
-                model: modelName,
-                systemInstruction: systemInstruction,
-                tools: tools
-            });
-        }
-
         // Fallback to AI Studio
         if (this.genAI) {
             return this.genAI.getGenerativeModel({
@@ -53,8 +35,9 @@ class SubAgentManager {
             });
         }
 
-        throw new Error('No AI backend (GEMINI_API_KEY or GCP_PROJECT_ID) configured');
+        throw new Error('No AI backend (GEMINI_API_KEY) configured');
     }
+
 
     getAllTasks() {
         return Array.from(this.tasks.values());

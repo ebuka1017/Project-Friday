@@ -28,7 +28,6 @@ registerDeepLink();
 const { setState, getState, addMessage } = require('./state');
 const browserServer = require('./browser-server');
 const subAgents = require('./sub-agents');
-const cloudConnector = require('./cloud-connector');
 const { startMCPServer } = require('./mcp-server');
 const db = require('./db');
 const { v4: uuidv4 } = require('uuid');
@@ -95,21 +94,6 @@ ipcMain.handle('auth:setStatus', (_, status, user) => {
 ipcMain.handle('app:getUserProfile', async () => {
     if (!isAuthenticated || !currentUser) return { error: 'Not signed in' };
     return currentUser;
-});
-
-// Vertex AI Authentication
-ipcMain.handle('auth:getVertexToken', async () => {
-    try {
-        const auth = new GoogleAuth({
-            scopes: 'https://www.googleapis.com/auth/cloud-platform'
-        });
-        const client = await auth.getClient();
-        const token = await client.getAccessToken();
-        return token.token;
-    } catch (err) {
-        console.error('[Auth] Failed to get Vertex AI token:', err.message);
-        return null; // Fallback to null
-    }
 });
 
 // Voice control routing (HUD -> Main Window)
@@ -420,9 +404,6 @@ if (!gotLock) {
 
         // Start Browser extension WebSocket bridge
         browserServer.start();
-
-        // Start Cloud Remote Hub bridge
-        cloudConnector.start();
 
         // Start Model Context Protocol Server
         startMCPServer();
@@ -774,9 +755,6 @@ ipcMain.handle('env:getGeminiKey', () => {
 ipcMain.handle('env:getClerkKey', () => {
     return process.env.CLERK_PUBLISHABLE_KEY || '';
 });
-ipcMain.handle('env:getGcpProject', () => process.env.GCP_PROJECT_ID || '');
-ipcMain.handle('env:getGcpLocation', () => process.env.GCP_LOCATION || 'us-central1');
-ipcMain.handle('env:getGcpApiKey', () => process.env.GCP_API_KEY || '');
 ipcMain.handle('env:getClerkDomain', () => process.env.CLERK_DOMAIN || 'singular-alien-87.clerk.accounts.dev');
 ipcMain.handle('env:getClerkAccountUrl', () => process.env.CLERK_ACCOUNT_URL || `https://${process.env.CLERK_DOMAIN || 'singular-alien-87.clerk.accounts.dev'}/user`);
 
