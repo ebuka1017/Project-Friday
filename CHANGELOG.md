@@ -15,6 +15,25 @@ All notable changes to this project will be documented in this file.
 - **Cloud Connector**: Added `electron/cloud-connector.js` for remote hub tool execution.
 - **Auth Hardening**: Integrated Google Application Default Credentials (ADC) for secure local-to-cloud handshakes.
 
+## [0.2.4] - 2026-03-13
+### Fixed
+- **Packaging**: Explicitly included the `extension` folder in `extraResources` to ensure it's bundled in the production installer.
+- **Dependency cleanup**: Removed unused `google-auth-library` import preventing the app from loading.
+
+## [0.2.2] - 2026-03-13
+### Added
+- **Website Polish**: Re-implemented the landing page to match the professional `get.tech` style with custom glassmorphism and balanced grid layouts.
+- **Download Flow**: Created `download.html` with auto-triggering download for a premium user experience.
+- **Branding**: Updated hero copy to refer to Friday as an "AGENT" for a more professional technical tone.
+
+### Fixed
+- **CSS Stability**: Resolved a critical syntax error (unbalanced braces) and fixed header alignment issues.
+- **Theme Toggle**: Fixed theme icon logic to correctly use Hugeicons for sun/moon states.
+
+## [0.2.1] - 2026-03-13
+### Changed
+- **Version Bump**: Initial packaging for version 0.2.x.
+
 ## [0.2.0] - 2026-03-09
 ### Added
 - **Global Branding**: Renamed "Electron" to "Friday" across all core services, comments, and internal handshakes.
