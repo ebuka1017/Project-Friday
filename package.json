@@ -1,6 +1,6 @@
 {
   "name": "friday",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Friday — Autonomous Voice-Native AI Knowledge Worker for Windows",
   "main": "electron/main.js",
   "scripts": {
