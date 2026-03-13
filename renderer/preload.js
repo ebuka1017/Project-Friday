@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('friday', {
     getClerkKey: () => ipcRenderer.invoke('env:getClerkKey'),
     getGcpProject: () => ipcRenderer.invoke('env:getGcpProject'),
     getGcpLocation: () => ipcRenderer.invoke('env:getGcpLocation'),
+    getGcpApiKey: () => ipcRenderer.invoke('env:getGcpApiKey'),
     setAuthStatus: (status) => ipcRenderer.invoke('auth:setStatus', status),
 
     // OS-Level Auth integrations

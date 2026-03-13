@@ -772,6 +772,7 @@ ipcMain.handle('env:getClerkKey', () => {
 });
 ipcMain.handle('env:getGcpProject', () => process.env.GCP_PROJECT_ID || '');
 ipcMain.handle('env:getGcpLocation', () => process.env.GCP_LOCATION || 'us-central1');
+ipcMain.handle('env:getGcpApiKey', () => process.env.GCP_API_KEY || '');
 
 // ── Database IPC ──────────────────────────────────────────────────
 
