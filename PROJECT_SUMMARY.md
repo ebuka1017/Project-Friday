@@ -18,9 +18,9 @@
 ## 🛠️ Technology Stack
 - **Languages**: JavaScript (Node.js/Electron), C# (.NET 9 Native AOT), CSS (Vanilla).
 - **AI Models**:
-    - `gemini-2.0-flash-exp` (Live Session).
+    - `gemini-2.5-flash-native-audio-preview` (Live Session).
     - `gemini-1.5-pro` (Sub-Agent Reasoning).
-    - `gemini-2.0-flash-exp` (Vision & Search Grounding).
+    - `gemini-2.5-flash` (Vision & Search Grounding).
 - **Communication**: WebSockets (Gemini Live), Named Pipes (Sidecar IPC), IPC (Electron Main/Renderer).
 - **Storage**: SQLite3 for persistent chat history and agent memory.
 - **Authentication**: Clerk-based secure auth flow with desktop deep-link support.

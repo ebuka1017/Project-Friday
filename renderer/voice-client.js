@@ -21,8 +21,8 @@ class VoiceClient {
 
         // Gemini Live API parameters
         this.host = 'generativelanguage.googleapis.com';
-        this.baseModel = 'models/gemini-2.0-flash-exp';
-        this.model = 'models/gemini-2.0-flash-exp';
+        this.baseModel = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+        this.model = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 
         // Listen for background task completions
         window.friday.onSubAgentComplete((result) => this.handleSubAgentComplete(result));
@@ -96,7 +96,7 @@ class VoiceClient {
                 await this.playbackCtx.resume();
             }
 
-            const url = `wss://${this.host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
+            const url = `wss://${this.host}/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
             this.ws = new WebSocket(url);
 
             this.ws.onopen = this.onWsOpen.bind(this);
@@ -228,7 +228,13 @@ Provide ALL 6 fields:
                 },
                 tools: [
                     { google_search: {} },
-                    { function_declarations: this.agentTools }
+                    { 
+                        function_declarations: this.agentTools.map(t => ({
+                            name: t.name,
+                            description: t.description,
+                            parameters: t.parameters
+                        })) 
+                    }
                 ]
             }
         };
