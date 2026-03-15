@@ -24,7 +24,7 @@ const { registerDeepLink, setMainWindow, handleDeepLinkUrl } = require('./auth-m
 // Register deep link early, before app ready
 registerDeepLink();
 
-const { setState, getState, addMessage } = require('./state');
+const { setState, getState, addMessage, broadcast } = require('./state');
 const browserServer = require('./browser-server');
 const subAgents = require('./sub-agents');
 const { startMCPServer } = require('./mcp-server');
@@ -81,6 +81,7 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 let mainWindow = null;
 let currentUser = null;
+let isAuthenticated = false;
 
 ipcMain.handle('auth:setStatus', (_, status, user) => {
     isAuthenticated = status;
@@ -676,22 +677,38 @@ ipcMain.handle('tasks:list', () => subAgents.getAllTasks());
 ipcMain.handle('app:browseVisual', (_, taskDescription) => {
     if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
     console.log(`[friday] Delegating VISUAL task: ${taskDescription}`);
-    const jobId = subAgents.startVisualTask(taskDescription, (res) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('voice:subAgentComplete', res);
+    const jobId = subAgents.startVisualTask(
+        taskDescription, 
+        (res) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('voice:subAgentComplete', res);
+            }
+        },
+        (update) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('voice:subAgentUpdate', update);
+            }
         }
-    });
+    );
     return { jobId };
 });
 
 ipcMain.handle('app:delegateTask', (_, taskDescription) => {
     if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
     console.log(`[friday] Delegating task: ${taskDescription}`);
-    const jobId = subAgents.startTask(taskDescription, (res) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('voice:subAgentComplete', res);
+    const jobId = subAgents.startTask(
+        taskDescription, 
+        (res) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('voice:subAgentComplete', res);
+            }
+        },
+        (update) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('voice:subAgentUpdate', update);
+            }
         }
-    });
+    );
     return { jobId };
 });
 
@@ -708,15 +725,15 @@ ipcMain.handle('state:set', (_, patch) => {
 
 ipcMain.handle('state:get', () => getState());
 
-ipcMain.handle('state:addMessage', async (_, role, text) => {
+ipcMain.handle('state:addMessage', async (_, role, text, image) => {
     const msgId = `msg-${uuidv4()}`;
     const activeSessionId = getState().activeSessionId;
 
-    addMessage(role, text);
+    addMessage(role, text, image);
 
     if (activeSessionId) {
         try {
-            await db.saveMessage(msgId, activeSessionId, role, text);
+            await db.saveMessage(msgId, activeSessionId, role, text, image);
         } catch (err) {
             console.error('[friday] Failed to save message to DB:', err);
         }
@@ -784,6 +801,27 @@ ipcMain.handle('db:getMemory', (_, key) => db.getMemory(key));
 ipcMain.handle('db:getAllMemories', () => db.getAllMemories());
 ipcMain.handle('db:setSecret', (_, key, val) => db.setSecret(key, val));
 ipcMain.handle('db:getSecret', (_, key) => db.getSecret(key));
+
+// ── Jarvis Ambient Vision Loop ─────────────────────────────────────────────
+// Periodically capture full screen and broadcast via state:vision
+// This provides a "see what I see" stream for the agent to use as context.
+const backgroundVisionLoop = setInterval(async () => {
+    const currentState = getState();
+    // Only capture if we are in an active session (status or engine connected)
+    if (currentState.status !== 'idle' || pipeClient.isConnected) {
+       try {
+           const { desktopCapturer } = require('electron');
+           const sources = await desktopCapturer.getSources({
+               types: ['screen'],
+               thumbnailSize: { width: 1280, height: 720 } // Leaner for background
+           });
+           if (sources.length > 0) {
+               const b64 = sources[0].thumbnail.toJPEG(60).toString('base64');
+               broadcast('state:vision', { data: b64 });
+           }
+       } catch (err) { /* Silent fail */ }
+    }
+}, 10000); // Jarvis pulses every 10 seconds
 
 // ── Cleanup ──────────────────────────────────────────────────────────────
 

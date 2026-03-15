@@ -8,9 +8,11 @@ const { BrowserWindow } = require('electron');
 
 const state = {
     // Voice / agent status: 'idle' | 'listening' | 'thinking' | 'speaking'
-    status: 'idle',
+    status: 'idle', // idle, listening, working, speaking
     // Voice mode: 'ptt' | 'handsfree'
-    voiceMode: 'ptt',
+    voiceMode: 'handsfree', // handsfree, ptt
+    // Ambient co-listening
+    isAmbient: true, // JARVIS: Default to ambient co-listening
     // Theme: 'dark' | 'light'
     theme: 'light',
     // Engine connection
@@ -46,8 +48,8 @@ function getState() {
 /**
  * Add a conversation message.
  */
-function addMessage(role, text) {
-    const msg = { role, text, time: Date.now() };
+function addMessage(role, text, image = null) {
+    const msg = { role, text, image, time: Date.now() };
     state.messages.push(msg);
     // Keep last 200 messages
     if (state.messages.length > 200) state.messages.shift();

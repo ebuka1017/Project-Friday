@@ -2627,7 +2627,7 @@
                         console.log('[app.html] Loading session:', state.activeSessionId);
                         const messages = await window.friday.db.getMessages(state.activeSessionId);
                         messages.forEach(msg => {
-                            addThought(msg.role === 'user' ? 'user' : 'thinking', msg.text, new Date(msg.created_at));
+                            addThought(msg.role === 'user' ? 'user' : 'thinking', msg.text, new Date(msg.created_at), msg.image);
                         });
                     }
 
@@ -2643,7 +2643,7 @@
 
                 window.friday.onStateUpdate(applyState);
                 window.friday.onMessage((msg) => {
-                    addThought(msg.role === 'user' ? 'user' : 'thinking', msg.text);
+                    addThought(msg.role === 'user' ? 'user' : 'thinking', msg.text, null, msg.image);
                 });
 
                 // Hook up logs
@@ -2967,7 +2967,7 @@
 
                     const messages = await window.friday.db.getMessages(sessionId);
                     messages.forEach(msg => {
-                        addThought(msg.role === 'user' ? 'user' : 'thinking', msg.text, new Date(msg.created_at));
+                        addThought(msg.role === 'user' ? 'user' : 'thinking', msg.text, new Date(msg.created_at), msg.image);
                     });
 
                     // Switch to chat tab if not there
@@ -2977,7 +2977,7 @@
                     activeSession.hidden = false;
                 }
 
-                function addThought(type, text, timestamp = null) {
+                function addThought(type, text, timestamp = null, image = null) {
                     const emptyStateInFeed = thinkingFeed.querySelector('#emptyState');
                     if (emptyStateInFeed) emptyStateInFeed.remove();
 
@@ -2989,10 +2989,19 @@
 
                     const el = document.createElement('div');
                     el.className = 'thought-item';
+
+                    let imageHtml = '';
+                    if (image) {
+                        // Support both data URLs and raw base64
+                        const src = image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`;
+                        imageHtml = `<img src="${src}" class="thought-image" onclick="window.friday.openExternal('${src}')" style="max-width: 100%; border-radius: 8px; margin-top: 8px; cursor: zoom-in; border: 1px solid var(--border);">`;
+                    }
+
                     el.innerHTML = `
                         <span class="thought-badge badge-${type}">${type}</span>
                         <div class="thought-content">
                           <div class="thought-text">${escapeHtml(text)}</div>
+                          ${imageHtml}
                           <div class="thought-time">${time}</div>
                         </div>
                     `;

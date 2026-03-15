@@ -357,6 +357,15 @@ body {
   }
 }
 
+.hud-panel.ambient-active {
+  animation: ambientPulse 4s ease-in-out infinite;
+}
+
+@keyframes ambientPulse {
+  0%, 100% { border-color: var(--border); }
+  50% { border-color: var(--accent); }
+}
+
 .voice-hint {
   font-size: 12px;
   color: var(--text-muted);

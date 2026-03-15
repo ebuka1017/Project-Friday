@@ -7,9 +7,11 @@
 class RecorderProcessor extends AudioWorkletProcessor {
     constructor() {
         super();
-        this.bufferSize = 4096; // 4096 samples per chunk
+        this.bufferSize = 2048; // 2048 samples per chunk (128ms at 16kHz)
         this.buffer = new Float32Array(this.bufferSize);
         this.framesInQueue = 0;
+        this.speechFrameCount = 0;
+        this.thresholdToTrigger = 2; // Must see 2 consecutive speech frames (~256ms total)
     }
 
     process(inputs, outputs, parameters) {
@@ -27,9 +29,14 @@ class RecorderProcessor extends AudioWorkletProcessor {
             if (this.framesInQueue >= this.bufferSize) {
                 const rms = Math.sqrt(sumSquared / this.bufferSize);
 
-                // If RMS exceeds threshold (0.015 is a decent starting point for speech)
-                if (rms > 0.015) {
-                    this.port.postMessage({ type: 'vad_speech', rms });
+                // If RMS exceeds threshold (Raised to 0.05 to prevent feedback loops)
+                if (rms > 0.05) {
+                    this.speechFrameCount++;
+                    if (this.speechFrameCount >= this.thresholdToTrigger) {
+                        this.port.postMessage({ type: 'vad_speech', rms });
+                    }
+                } else {
+                    this.speechFrameCount = 0; // Reset on silence/noise
                 }
 
                 // Convert Float32 [-1.0, 1.0] to Int16 [-32768, 32767]

@@ -47,28 +47,23 @@ class SubAgentManager {
      * Start an async background task.
      * @param {string} taskDescription What the sub-agent should do.
      * @param {function} onComplete Callback when the task finishes.
+     * @param {function} onUpdate Callback for real-time updates (thoughts, tools, images).
      * @returns {string} jobId
      */
-    startTask(taskDescription, onComplete) {
-        return this._startGenericTask(taskDescription, onComplete, false);
+    startTask(taskDescription, onComplete, onUpdate) {
+        return this._startGenericTask(taskDescription, onComplete, onUpdate, false);
     }
 
     /**
      * Start a visual browsing task (Computer Use).
      */
-    startVisualTask(taskDescription, onComplete) {
-        return this._startGenericTask(taskDescription, onComplete, true);
+    startVisualTask(taskDescription, onComplete, onUpdate) {
+        return this._startGenericTask(taskDescription, onComplete, onUpdate, true);
     }
 
-    _startGenericTask(taskDescription, onComplete, isVisual) {
-        try {
-            // Standardizing on Gemini 2.0 Flash for speed and reliability in background tasks.
-            // Complex visual tasks can use 1.5 Pro if needed, but 2.0 Flash Exp is the current target.
-            this._getModel(isVisual ? "gemini-2.0-flash-exp" : "gemini-2.0-flash-exp");
-        } catch (e) {
-            onComplete({ error: e.message });
-            return null;
-        }
+    _startGenericTask(taskDescription, onComplete, onUpdate, isVisual) {
+        // No longer pre-checking model here as it's created in the loop
+
 
         this.taskCounter++;
         const jobId = `job-${this.taskCounter}-${Date.now().toString().slice(-6)}`;
@@ -77,7 +72,9 @@ class SubAgentManager {
 
         console.log(`[SubAgents] Starting ${isVisual ? 'VISUAL' : 'text'} task [${jobId}]: ${taskDescription}`);
 
-        const loop = isVisual ? this._runVisualAgentLoop(jobId, taskDescription) : this._runAgentLoop(jobId, taskDescription);
+        const loop = isVisual 
+            ? this._runVisualAgentLoop(jobId, taskDescription, onUpdate) 
+            : this._runAgentLoop(jobId, taskDescription, onUpdate);
 
         loop.then(result => {
             console.log(`[SubAgents] Task [${jobId}] completed.`);
@@ -103,7 +100,7 @@ class SubAgentManager {
         return jobId;
     }
 
-    async _runVisualAgentLoop(jobId, taskDescription) {
+    async _runVisualAgentLoop(jobId, taskDescription, onUpdate) {
         const model = this._getModel("gemini-2.5-computer-use-preview-10-2025", '', [{
             computer_use: {
                 environment: "ENVIRONMENT_BROWSER"
@@ -153,7 +150,9 @@ class SubAgentManager {
             const task = this.tasks.get(jobId);
             const textResponse = response.text();
             if (task && textResponse) {
-                task.history.push({ time: new Date().toISOString(), type: 'thought', content: textResponse });
+                const thought = { time: new Date().toISOString(), type: 'thought', content: textResponse };
+                task.history.push(thought);
+                if (onUpdate) onUpdate({ jobId, ...thought });
             }
 
             const functionCalls = response.functionCalls();
@@ -168,7 +167,9 @@ class SubAgentManager {
                 const args = call.args;
 
                 if (task) {
-                    task.history.push({ time: new Date().toISOString(), type: 'tool', name: name, args: args });
+                    const toolCall = { time: new Date().toISOString(), type: 'tool', name: name, args: args };
+                    task.history.push(toolCall);
+                    if (onUpdate) onUpdate({ jobId, ...toolCall });
                 }
 
                 console.log(`[SubAgents] Visual Job ${jobId} called ${name}`, args);
@@ -205,6 +206,9 @@ class SubAgentManager {
 
             // Capture NEW state for the next turn
             screenshotB64 = await browserServer.captureScreenshot();
+            if (onUpdate && screenshotB64) {
+                onUpdate({ jobId, type: 'screenshot', data: screenshotB64 });
+            }
             message = {
                 role: "user",
                 parts: [
@@ -222,15 +226,45 @@ class SubAgentManager {
         return finalSummary;
     }
 
-    async _runAgentLoop(jobId, taskDescription) {
+    async _runAgentLoop(jobId, taskDescription, onUpdate) {
         // Load tools from shared registry
+        const toolList = toolsRegistry.getSubAgentTools();
+        // Deduplicate tools by name to prevent "Duplicate function declaration" errors
+        const uniqueTools = Array.from(new Map(toolList.map(t => [t.name, t])).values());
         const tools = [{
-            functionDeclarations: toolsRegistry.getSubAgentTools()
+            functionDeclarations: uniqueTools
         }];
 
-        const systemInstruction = "You are a headless background worker agent. You have native access to the user's desktop and browser. Complete the task assigned to you asynchronously. You MUST call the finish_task tool when you are completely done. Be efficient and use tools directly whenever possible.\n\nSEARCH STRATEGY:\n- If the task explicitly requires showing the user a search result, use `navigate_browser` or `open_default_browser`.\n- For all other research needed to complete your task, use `web_search` to keep the user's workspace clean.";
+        const systemInstruction = `# ════════════════════════════════════════════════════════
+# FRIDAY SUB-AGENT — System Prompt v1.0
+# ════════════════════════════════════════════════════════
 
-        const model = this._getModel("gemini-3.1-flash-lite-preview", systemInstruction, tools);
+## IDENTITY
+You are a headless Friday Sub-Agent, specialized in background automation and research.
+You have direct access to the user's desktop, filesystem, and Chromium browser via CDP.
+Your goal is to complete the assigned task asynchronously and call 'finish_task' with the result.
+
+## TOOL AWARENESS
+Your available tools are: ${uniqueTools.map(t => t.name).join(', ')}.
+CRITICAL: NEVER hallucinate a tool name. If a tool you want to use is not in the list above, you CANNOT use it.
+
+## OPERATIONAL GUIDELINES
+1. **CONTROL OVER SEARCH**: You have DIRECT control over the user's PC and a Chromium browser. 
+   - DO NOT perform keyword searches for websites you already know (e.g., "Google YouTube"). Instead, use 'navigate_browser' with the direct URL.
+   - Use 'web_search' ONLY for research and finding unknown links.
+   - For all desktop tasks, use 'desktop_dump_tree' and 'desktop_find_element' to identify targets, then 'desktop_type_string' or 'desktop_click_at'.
+2. **Direct Action Preferred**: Use 'navigate_browser', 'web_click', 'evaluate_browser_js', or 'fs_write_file' to perform actions directly. 
+3. **Efficiency**: Combine steps when possible. Use 'evaluate_browser_js' for complex scraping or multi-click sequences.
+4. **Completion**: You MUST call 'finish_task' when the task is done. The user is waiting for your report.
+
+## ERROR HANDLING
+- If a page fails to load, try once more or search for the correct URL.
+- If a UI element is missing, use 'read_browser_dom' or 'take_screenshot' to understand why.
+- NEVER claim success unless 'result' message from tool confirms it.
+`;
+
+        console.log(`[SubAgents] Initializing agent loop with tools:`, tools[0].functionDeclarations.map(f => f.name));
+        const model = this._getModel("gemini-3-flash-preview", systemInstruction, tools);
 
         const chat = model.startChat({
             history: [
@@ -251,7 +285,9 @@ class SubAgentManager {
             const task = this.tasks.get(jobId);
             const textResponse = response.text();
             if (task && textResponse) {
-                task.history.push({ time: new Date().toISOString(), type: 'thought', content: textResponse });
+                const thought = { time: new Date().toISOString(), type: 'thought', content: textResponse };
+                task.history.push(thought);
+                if (onUpdate) onUpdate({ jobId, ...thought });
             }
 
             const functionCalls = response.functionCalls();
@@ -269,7 +305,9 @@ class SubAgentManager {
             const args = call.args;
 
             if (task) {
-                task.history.push({ time: new Date().toISOString(), type: 'tool', name: name, args: args });
+                const toolCall = { time: new Date().toISOString(), type: 'tool', name: name, args: args };
+                task.history.push(toolCall);
+                if (onUpdate) onUpdate({ jobId, ...toolCall });
             }
 
             console.log(`[SubAgents] Job ${jobId} called ${name}`, args);

@@ -44,6 +44,7 @@ class DatabaseManager {
                 session_id TEXT,
                 role TEXT,
                 text TEXT,
+                image TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
             )`,
@@ -75,10 +76,32 @@ class DatabaseManager {
                         }
                         completed++;
                         if (completed === queries.length && !hasError) {
-                            resolve();
+                            // Run migrations
+                            this._runMigrations().then(resolve).catch(reject);
                         }
                     });
                 });
+            });
+        });
+    }
+
+    _runMigrations() {
+        return new Promise((resolve, reject) => {
+            // Add image column to messages if it doesn't exist
+            this.db.run("ALTER TABLE messages ADD COLUMN image TEXT", (err) => {
+                if (err) {
+                    if (err.message.includes("duplicate column name")) {
+                        // Migration already applied
+                        resolve();
+                    } else {
+                        console.error("[DB] Migration failed:", err);
+                        // Still resolve because the next steps might work (or it might fail later)
+                        resolve();
+                    }
+                } else {
+                    console.log("[DB] Added image column to messages table.");
+                    resolve();
+                }
             });
         });
     }
@@ -139,11 +162,11 @@ class DatabaseManager {
 
     // ── Messages ────────────────────────────────────────────────────────┐
 
-    saveMessage(id, sessionId, role, text) {
+    saveMessage(id, sessionId, role, text, image = null) {
         return new Promise((resolve, reject) => {
             this.db.run(
-                `INSERT INTO messages (id, session_id, role, text) VALUES (?, ?, ?, ?)`,
-                [id, sessionId, role, text],
+                `INSERT INTO messages (id, session_id, role, text, image) VALUES (?, ?, ?, ?, ?)`,
+                [id, sessionId, role, text, image],
                 function (err) {
                     if (err) return reject(err);
 

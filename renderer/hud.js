@@ -16,6 +16,8 @@
     const themeBtn = document.getElementById('themeBtn');
     const minimizeBtn = document.getElementById('minimizeBtn');
     const openAppBtn = document.getElementById('openAppBtn');
+    const ambientToggle = document.getElementById('ambientToggle');
+    const hudPanel = document.querySelector('.hud-panel');
     const systemsDot = document.getElementById('engineDot');
     const systemsStatusEl = document.getElementById('engineStatus');
 
@@ -54,6 +56,12 @@
             b.classList.toggle('active', b.dataset.mode === state.voiceMode);
         });
         updateVoiceHint(state.voiceMode);
+
+        // Apply ambient mode
+        ambientToggle.querySelectorAll('.toggle-opt').forEach(b => {
+            b.classList.toggle('active', (b.dataset.mode === 'on') === state.isAmbient);
+        });
+        hudPanel.classList.toggle('ambient-active', state.isAmbient);
 
         // Apply status
         updateStatusDisplay(state.status);
@@ -130,6 +138,15 @@
             micButton.classList.remove('listening');
             window.friday.setState({ status: 'idle' });
         }
+    });
+
+    // ── Ambient Mode ──────────────────────────────────────────────────
+
+    ambientToggle.addEventListener('click', (e) => {
+        const btn = e.target.closest('.toggle-opt');
+        if (!btn) return;
+        const isOn = btn.dataset.mode === 'on';
+        window.friday.setState({ isAmbient: isOn });
     });
 
     // ── Minimize ────────────────────────────────────────────────────────

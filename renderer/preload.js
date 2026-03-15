@@ -92,7 +92,6 @@ contextBridge.exposeInMainWorld('friday', {
     browserPing: () => ipcRenderer.invoke('browser:ping'),
 
     // Delegate background task to sub-agent
-    delegateTask: (taskDescription) => ipcRenderer.invoke('app:delegateTask', taskDescription),
     browseVisual: (taskDescription) => ipcRenderer.invoke('app:browseVisual', taskDescription),
 
     // Minimize (hide) the HUD
@@ -134,11 +133,12 @@ contextBridge.exposeInMainWorld('friday', {
     getState: () => ipcRenderer.invoke('state:get'),
 
     // Add a message to the conversation
-    addMessage: (role, text) => ipcRenderer.invoke('state:addMessage', role, text),
+    addMessage: (role, text, image) => ipcRenderer.invoke('state:addMessage', role, text, image),
 
     // Sub-Agents
     delegateTask: (taskDesc) => ipcRenderer.invoke('app:delegateTask', taskDesc),
     onSubAgentComplete: (callback) => ipcRenderer.on('voice:subAgentComplete', (_, result) => callback(result)),
+    onSubAgentUpdate: (callback) => ipcRenderer.on('voice:subAgentUpdate', (_, update) => callback(update)),
     getAllTasks: () => ipcRenderer.invoke('tasks:list'),
 
     // Voice Control (HUD -> App)

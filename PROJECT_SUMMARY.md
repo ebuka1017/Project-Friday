@@ -19,7 +19,7 @@
 - **Languages**: JavaScript (Node.js/Electron), C# (.NET 9 Native AOT), CSS (Vanilla).
 - **AI Models**:
     - `gemini-2.5-flash-native-audio-preview` (Live Session).
-    - `gemini-1.5-pro` (Sub-Agent Reasoning).
+    - `gemini-3-flash-preview` (Sub-Agent Reasoning).
     - `gemini-2.5-flash` (Vision & Search Grounding).
 - **Communication**: WebSockets (Gemini Live), Named Pipes (Sidecar IPC), IPC (Electron Main/Renderer).
 - **Storage**: SQLite3 for persistent chat history and agent memory.
@@ -32,10 +32,17 @@
 - **Google Search**: Real-time web grounding for factual queries.
 - **System Information**: Real-time hardware and process metrics.
 
+## 🏆 Agentic Best Practices
+- **Shallow Hierarchy**: Exactly two levels (Primary Agent -> Sub-Agents) to ensure debuggability.
+- **Latency First**: Target 500-800ms "mouth-to-ear" for voice naturalness.
+- **Direct Action Over Research**: Prioritize UI Automation and CDP navigation over keyword searches.
+- **Deduplicated Tooling**: Strict enforcement of unique tool declarations to maintain API stability.
+- **Robust Barge-in**: Immediate tracking and termination of audio nodes on user interruption.
+
 ## 🧠 Findings & Technical Learnings
 - **WebSocket Schema Strictness**: The Gemini Live API's Protobuf foundation is extremely sensitive to payload structure. Even empty arrays (like `parts: []`) must be explicitly present to avoid 1011 errors.
 - **Frame Limit Bypassing**: The 64KB WebSocket limit is a bottleneck for "Computer Use." Implementing **Payload Decoupling** (sending a protocol-dummy and streaming raw data via `client_content`) is the only viable way to send massive contexts.
-- **Audio/Mic Handshaking**: Synchronizing a live mic with an AI's voice requires careful `nextPlayTime` tracking to avoid feedback loops or audio cutting out.
+- **Audio/Mic Handshaking**: Synchronizing a live mic with an AI's voice requires careful `nextPlayTime` tracking and active source management to prevent feedback or overlapping audio.
 - **Multi-Monitor Coordinate Normalization**: Standard `SM_CXSCREEN` metrics fail on multi-monitor setups. Using `MOUSEEVENTF_VIRTUALDESK` combined with Virtual Screen metrics is critical for accurate "Computer Use" agents.
 - **Native AOT Performance**: Using C# Native AOT for the sidecar provided sub-millisecond IPC response times, which is essential for making an AI feel "instant" when interacting with the OS.
 

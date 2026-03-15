@@ -31,17 +31,6 @@ const BrowserTools = [
             required: ["script"]
         }
     },
-    {
-        name: 'web_deepdive',
-        description: 'Scrape a specific URL into Markdown for deep context or analysis.',
-        parameters: {
-            type: 'object',
-            properties: {
-                url: { type: 'string', description: 'The absolute URL to scrape.' }
-            },
-            required: ['url']
-        }
-    },
     // ── Email Tools ──
     {
         name: 'gmail_list',
@@ -452,139 +441,79 @@ const WorldTools = [
             },
             required: ["url"]
         }
+    },
+    {
+        name: "silent_action",
+        description: "Log a silent background action. Call this instead of speaking when taking ambient actions the user doesn't need to be interrupted for.",
+        parameters: {
+            type: "object",
+            properties: {
+                action: { type: "string", description: "One-line description of what was done" },
+                category: { type: "string", enum: ["note", "file", "search", "prepare"] }
+            },
+            required: ["action"]
+        }
     }
 ];
 
 // Tool subset optimized for voice agents to stay under message size limits
 const getVoiceTools = () => [
-    {
-        name: "navigate_browser",
-        description: "Go to a URL. Must be in allowlist.",
-        parameters: {
-            type: "object",
-            properties: { url: { type: "string" } },
-            required: ["url"]
-        }
-    },
-    {
-        name: "read_browser_dom",
-        description: "Read page content (title, URL, text).",
-        parameters: { type: "object", properties: {} }
-    },
-    {
-        name: "web_click",
-        description: "Click an element on the webpage (CSS selector or name).",
-        behavior: "NON_BLOCKING",
-        parameters: {
-            type: "object",
-            properties: { selector: { type: "string" } },
-            required: ["selector"]
-        }
-    },
-    {
-        name: "web_type",
-        description: "Type text into an input field on the webpage.",
-        behavior: "NON_BLOCKING",
-        parameters: {
-            type: "object",
-            properties: {
-                selector: { type: "string" },
-                text: { type: "string" }
-            },
-            required: ["selector", "text"]
-        }
-    },
-    {
-        name: "open_default_browser",
-        description: "Open URL in system browser.",
-        behavior: "NON_BLOCKING",
-        parameters: {
-            type: "object",
-            properties: { url: { type: "string" } },
-            required: ["url"]
-        }
-    },
-    {
-        name: "desktop_type_string",
-        description: "Type text into focused app.",
-        behavior: "NON_BLOCKING",
-        parameters: {
-            type: "object",
-            properties: { text: { type: "string" } },
-            required: ["text"]
-        }
-    },
-    {
-        name: "desktop_send_chord",
-        description: "Send shortcut (e.g. 'Ctrl+C').",
-        behavior: "NON_BLOCKING",
-        parameters: {
-            type: "object",
-            properties: { chord: { type: "string" } },
-            required: ["chord"]
-        }
-    },
-    {
-        name: "fs_list_directory",
-        description: "List contents of a directory on disk.",
-        parameters: {
-            type: "object",
-            properties: { path: { type: "string" } },
-            required: ["path"]
-        }
-    },
-    {
-        name: "fs_read_file",
-        description: "Read text from a local file.",
-        parameters: {
-            type: "object",
-            properties: { path: { type: "string" } },
-            required: ["path"]
-        }
-    },
-    {
-        name: "show_notification",
-        description: "Show a native notification to the user.",
-        behavior: "NON_BLOCKING",
-        parameters: {
-            type: "object",
-            properties: {
-                title: { type: "string" },
-                body: { type: "string" }
-            },
-            required: ["title", "body"]
-        }
-    },
-    {
-        name: "get_system_info",
-        description: "Get CPU, RAM, and OS details.",
-        parameters: { type: "object", properties: {} }
-    },
-    {
-        name: "take_screenshot",
-        description: "Capture screen to see state.",
-        parameters: { type: "object", properties: {} }
-    },
-    {
-        name: "delegate_task",
-        description: "Spawn sub-agent for complex tasks.",
-        behavior: "NON_BLOCKING",
-        parameters: {
-            type: "object",
-            properties: { taskDescription: { type: "string" } },
-            required: ["taskDescription"]
-        }
-    },
-    {
-        name: "browse_visual",
-        description: "Delegate to visual assistant.",
-        behavior: "NON_BLOCKING",
-        parameters: {
-            type: "object",
-            properties: { taskDescription: { type: "string" } },
-            required: ["taskDescription"]
-        }
-    }
+    // ── Desktop ─────────────────────────────────────────────────────
+    { name: 'desktop_type_string',  description: 'Type text into the focused app.',
+      parameters: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } },
+    { name: 'desktop_send_chord',   description: 'Send a keyboard shortcut e.g. Ctrl+C.',
+      parameters: { type: 'object', properties: { chord: { type: 'string' } }, required: ['chord'] } },
+    { name: 'desktop_click_at',     description: 'Click at screen coordinates x, y.',
+      parameters: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } }, required: ['x','y'] } },
+    { name: 'desktop_find_element', description: 'Find a UI element by name via Windows UIA.',
+      parameters: { type: 'object', properties: { name: { type: 'string' }, controlType: { type: 'string' } }, required: ['name'] } },
+    { name: 'desktop_dump_tree',    description: 'Dump the UI element tree of the focused window.',
+      parameters: { type: 'object', properties: {} } },
+    // ── Window management ────────────────────────────────────────────
+    { name: 'window_list',          description: 'List all open windows with titles and handles.',
+      parameters: { type: 'object', properties: {} } },
+    { name: 'window_focus',         description: 'Bring a window to the foreground by handle.',
+      parameters: { type: 'object', properties: { handle: { type: 'number' } }, required: ['handle'] } },
+    // ── Browser ─────────────────────────────────────────────────────
+    { name: 'navigate_browser',     description: 'Navigate browser to URL. Must be in allowlist.',
+      parameters: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] } },
+    { name: 'read_browser_dom',     description: 'Read the current page title, URL, and text.',
+      parameters: { type: 'object', properties: {} } },
+    { name: 'web_click',            description: 'Click an element by CSS selector or name.',
+      parameters: { type: 'object', properties: { selector: { type: 'string' } }, required: ['selector'] } },
+    { name: 'web_type',             description: 'Type text into a browser input field.',
+      parameters: { type: 'object', properties: { selector: { type: 'string' }, text: { type: 'string' } }, required: ['selector','text'] } },
+    { name: 'web_screenshot',       description: 'Screenshot the browser tab. annotated=true adds element labels.',
+      parameters: { type: 'object', properties: { annotated: { type: 'boolean' } } } },
+    { name: 'open_default_browser', description: 'Open a URL in the system browser for the user to see.',
+      parameters: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] } },
+    { name: 'browser_back',         description: 'Navigate back in browser history.',
+      parameters: { type: 'object', properties: {} } },
+    // ── File system ──────────────────────────────────────────────────
+    { name: 'fs_list_directory',    description: 'List contents of a local directory.',
+      parameters: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } },
+    { name: 'fs_read_file',         description: 'Read a local text file.',
+      parameters: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } },
+    { name: 'fs_write_file',        description: 'Write text content to a file on the local file system.',
+      parameters: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' } }, required: ['path','content'] } },
+    // ── Web & world ──────────────────────────────────────────────────
+    { name: 'web_search',           description: 'Search the web privately. Returns links and titles.',
+      parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
+    { name: 'web_deepdive',         description: 'Scrape a URL into clean markdown.',
+      parameters: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] } },
+    { name: 'silent_action',        description: 'Log a silent background action. Call this instead of speaking.',
+      parameters: { type: 'object', properties: { action: { type: 'string' }, category: { type: 'string' } }, required: ['action'] } },
+    // ── System & agents ──────────────────────────────────────────────
+    { name: 'get_system_info',      description: 'Get CPU, RAM, OS, and battery info.',
+      parameters: { type: 'object', properties: {} } },
+    { name: 'show_notification',    description: 'Show a native OS notification.',
+      parameters: { type: 'object', properties: { title: { type: 'string' }, body: { type: 'string' } }, required: ['title','body'] } },
+    { name: 'take_screenshot',      description: 'Capture the full screen.',
+      parameters: { type: 'object', properties: {} } },
+    { name: 'delegate_task',        description: 'Spawn a background sub-agent for complex tasks.',
+      parameters: { type: 'object', properties: { taskDescription: { type: 'string' } }, required: ['taskDescription'] } },
+    { name: 'browse_visual',        description: 'Delegate to vision-based browser sub-agent.',
+      parameters: { type: 'object', properties: { taskDescription: { type: 'string' } }, required: ['taskDescription'] } },
 ];
 
 const getAllTools = () => [
