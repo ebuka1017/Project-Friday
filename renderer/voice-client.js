@@ -82,7 +82,9 @@ class VoiceClient {
         }
     }
 
-    _buildSystemInstruction() {
+    async _buildSystemInstruction() {
+        const state = await window.friday.getState();
+        const res = state.screenResolution ? `${state.screenResolution.width}x${state.screenResolution.height}` : 'adaptive';
         return `# IDENTITY
 You are Friday, an autonomous Windows desktop and browser automation agent.
 
@@ -96,6 +98,10 @@ You operate in two states:
 - **NO LAZY SEARCHING**: If a URL is known, use 'navigate_browser' directly.
 - **TRANSPARENCY**: Use text for [PLAN], [ACTION], [RESULT] so the user can see your "Chain of Thought" in the HUD.
 
+# CONTEXT
+- Current Resolution: ${res}
+- Operating as Friday, your Windows co-pilot.
+
 # TOOLS
 Registered tools: ${this.agentTools.map(t => t.name).join(', ')}.
 NEVER hallucinate tools.`;
@@ -106,6 +112,7 @@ NEVER hallucinate tools.`;
         this.isConnected = true;
         if (!this.ws) return;
 
+        const instruction = await this._buildSystemInstruction();
         const setupMessage = {
             setup: {
                 model: this.model,
@@ -114,7 +121,7 @@ NEVER hallucinate tools.`;
                     speech_config: { voice_config: { prebuilt_voice_config: { voice_name: "Puck" } } }
                 },
                 proactivity: { proactive_audio: true },
-                system_instruction: { parts: [{ text: this._buildSystemInstruction() }] },
+                system_instruction: { parts: [{ text: instruction }] },
                 tools: [{ functionDeclarations: this.agentTools }]
             }
         };
@@ -129,6 +136,10 @@ NEVER hallucinate tools.`;
         if (Date.now() < this.suppressInterruptionUntil) return;
         this.isInterrupted = true;
         this.stopAllAudio();
+        
+        // Final polish: Explicitly clear the pipes by sending a small silence or just closing the turn if possible.
+        // For Gemini Live, simply stopping the local stream and setting isInterrupted is usually enough,
+        // but we ensure no stale frames from the worklet reach the WS.
     }
 
     stopAllAudio() {
@@ -156,7 +167,13 @@ NEVER hallucinate tools.`;
                     this.handleInterruption();
                 } else if (event.data.type === 'audio_data' && this.ws?.readyState === WebSocket.OPEN) {
                     if (!this.isMicActive) return;
-                    if (this.isInterrupted) this.isInterrupted = false;
+                    
+                    // IF we just interrupted, ignore the tail of the previous stream
+                    if (this.isInterrupted) {
+                        // Stay interrupted until we receive a server turn completion or enough time passes
+                        return; 
+                    }
+
                     const base64 = this.arrayBufferToBase64(event.data.buffer);
                     this.audioSentThisTurn = true;
                     this.ws.send(JSON.stringify({
@@ -195,9 +212,10 @@ NEVER hallucinate tools.`;
                 const turn = data.serverContent.modelTurn;
                 if (turn?.parts) {
                     for (const p of turn.parts) {
-                        if (p.text) {
+                        if (p.text && p.text.trim()) {
                             const isThought = p.text.match(/\[PLAN\]|\[ACTION\]|\[RESULT\]/);
-                            window.friday.addMessage(isThought ? 'thinking' : 'thinking', (isThought ? '' : '🗣️ ') + p.text);
+                            // Use 'thinking' for internal reasoning, 'friday' for spoken response
+                            window.friday.addMessage(isThought ? 'thinking' : 'friday', p.text);
                             window.friday.setState({ status: 'speaking' });
                         }
                         if (p.inlineData?.data) {
@@ -291,10 +309,18 @@ NEVER hallucinate tools.`;
     }
 
     sendChunkedText(text) {
-        const CHUNK = 4000;
-        for (let i = 0; i < text.length; i += CHUNK) {
+        const CHUNK_LIMIT = 30000; // Safe byte limit
+        const encoder = new TextEncoder();
+        const fullBytes = encoder.encode(text);
+        
+        for (let i = 0; i < fullBytes.length; i += CHUNK_LIMIT) {
+            const chunk = fullBytes.slice(i, i + CHUNK_LIMIT);
+            const isLast = (i + CHUNK_LIMIT >= fullBytes.length);
             this.ws.send(JSON.stringify({
-                client_content: { turns: [{ role: "user", parts: [{ text: text.slice(i, i + CHUNK) }] }], turn_complete: (i + CHUNK >= text.length) }
+                client_content: { 
+                    turns: [{ role: "user", parts: [{ text: new TextDecoder().decode(chunk) }] }], 
+                    turn_complete: isLast 
+                }
             }));
         }
     }

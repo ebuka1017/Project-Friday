@@ -8,6 +8,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const browserServer = require('./browser-server');
 const toolsRegistry = require('../shared/tools-registry');
 const toolExecutor = require('./tool-executor');
+const { getState } = require('./state');
 
 class SubAgentManager {
 
@@ -189,7 +190,10 @@ class SubAgentManager {
                 // Execute Computer Use action via ToolExecutor
                 let toolRes = {};
                 try {
-                    toolRes = await toolExecutor.executeComputerUseAction(name, args);
+                    toolRes = await Promise.race([
+                        toolExecutor.executeComputerUseAction(name, args),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Computer use action timed out (45s)')), 45000))
+                    ]);
                 } catch (err) {
                     toolRes = { error: err.message };
                 }
@@ -243,6 +247,10 @@ class SubAgentManager {
 You are a headless Friday Sub-Agent, specialized in background automation and research.
 You have direct access to the user's desktop, filesystem, and Chromium browser via CDP.
 Your goal is to complete the assigned task asynchronously and call 'finish_task' with the result.
+
+## SYSTEM CONTEXT
+Current Screen Resolution: ${getState().screenResolution?.width}x${getState().screenResolution?.height}px.
+Use these dimensions for coordinate calculations.
 
 ## TOOL AWARENESS
 Your available tools are: ${uniqueTools.map(t => t.name).join(', ')}.

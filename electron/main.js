@@ -3,7 +3,7 @@
 // Orchestrates app lifecycle, HUD, main window, sidecar, and shared state.
 // ═══════════════════════════════════════════════════════════════════════
 
-const { app, globalShortcut, ipcMain, BrowserWindow, session, shell, Tray, Menu, nativeImage } = require('electron');
+const { app, globalShortcut, ipcMain, BrowserWindow, session, shell, Tray, Menu, nativeImage, screen } = require('electron');
 const { createHUD, toggleHUD, hideHUD, getWindow } = require('./hud');
 const sidecar = require('./sidecar-launcher');
 const pipeClient = require('./pipe-client');
@@ -28,6 +28,8 @@ const { setState, getState, addMessage, broadcast } = require('./state');
 const browserServer = require('./browser-server');
 const subAgents = require('./sub-agents');
 const { startMCPServer } = require('./mcp-server');
+const isAuth = () => isAuthenticated;
+startMCPServer(isAuth);
 const db = require('./db');
 const { v4: uuidv4 } = require('uuid');
 const { installExtension, detectBrowsers } = require("./extensionInstaller");
@@ -400,6 +402,11 @@ if (!gotLock) {
     app.quit();
 } else {
     app.whenReady().then(async () => {
+        const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+        setState({ screenResolution: { width, height } });
+        console.log(`[friday] Screen resolution detected: ${width}x${height}`);
+
+        createHUD();
         console.log('[friday] App ready — initializing...');
 
         // Start Browser extension WebSocket bridge

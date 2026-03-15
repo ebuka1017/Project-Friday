@@ -83,6 +83,10 @@ class FridayMCPServer {
             let isError = false;
 
             try {
+                if (this.authCheck && !this.authCheck()) {
+                    throw new Error("Unauthorized: Please sign in to the Friday app first.");
+                }
+
                 if (!pipeClient.isConnected && name.startsWith('desktop_')) {
                     throw new Error("Desktop sidecar engine is not connected.");
                 }
@@ -142,9 +146,10 @@ class FridayMCPServer {
 }
 
 let instance = null;
-function startMCPServer() {
+function startMCPServer(authCheck) {
     if (!instance) {
         instance = new FridayMCPServer();
+        instance.authCheck = authCheck;
         instance.start().catch(e => console.error('[MCPServer] Start Error:', e));
     }
     return instance;
