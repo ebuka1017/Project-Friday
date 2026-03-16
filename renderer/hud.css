@@ -371,6 +371,118 @@ body {
   color: var(--text-muted);
 }
 
+/* ── Activity Feed ────────────────────────────────────────────────────── */
+
+.hud-activity {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 100px;
+  max-height: 250px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.activity-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 20px 0;
+}
+
+.activity-row {
+  font-size: 12px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.role-thinking {
+  border-left: 3px solid var(--accent);
+}
+
+.activity-row details summary {
+  cursor: pointer;
+  outline: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.activity-row details[open] summary {
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+
+.activity-content {
+  color: var(--text-secondary);
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-img {
+  margin-top: 8px;
+  width: 100%;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.activity-icon {
+  font-size: 14px;
+}
+
+/* ── Generative UI Styles ────────────────────────────────────────────── */
+
+.activity-interactive {
+  padding: 10px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--accent);
+}
+
+.interactive-prompt {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.interactive-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gen-ui-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gen-ui-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ── Action Button ────────────────────────────────────────────────────── */
 
 .hud-actions {

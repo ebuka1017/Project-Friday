@@ -8,12 +8,30 @@ const path = require('path');
  */
 function resolvePath(inputPath) {
     if (!inputPath) throw new Error("Path cannot be empty");
-    // Expand ~ to user home if applicable
+    
+    const os = require('os');
+    const homeDir = os.homedir();
+    
+    // Expand ~ to user home
     if (inputPath.startsWith('~')) {
-        const homeDir = require('os').homedir();
         inputPath = path.join(homeDir, inputPath.slice(1));
+    } else {
+        // Intelligence: if the path starts with common OS folder names (Desktop, Documents, Downloads, etc.)
+        // and it's a relative path, resolve it to the user's home directory.
+        const commonFolders = ['Desktop', 'Documents', 'Downloads', 'Music', 'Pictures', 'Videos'];
+        const firstPart = inputPath.split(/[/\\]/)[0];
+        
+        if (commonFolders.includes(firstPart)) {
+            // Check if it exists in the ROOT of the project. If not, assume it's the OS folder.
+            const localPath = path.resolve(inputPath);
+            const fsSync = require('fs');
+            if (!fsSync.existsSync(path.dirname(localPath)) && !fsSync.existsSync(localPath)) {
+                inputPath = path.join(homeDir, inputPath);
+            }
+        }
     }
-    return Math.abs ? path.resolve(inputPath) : inputPath; // path.resolve normalizes
+    
+    return path.resolve(inputPath);
 }
 
 async function listDirectory(dirPath) {

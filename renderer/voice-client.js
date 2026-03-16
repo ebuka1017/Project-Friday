@@ -18,15 +18,16 @@ class VoiceClient {
         this.activeSources = new Set();
 
         this.host = 'generativelanguage.googleapis.com';
-        this.model = "models/gemini-2.0-flash-exp"; 
+        this.model = "models/gemini-2.5-flash-native-audio-preview-12-2025"; 
         this.apiVersion = "v1alpha";
-
-        window.friday.onSubAgentComplete((result) => this.handleSubAgentComplete(result));
-        window.friday.onSubAgentUpdate((update) => this.handleSubAgentUpdate(update));
 
         this.apiKey = null;
         this.skillsList = [];
         this.agentTools = [];
+
+        window.friday.onSubAgentComplete((result) => this.handleSubAgentComplete(result));
+        window.friday.onSubAgentUpdate((update) => this.handleSubAgentUpdate(update));
+
         this.latestVisionData = null; // Store background vision context
 
         // Listen for background vision pulses
@@ -71,6 +72,7 @@ class VoiceClient {
             }
 
             const url = `wss://${this.host}/ws/google.ai.generativelanguage.${this.apiVersion}.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
+            console.log('[VoiceClient] Connecting to:', url.split('?')[0] + '?key=***');
             this.ws = new WebSocket(url);
             this.ws.onopen = this.onWsOpen.bind(this);
             this.ws.onmessage = this.onWsMessage.bind(this);
@@ -85,48 +87,51 @@ class VoiceClient {
     async _buildSystemInstruction() {
         const state = await window.friday.getState();
         const res = state.screenResolution ? `${state.screenResolution.width}x${state.screenResolution.height}` : 'adaptive';
-        return `# IDENTITY
-You are Friday, an autonomous Windows desktop and browser automation agent.
+        
+        let basePrompt = '';
+        try {
+            // Try to load external prompt
+            const result = await window.friday.fsReadFileStr('friday-program.md');
+            if (result && result.success) {
+                basePrompt = result.content;
+            } else {
+                console.warn('[VoiceClient] friday-program.md not found or error:', result?.error);
+                basePrompt = `You are Friday, an autonomous Windows desktop and browser automation agent.`;
+            }
+        } catch (e) {
+            console.warn('[VoiceClient] Failed to load friday-program.md, using default.');
+            basePrompt = `You are Friday, an autonomous Windows desktop and browser automation agent.`;
+        }
 
-# PROTOCOL (AMBIENT & ACTIVE)
-You operate in two states:
-1. AMBIENT: You are a silent co-listener. Stay QUIET unless the user says "Friday" or you hear an urgent task. Use 'silent_action' to log background work instead of speaking.
-2. ACTIVE: You are in direct conversation. Respond briefly (2-3 sentences).
+        return `${basePrompt}
 
-# DIRECT ACTION POLICY
-- **AUTONOMY FIRST**: Execute tasks yourself using tools. Only delegate if >10 steps.
-- **NO LAZY SEARCHING**: If a URL is known, use 'navigate_browser' directly.
-- **TRANSPARENCY**: Use text for [PLAN], [ACTION], [RESULT] so the user can see your "Chain of Thought" in the HUD.
-
-# CONTEXT
-- Current Resolution: ${res}
-- Operating as Friday, your Windows co-pilot.
-
-# TOOLS
-Registered tools: ${this.agentTools.map(t => t.name).join(', ')}.
-NEVER hallucinate tools.`;
+## Current State
+- Resolution: ${res}
+- Mode: ACTIVE`;
     }
 
     async onWsOpen() {
-        console.log('[VoiceClient] WebSocket connected');
+        console.log('[VoiceClient] WebSocket connected (ReadyState:', this.ws.readyState, ')');
         this.isConnected = true;
         if (!this.ws) return;
 
         const instruction = await this._buildSystemInstruction();
+        console.log('[VoiceClient] WS Open. Using Model:', this.model, 'API Version:', this.apiVersion);
+        
         const setupMessage = {
             setup: {
                 model: this.model,
                 generation_config: {
-                    response_modalities: ["AUDIO"],
+                    response_modalities: ["audio"],
                     speech_config: { voice_config: { prebuilt_voice_config: { voice_name: "Puck" } } }
                 },
-                proactivity: { proactive_audio: true },
                 system_instruction: { parts: [{ text: instruction }] },
-                tools: [{ functionDeclarations: this.agentTools }]
+                tools: [{ function_declarations: this.agentTools }]
             }
         };
 
         if (this.ws.readyState === WebSocket.OPEN) {
+            console.log('[VoiceClient] Sending setup message...');
             this.ws.send(JSON.stringify(setupMessage));
         }
     }
@@ -160,10 +165,12 @@ NEVER hallucinate tools.`;
             this.audioContext = new AudioContext({ sampleRate: 16000 });
             const source = this.audioContext.createMediaStreamSource(this.mediaStream);
             await this.audioContext.audioWorklet.addModule('audio-worklet.js');
+            if (!this.audioContext) return; // Prevent race if stopped during await
             this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-worklet');
 
             this.workletNode.port.onmessage = (event) => {
                 if (event.data.type === 'vad_speech') {
+                    console.log('[VoiceClient] VAD Triggered (Speech detected)');
                     this.handleInterruption();
                 } else if (event.data.type === 'audio_data' && this.ws?.readyState === WebSocket.OPEN) {
                     if (!this.isMicActive) return;
@@ -176,6 +183,7 @@ NEVER hallucinate tools.`;
 
                     const base64 = this.arrayBufferToBase64(event.data.buffer);
                     this.audioSentThisTurn = true;
+                    if (Math.random() < 0.05) console.log('[VoiceClient] Sending audio chunk (sample rate match)...');
                     this.ws.send(JSON.stringify({
                         realtime_input: { media_chunks: [{ mime_type: "audio/pcm;rate=16000", data: base64 }] }
                     }));
@@ -190,17 +198,38 @@ NEVER hallucinate tools.`;
         }
     }
 
-    onWsClose() { this.isConnected = false; window.friday.setState({ status: 'idle' }); }
-    onWsError() { this.onWsClose(); }
+    onWsClose(event) { 
+        console.warn('[VoiceClient] WebSocket closed:', event.code, event.reason);
+        this.isConnected = false; 
+        window.friday.setState({ status: 'idle' }); 
+    }
+    onWsError(err) { 
+        console.error('[VoiceClient] WebSocket error:', err);
+        this.onWsClose({ code: 0, reason: 'Error' }); 
+    }
 
     async onWsMessage(event) {
         try {
             const raw = (event.data instanceof Blob) ? await event.data.text() : event.data;
             const data = JSON.parse(raw);
-
-            if (data.setupComplete) {
-                window.friday.getState().then(s => { if (s.voiceMode !== 'ptt') this.startMicrophone(); });
+            console.log('[VoiceClient] WS Message received:', Object.keys(data).join(', '));
+            
+            // Log raw server content for debugging
+            if (data.serverContent) {
+                console.log('[VoiceClient] Server Content received:', JSON.stringify(data.serverContent).substring(0, 500));
+            } else if (data.toolCall) {
+                console.log('[VoiceClient] Tool Call received:', data.toolCall.functionCalls?.map(f => f.name));
+            } else if (data.setupComplete) {
+                console.log('[VoiceClient] Setup complete acknowledged.');
+                window.friday.getState().then(s => { 
+                    if (s.voiceMode !== 'ptt') {
+                        console.log('[VoiceClient] Starting microphone (handsfree/ambient)...');
+                        this.startMicrophone(); 
+                    }
+                });
                 return;
+            } else {
+                console.log('[VoiceClient] Other message:', Object.keys(data));
             }
 
             if (data.toolCall?.functionCalls) {
@@ -212,13 +241,29 @@ NEVER hallucinate tools.`;
                 const turn = data.serverContent.modelTurn;
                 if (turn?.parts) {
                     for (const p of turn.parts) {
+                        console.log('[VoiceClient] Part received. Keys:', Object.keys(p).join(', '));
                         if (p.text && p.text.trim()) {
-                            const isThought = p.text.match(/\[PLAN\]|\[ACTION\]|\[RESULT\]/);
-                            // Use 'thinking' for internal reasoning, 'friday' for spoken response
-                            window.friday.addMessage(isThought ? 'thinking' : 'friday', p.text);
-                            window.friday.setState({ status: 'speaking' });
+                            // Split thoughts from final answer
+                            let content = p.text;
+                            console.log('[VoiceClient] Model text parts received:', content.substring(0, 100));
+                            
+                            const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
+                            
+                            if (thinkMatch) {
+                                const thought = thinkMatch[1].trim();
+                                console.log('[VoiceClient] Model thought:', thought);
+                                window.friday.addMessage('thinking', thought);
+                                content = content.replace(/<think>[\s\S]*?<\/think>/, '').trim();
+                            }
+
+                            if (content) {
+                                console.log('[VoiceClient] Model saying:', content);
+                                window.friday.addMessage('friday', content);
+                                window.friday.setState({ status: 'speaking' });
+                            }
                         }
                         if (p.inlineData?.data) {
+                            console.log('[VoiceClient] Model speaking (audio chunk size:', p.inlineData.data.length, ')');
                             window.friday.setState({ status: 'speaking' });
                             this.playAudioChunk(p.inlineData.data);
                         }
@@ -292,6 +337,10 @@ NEVER hallucinate tools.`;
                     response = { success: true };
                 }
                 window.friday.addMessage('result', '📸 Screenshot captured', s?.data);
+            } else if (call.name === 'delegate_task') {
+                response = await window.friday.delegateTask(call.args.taskDescription);
+            } else if (call.name === 'browse_visual') {
+                response = await window.friday.browseVisual(call.args.taskDescription);
             }
         } catch (err) {
             response = { success: false, error: err.message };
@@ -327,25 +376,45 @@ NEVER hallucinate tools.`;
 
     playAudioChunk(b64) {
         try {
-            if (!this.playbackCtx || this.isInterrupted) return;
-            const bytes = new Uint8Array(atob(b64).split("").map(c => c.charCodeAt(0)));
-            const float32 = new Float32Array(new Int16Array(bytes.buffer).length);
-            for (let i = 0; i < float32.length; i++) float32[i] = new Int16Array(bytes.buffer)[i] / 32768.0;
+            if (!this.playbackCtx) {
+                console.warn('[VoiceClient] No playbackCtx for audio chunk');
+                return;
+            }
+            if (this.isInterrupted) {
+                console.log('[VoiceClient] Interrupted, skipping audio chunk');
+                return;
+            }
+
+            const binaryString = atob(b64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+            
+            // Ensure alignment for Int16Array
+            const int16 = new Int16Array(bytes.buffer.slice(0, bytes.length - (bytes.length % 2)));
+            const float32 = new Float32Array(int16.length);
+            for (let i = 0; i < float32.length; i++) float32[i] = int16[i] / 32768.0;
+            
             const buf = this.playbackCtx.createBuffer(1, float32.length, 24000);
             buf.getChannelData(0).set(float32);
+            
             const src = this.playbackCtx.createBufferSource();
             src.buffer = buf; src.connect(this.playbackCtx.destination);
             this.activeSources.add(src);
             src.onended = () => this.activeSources.delete(src);
+            
             const now = this.playbackCtx.currentTime;
             this.nextPlayTime = Math.max(this.nextPlayTime, now + 0.02);
+            if (Math.random() < 0.1) console.log(`[VoiceClient] Playing chunk at ${this.nextPlayTime.toFixed(3)}s (duration: ${buf.duration.toFixed(3)}s)`);
             src.start(this.nextPlayTime);
             this.nextPlayTime += buf.duration;
+            
             if (this.isAwaitingUserInput) {
                 this.suppressInterruptionUntil = Date.now() + 300;
                 this.isAwaitingUserInput = false;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('[VoiceClient] playAudioChunk error:', e);
+        }
     }
 
     handleSubAgentUpdate(u) {
@@ -368,9 +437,12 @@ NEVER hallucinate tools.`;
     }
 
     stop() {
-        if (this.isMicActive) { this.stopMicrophone(); return; }
+        this.stopMicrophone(); // Always try to stop mic
         this.isConnected = false;
-        if (this.ws) { this.ws.close(); this.ws = null; }
+        if (this.ws) {
+            try { this.ws.close(); } catch(e){}
+            this.ws = null;
+        }
         window.friday.setState({ status: 'idle' });
     }
 

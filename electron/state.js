@@ -11,8 +11,6 @@ const state = {
     status: 'idle', // idle, listening, working, speaking
     // Voice mode: 'ptt' | 'handsfree'
     voiceMode: 'handsfree', // handsfree, ptt
-    // Ambient co-listening
-    isAmbient: true, // JARVIS: Default to ambient co-listening
     // Theme: 'dark' | 'light'
     theme: 'light',
     // Engine connection

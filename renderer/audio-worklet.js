@@ -11,7 +11,7 @@ class RecorderProcessor extends AudioWorkletProcessor {
         this.buffer = new Float32Array(this.bufferSize);
         this.framesInQueue = 0;
         this.speechFrameCount = 0;
-        this.thresholdToTrigger = 2; // Must see 2 consecutive speech frames (~256ms total)
+        this.thresholdToTrigger = 1; // Faster trigger
     }
 
     process(inputs, outputs, parameters) {
@@ -29,8 +29,8 @@ class RecorderProcessor extends AudioWorkletProcessor {
             if (this.framesInQueue >= this.bufferSize) {
                 const rms = Math.sqrt(sumSquared / this.bufferSize);
 
-                // If RMS exceeds threshold (Raised to 0.05 to prevent feedback loops)
-                if (rms > 0.05) {
+                // Lowered threshold to 0.015 for better sensitivity
+                if (rms > 0.015) {
                     this.speechFrameCount++;
                     if (this.speechFrameCount >= this.thresholdToTrigger) {
                         this.port.postMessage({ type: 'vad_speech', rms });

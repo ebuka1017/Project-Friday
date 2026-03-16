@@ -16,10 +16,10 @@
     const themeBtn = document.getElementById('themeBtn');
     const minimizeBtn = document.getElementById('minimizeBtn');
     const openAppBtn = document.getElementById('openAppBtn');
-    const ambientToggle = document.getElementById('ambientToggle');
     const hudPanel = document.querySelector('.hud-panel');
     const systemsDot = document.getElementById('engineDot');
     const systemsStatusEl = document.getElementById('engineStatus');
+    const hudActivity = document.getElementById('hudActivity');
 
     let isListening = false;
 
@@ -57,11 +57,6 @@
         });
         updateVoiceHint(state.voiceMode);
 
-        // Apply ambient mode
-        ambientToggle.querySelectorAll('.toggle-opt').forEach(b => {
-            b.classList.toggle('active', (b.dataset.mode === 'on') === state.isAmbient);
-        });
-        hudPanel.classList.toggle('ambient-active', state.isAmbient);
 
         // Apply status
         updateStatusDisplay(state.status);
@@ -140,15 +135,6 @@
         }
     });
 
-    // ── Ambient Mode ──────────────────────────────────────────────────
-
-    ambientToggle.addEventListener('click', (e) => {
-        const btn = e.target.closest('.toggle-opt');
-        if (!btn) return;
-        const isOn = btn.dataset.mode === 'on';
-        window.friday.setState({ isAmbient: isOn });
-    });
-
     // ── Minimize ────────────────────────────────────────────────────────
 
     minimizeBtn.addEventListener('click', () => window.friday.minimizeHUD());
@@ -196,6 +182,79 @@
             window.friday.startVoice();
         }
     });
+
+    // ── Activity Log ────────────────────────────────────────────────────
+    
+    window.friday.onMessage((msg) => {
+        addActivityItem(msg);
+    });
+
+    function addActivityItem({ role, text, data }) {
+        // Clear empty state
+        const empty = hudActivity.querySelector('.activity-empty');
+        if (empty) empty.remove();
+
+        const row = document.createElement('div');
+        row.className = `activity-row role-${role}`;
+
+        if (role === 'thinking') {
+            row.innerHTML = `
+                <details>
+                    <summary>
+                        <span class="activity-icon">🧠</span>
+                        <span class="activity-title">Thought Process</span>
+                    </summary>
+                    <div class="activity-content">${text}</div>
+                </details>
+            `;
+        } else if (role === 'action') {
+            row.innerHTML = `
+                <div class="activity-header">
+                    <span class="activity-icon">🔨</span>
+                    <span class="activity-text">${text}</span>
+                </div>
+            `;
+        } else if (role === 'result') {
+            row.innerHTML = `
+                <div class="activity-header">
+                    <span class="activity-icon">✅</span>
+                    <span class="activity-text">${text}</span>
+                    ${data ? `<img src="data:image/jpeg;base64,${data}" class="activity-img" />` : ''}
+                </div>
+            `;
+        } else if (role === 'friday') {
+            row.innerHTML = `
+                <div class="activity-header">
+                    <span class="activity-icon">💬</span>
+                    <span class="activity-text">${text}</span>
+                </div>
+            `;
+        } else if (role === 'interactive') {
+            // Generative UI: Simple interactive component
+            row.innerHTML = `
+                <div class="activity-interactive">
+                    <p class="interactive-prompt">${text}</p>
+                    <div class="interactive-controls">
+                        ${data.buttons ? data.buttons.map(b => `<button class="gen-ui-btn" onclick="handleGenUIClick('${b.id}')">${b.label}</button>`).join('') : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        hudActivity.prepend(row);
+        
+        // Keep only last 10 items
+        while (hudActivity.children.length > 10) {
+            hudActivity.lastElementChild.remove();
+        }
+    }
+
+    // Global handler for GenUI clicks
+    window.handleGenUIClick = (id) => {
+        window.friday.addMessage('user', `Clicked: ${id}`);
+        // Optionally send back to VoiceClient/SubAgent via a specific trigger
+        // For now, we log it to the chat so the agent sees the result.
+    };
 
     window.__friday = { applyState };
     init();

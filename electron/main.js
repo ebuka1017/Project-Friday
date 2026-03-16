@@ -27,6 +27,8 @@ registerDeepLink();
 const { setState, getState, addMessage, broadcast } = require('./state');
 const browserServer = require('./browser-server');
 const subAgents = require('./sub-agents');
+const AgentBrowser = require('./agent-browser');
+const mainAgentBrowser = new AgentBrowser('main', 'Friday');
 const { startMCPServer } = require('./mcp-server');
 const isAuth = () => isAuthenticated;
 startMCPServer(isAuth);
@@ -134,7 +136,8 @@ ipcMain.handle('browser:disconnect', () => {
 ipcMain.handle('browser:navigate', async (_, url) => {
     try {
         db.logAudit('browser_navigate', { url }).catch(e => console.error('[Audit]', e));
-        return await browserServer.navigate(url);
+        await mainAgentBrowser.init();
+        return await mainAgentBrowser.navigate(url);
     } catch (e) {
         console.error('[Browser] Navigate Error:', e);
         return false;
@@ -143,7 +146,7 @@ ipcMain.handle('browser:navigate', async (_, url) => {
 ipcMain.handle('browser:evaluate', async (_, expression) => {
     try {
         db.logAudit('browser_evaluate', { expression }).catch(e => console.error('[Audit]', e));
-        return await browserServer.evaluate(expression);
+        return await mainAgentBrowser.evaluate(expression);
     } catch (e) {
         console.error('[Browser] Evaluate Error:', e);
         return null;
@@ -151,7 +154,7 @@ ipcMain.handle('browser:evaluate', async (_, expression) => {
 });
 ipcMain.handle('browser:getDOM', async () => {
     try {
-        return await browserServer.getDOM();
+        return await mainAgentBrowser.getDOM();
     } catch (e) {
         console.error('[Browser] GetDOM Error:', e);
         return null;
@@ -178,7 +181,7 @@ ipcMain.handle('browser:goForward', async () => {
 ipcMain.handle('browser:click', async (_, selector) => {
     try {
         db.logAudit('browser_click', { selector }).catch(e => console.error('[Audit]', e));
-        return await browserServer.clickTarget(selector);
+        return await mainAgentBrowser.click(selector);
     } catch (e) {
         console.error('[Browser] Click Error:', e.message);
         return { error: e.message };
@@ -187,7 +190,7 @@ ipcMain.handle('browser:click', async (_, selector) => {
 ipcMain.handle('browser:type', async (_, selector, text) => {
     try {
         db.logAudit('browser_type', { selector, text }).catch(e => console.error('[Audit]', e));
-        return await browserServer.typeTarget(selector, text);
+        return await mainAgentBrowser.type(selector, text);
     } catch (e) {
         console.error('[Browser] Type Error:', e.message);
         return { error: e.message };
@@ -197,7 +200,7 @@ ipcMain.handle('browser:type', async (_, selector, text) => {
 ipcMain.handle('browser:screenshot', async () => {
     try {
         db.logAudit('browser_screenshot').catch(e => console.error('[Audit]', e));
-        return await browserServer.captureScreenshot();
+        return await mainAgentBrowser.screenshot();
     } catch (e) {
         console.error('[Browser] Screenshot Error:', e.message);
         return null;
