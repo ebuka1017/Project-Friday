@@ -671,12 +671,14 @@ const spawnSidecar = (script, input) => {
 };
 
 ipcMain.handle('app:saveToMemory', async (_, content) => {
-    const id = currentUser ? currentUser.id : 'default_user';
+    const state = getState();
+    const id = state.currentUser ? state.currentUser.id : 'default_user';
     return await memoryManager.saveToMemory(id, content);
 });
 
 ipcMain.handle('app:searchMemory', async (_, query) => {
-    const id = currentUser ? currentUser.id : 'default_user';
+    const state = getState();
+    const id = state.currentUser ? state.currentUser.id : 'default_user';
     return await memoryManager.searchMemory(id, query);
 });
 
