@@ -437,10 +437,6 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             const now = this.playbackCtx.currentTime;
             this.nextPlayTime = Math.max(this.nextPlayTime, now + 0.02);
             
-            if (this.nextPlayTime - now > 2.0) {
-                this.nextPlayTime = now + 0.1;
-            }
-
             src.start(this.nextPlayTime);
             this.nextPlayTime += buf.duration;
             

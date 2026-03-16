@@ -111,7 +111,11 @@ export async function enrichMessage(container) {
                 node.className = 'rm-embed rm-iframely';
                 node.innerHTML = iframelyData.html;
                 node.querySelectorAll('iframe').forEach(f => {
-                    f.style.cssText = 'width:100%;border:none;border-radius:10px';
+                    f.style.width = '100%';
+                    f.style.border = 'none';
+                    f.style.borderRadius = '10px';
+                    // Allow iframely to set height, or default
+                    if (!f.style.height && !f.height) f.style.height = '350px';
                 });
             } else {
                 node = await renderLinkPreview(url);

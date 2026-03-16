@@ -174,6 +174,11 @@ class BrowserServer {
         return null;
     }
 
+    /** Aliased to screenshot to match AgentBrowser */
+    async screenshot() {
+        return await this.captureScreenshot();
+    }
+
     /** Navigates back in history */
     async goBack() {
         return await this.sendRequest('goBack');

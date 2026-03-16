@@ -69,6 +69,7 @@
   "dependencies": {
     "@clerk/clerk-js": "^6.0.0",
     "@dotlottie/player-component": "^2.7.12",
+    "@getzep/zep-cloud": "^3.18.0",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "axios": "^1.13.6",

@@ -56,8 +56,21 @@ class SubAgentManager {
     _startGenericTask(taskDescription, onComplete, onUpdate, isVisual) {
         this.taskCounter++;
         const jobId = `job-${this.taskCounter}`;
-        const agentBrowser = new AgentBrowser(jobId, isVisual ? 'Visual Assistant' : 'Deep Researcher');
-        this.tasks.set(jobId, { id: jobId, description: taskDescription, status: 'running', history: [], isVisual, browser: agentBrowser });
+
+        // Use local browser if connected, otherwise spawn AgentBrowser
+        const browserServer = require('./browser-server');
+        let browser;
+        let useExtension = false;
+
+        if (browserServer.isConnected()) {
+            console.log(`[SubAgents][${jobId}] Extension detected. Using local browser context.`);
+            browser = browserServer;
+            useExtension = true;
+        } else {
+            browser = new AgentBrowser(jobId, isVisual ? 'Visual Assistant' : 'Deep Researcher');
+        }
+
+        this.tasks.set(jobId, { id: jobId, description: taskDescription, status: 'running', history: [], isVisual, browser, useExtension });
 
         const executeResiliently = async () => {
             const MAX_ATTEMPTS = 3;
@@ -85,7 +98,9 @@ class SubAgentManager {
             onComplete({ jobId, error: err.message });
         }).finally(() => {
             const task = this.tasks.get(jobId);
-            if (task && task.browser) task.browser.close();
+            if (task && task.browser && typeof task.browser.close === 'function') {
+                task.browser.close();
+            }
         });
 
         return jobId;
@@ -102,17 +117,10 @@ class SubAgentManager {
 
     async _runAgentLoop(jobId, taskDescription, onUpdate, isVisual) {
         const task = this.tasks.get(jobId);
-        
-        // Use local browser if connected, otherwise spawn AgentBrowser
-        const browserServer = require('./browser-server');
         let browser = task.browser;
-        let useExtension = false;
+        let useExtension = task.useExtension;
 
-        if (browserServer.isConnected()) {
-            console.log(`[SubAgents][${jobId}] Extension detected. Using local browser context.`);
-            browser = browserServer;
-            useExtension = true;
-        } else {
+        if (!useExtension) {
             await browser.init();
         }
 
