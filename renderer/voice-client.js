@@ -110,6 +110,9 @@ class VoiceClient {
 - For any web-related activity (buying, searching, navigating), prioritize the \`browse_web\` tool.
 - For any fact persistence, prioritize \`save_to_memory\`.
 
+## URL Output
+- If you find a URL or website that you want to share with the user, ALWAYS output the raw URL on its own line (e.g. \`https://www.youtube.com/watch?v=...\`). Do not add any formatting or text around it on that line, so the rich media parser can detect and embed it.
+
 ## Current State
 - Resolution: ${res}
 - Mode: ACTIVE
@@ -326,6 +329,9 @@ ${this._user && this._user.persona ? `USER INFORMATION:
                     response = { success: true };
                 }
                 window.friday.addMessage('result', '📸 Browser Screenshot', b64);
+            } else if (call.name === 'open_default_browser') {
+                await window.friday.openExternal(call.args.url);
+                response = { success: true };
             } else {
                 // Route everything else through the unified tool executor
                 // Note: renderer-side friday.sidecar and other IPCs can be replaced by a single 'app:executeTool' in the future.

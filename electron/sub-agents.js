@@ -98,7 +98,7 @@ class SubAgentManager {
             onComplete({ jobId, error: err.message });
         }).finally(() => {
             const task = this.tasks.get(jobId);
-            if (task && task.browser && typeof task.browser.close === 'function') {
+            if (task && !task.useExtension && task.browser && typeof task.browser.close === 'function') {
                 task.browser.close();
             }
         });
