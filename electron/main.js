@@ -35,6 +35,7 @@ const { setState, getState, addMessage, broadcast } = require('./state');
 const browserServer = require('./browser-server');
 const subAgents = require('./sub-agents');
 const AgentBrowser = require('./agent-browser');
+const memoryManager = require('./memory-manager');
 const mainAgentBrowser = new AgentBrowser('main', 'Friday');
 const { startMCPServer } = require('./mcp-server');
 const isAuth = () => isAuthenticated;
@@ -42,6 +43,7 @@ startMCPServer(isAuth);
 const db = require('./db');
 const { v4: uuidv4 } = require('uuid');
 const { installExtension, detectBrowsers } = require("./extensionInstaller");
+require('./clerk-fetch-user'); // Initialize the clerk fetch user ipc
 const toolsRegistry = require('../shared/tools-registry');
 const fsTools = require('./fs-tools');
 const sysinfoTools = require('./sysinfo-tools');
@@ -143,6 +145,7 @@ ipcMain.handle('browser:disconnect', () => {
 ipcMain.handle('browser:navigate', async (_, url) => {
     try {
         db.logAudit('browser_navigate', { url }).catch(e => console.error('[Audit]', e));
+        if (browserServer.isConnected()) return await browserServer.navigate(url);
         await mainAgentBrowser.init();
         return await mainAgentBrowser.navigate(url);
     } catch (e) {
@@ -153,6 +156,7 @@ ipcMain.handle('browser:navigate', async (_, url) => {
 ipcMain.handle('browser:evaluate', async (_, expression) => {
     try {
         db.logAudit('browser_evaluate', { expression }).catch(e => console.error('[Audit]', e));
+        if (browserServer.isConnected()) return await browserServer.evaluate(expression);
         return await mainAgentBrowser.evaluate(expression);
     } catch (e) {
         console.error('[Browser] Evaluate Error:', e);
@@ -161,6 +165,7 @@ ipcMain.handle('browser:evaluate', async (_, expression) => {
 });
 ipcMain.handle('browser:getDOM', async () => {
     try {
+        if (browserServer.isConnected()) return await browserServer.getDOM();
         return await mainAgentBrowser.getDOM();
     } catch (e) {
         console.error('[Browser] GetDOM Error:', e);
@@ -188,6 +193,7 @@ ipcMain.handle('browser:goForward', async () => {
 ipcMain.handle('browser:click', async (_, selector) => {
     try {
         db.logAudit('browser_click', { selector }).catch(e => console.error('[Audit]', e));
+        if (browserServer.isConnected()) return await browserServer.click(selector);
         return await mainAgentBrowser.click(selector);
     } catch (e) {
         console.error('[Browser] Click Error:', e.message);
@@ -197,6 +203,7 @@ ipcMain.handle('browser:click', async (_, selector) => {
 ipcMain.handle('browser:type', async (_, selector, text) => {
     try {
         db.logAudit('browser_type', { selector, text }).catch(e => console.error('[Audit]', e));
+        if (browserServer.isConnected()) return await browserServer.type(selector, text);
         return await mainAgentBrowser.type(selector, text);
     } catch (e) {
         console.error('[Browser] Type Error:', e.message);
@@ -207,6 +214,7 @@ ipcMain.handle('browser:type', async (_, selector, text) => {
 ipcMain.handle('browser:screenshot', async () => {
     try {
         db.logAudit('browser_screenshot').catch(e => console.error('[Audit]', e));
+        if (browserServer.isConnected()) return await browserServer.screenshot();
         return await mainAgentBrowser.screenshot();
     } catch (e) {
         console.error('[Browser] Screenshot Error:', e.message);
@@ -654,11 +662,13 @@ const spawnSidecar = (script, input) => {
 };
 
 ipcMain.handle('app:saveToMemory', async (_, content) => {
-    return await spawnSidecar('memory.py', { action: 'save', content });
+    const id = currentUser ? currentUser.id : 'default_user';
+    return await memoryManager.saveToMemory(id, content);
 });
 
 ipcMain.handle('app:searchMemory', async (_, query) => {
-    return await spawnSidecar('memory.py', { action: 'search', query });
+    const id = currentUser ? currentUser.id : 'default_user';
+    return await memoryManager.searchMemory(id, query);
 });
 
 ipcMain.handle('app:analyzeDocument', async (_, text) => {
