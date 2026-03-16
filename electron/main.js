@@ -639,7 +639,16 @@ function registerHotkey() {
 
 
 ipcMain.handle('run-browser-task', async (event, task) => {
-    return await browserAgentManager.runTask(task);
+    return new Promise((resolve) => {
+        subAgents.startTask(task,
+            (res) => resolve(res),
+            (update) => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('voice:subAgentUpdate', update);
+                }
+            }
+        );
+    });
 });
 
 // ── MiroFish Sidecar Tools ──────────────────────────────────────────
