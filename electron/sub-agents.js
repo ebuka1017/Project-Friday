@@ -91,10 +91,30 @@ class SubAgentManager {
         return jobId;
     }
 
+    getAllTasks() {
+        return Array.from(this.tasks.values()).map(t => ({
+            id: t.id,
+            description: t.description,
+            status: t.status,
+            isVisual: t.isVisual
+        }));
+    }
+
     async _runAgentLoop(jobId, taskDescription, onUpdate, isVisual) {
         const task = this.tasks.get(jobId);
-        const browser = task.browser;
-        await browser.init();
+        
+        // Use local browser if connected, otherwise spawn AgentBrowser
+        const browserServer = require('./browser-server');
+        let browser = task.browser;
+        let useExtension = false;
+
+        if (browserServer.isConnected()) {
+            console.log(`[SubAgents][${jobId}] Extension detected. Using local browser context.`);
+            browser = browserServer;
+            useExtension = true;
+        } else {
+            await browser.init();
+        }
 
         const soul = this._getSoul();
         const tools = [{ functionDeclarations: skillManager.getDefinitions() }];
@@ -118,7 +138,7 @@ class SubAgentManager {
         ];
 
         if (isVisual) {
-            const screenshot = await browser.screenshot();
+            const screenshot = useExtension ? await browser.captureScreenshot() : await browser.screenshot();
             if (screenshot) messageParts.push({ inlineData: { mimeType: "image/jpeg", data: screenshot } });
         }
 
@@ -150,17 +170,39 @@ class SubAgentManager {
                 }
             }
 
-            // Prepare next turn
+            // 1. Send tool results turn
+            const toolResult = await chat.sendMessage(functionResponses);
+            const toolAckText = toolResult.response.text();
+            if (onUpdate) onUpdate({ jobId, type: 'thought', content: toolAckText });
+            task.history.push({ role: 'model', text: toolAckText });
+
+            // 2. Send perception turn (State + Screenshot)
             const nextState = await desktopService.getFullState({ browser });
-            messageParts = [...functionResponses, { text: `STATE UPDATE:\n${JSON.stringify(nextState, null, 2)}` }];
+            messageParts = [
+                { text: `STATE UPDATE:\n${JSON.stringify(nextState, null, 2)}` }
+            ];
             
             if (isVisual) {
-                const screenshot = await browser.screenshot();
+                const screenshot = useExtension ? await browser.captureScreenshot() : await browser.screenshot();
                 if (screenshot) messageParts.push({ inlineData: { mimeType: "image/jpeg", data: screenshot } });
             }
+            // The loop continues, and messageParts will be sent in the next iteration's chat.sendMessage(messageParts)
         }
 
         return resultSummary || "Task completed.";
+    }
+    getActiveTaskBrowsers() {
+        const results = [];
+        for (const [id, task] of this.tasks.entries()) {
+            if (task.status === 'running' && task.browser) {
+                results.push({
+                    jobId: id,
+                    agentName: task.browser.agentName || 'Sub-Agent',
+                    title: task.browser.window ? task.browser.window.getTitle() : 'Initializing...'
+                });
+            }
+        }
+        return results;
     }
 }
 

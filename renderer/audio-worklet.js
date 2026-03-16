@@ -49,6 +49,11 @@ class RecorderProcessor extends AudioWorkletProcessor {
                 // Send PCM data to main thread
                 this.port.postMessage({ type: 'audio_data', buffer: int16Buffer.buffer }, [int16Buffer.buffer]);
 
+                if (!this.lastLog || Date.now() - this.lastLog > 2000) {
+                    this.lastLog = Date.now();
+                    this.port.postMessage({ type: 'debug', msg: `Worklet active. RMS: ${rms.toFixed(4)}` });
+                }
+
                 // Reset
                 this.framesInQueue = 0;
                 sumSquared = 0;

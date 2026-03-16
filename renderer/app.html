@@ -1903,6 +1903,39 @@
             background: #e81123;
             color: #fff;
         }
+
+        .ob-input {
+            width: 100%;
+            max-width: 400px;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            padding: 16px;
+            font-size: 16px;
+            margin-bottom: 32px;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .ob-input:focus {
+            border-color: var(--accent);
+        }
+
+        .settings-text-input {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            width: 180px;
+        }
+
+        .settings-text-input:focus {
+            border-color: var(--accent);
+        }
     </style>
 </head>
 
@@ -2261,6 +2294,40 @@
                 </div>
 
                 <div class="settings-section">
+                    <h3 class="settings-section-title">Profile Personalization</h3>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">What Friday calls you</span>
+                                <span class="setting-desc">Your preferred name or nickname.</span>
+                            </div>
+                            <input type="text" id="prefNameInput" class="settings-text-input" placeholder="e.g. Tony">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Gender</span>
+                                <span class="setting-desc">Helps Friday use correct pronouns.</span>
+                            </div>
+                            <select id="prefGenderSelect" class="settings-text-input">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                            <div class="setting-info">
+                                <span class="setting-title">About You (Bio)</span>
+                                <span class="setting-desc">Share your likes, dislikes, or a short bio to help Friday understand you better.</span>
+                            </div>
+                            <textarea id="prefBioInput" class="settings-text-input" style="height: 80px; width: 100%; resize: none;" placeholder="I love coffee and hate early meetings..."></textarea>
+                        </div>
+                        <div class="setting-item">
+                            <button class="settings-action-btn" id="savePersonaBtn" style="width: 100%; background: var(--accent); color: white; border: none;">Save Profile Updates</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <h3 class="settings-section-title">Preferences</h3>
                     <div class="settings-group">
                         <div class="setting-item">
@@ -2303,49 +2370,52 @@
                         </div>
                     </div>
 
-                    <h3 class="settings-section-title" style="margin-top:24px;">Connectors</h3>
-                    <p class="setting-desc" style="margin-bottom:12px;">Link external accounts to enable Email,
-                        Calendar, and Drive tools.</p>
-                    <div class="connectors-grid">
-                        <div class="connector-card" id="connGmail">
-                            <img src="https://cdn.brandfetch.io/id5o3EIREg/w/800/h/601/theme/dark/symbol.png?c=1bxid64Mup7aczewSAYMX&t=1696475443284"
-                                class="connector-icon" alt="Gmail">
-                            <div class="connector-info">
-                                <span class="connector-name">Gmail</span>
-                                <span class="connector-status">Disconnected</span>
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Connectivity</h3>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Gmail Integration</span>
+                                <span class="setting-desc" id="status_gmail">Disconnected</span>
                             </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle_gmail">
+                                <span class="toggle-track"></span>
+                                <span class="toggle-knob"></span>
+                            </label>
                         </div>
-                        <div class="connector-card" id="connGoogleCalendar">
-                            <img src="https://cdn.brandfetch.io/id6O2oGzv-/w/800/h/800/theme/dark/idMX2_OMSc.png?c=1bxid64Mup7aczewSAYMX&t=1755572706253"
-                                class="connector-icon" alt="Calendar">
-                            <div class="connector-info">
-                                <span class="connector-name">Google Calendar</span>
-                                <span class="connector-status">Disconnected</span>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Google Calendar</span>
+                                <span class="setting-desc" id="status_google_calendar">Disconnected</span>
                             </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle_google_calendar">
+                                <span class="toggle-track"></span>
+                                <span class="toggle-knob"></span>
+                            </label>
                         </div>
-                        <div class="connector-card" id="connGoogleDrive">
-                            <img src="https://cdn.brandfetch.io/id6O2oGzv-/w/800/h/714/theme/dark/idncaAgFGT.png?c=1bxid64Mup7aczewSAYMX&t=1755572716016"
-                                class="connector-icon" alt="Drive">
-                            <div class="connector-info">
-                                <span class="connector-name">Google Drive</span>
-                                <span class="connector-status">Read-only only</span>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Google Drive</span>
+                                <span class="setting-desc" id="status_google_drive">Disconnected</span>
                             </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle_google_drive">
+                                <span class="toggle-track"></span>
+                                <span class="toggle-knob"></span>
+                            </label>
                         </div>
-                        <div class="connector-card" id="connOutlook">
-                            <img src="https://cdn.brandfetch.io/idgdw68PEO/w/900/h/842/theme/dark/logo.jpeg?c=1bxid64Mup7aczewSAYMX&t=1667605535117"
-                                class="connector-icon" alt="Outlook">
-                            <div class="connector-info">
-                                <span class="connector-name">Outlook</span>
-                                <span class="connector-status">Disconnected</span>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-title">Outlook / Microsoft 365</span>
+                                <span class="setting-desc" id="status_outlook">Disconnected</span>
                             </div>
-                        </div>
-                        <div class="connector-card" id="connOutlookCalendar">
-                            <img src="https://cdn.brandfetch.io/idgdw68PEO/w/900/h/842/theme/dark/logo.jpeg?c=1bxid64Mup7aczewSAYMX&t=1667605535117"
-                                class="connector-icon" alt="Outlook Calendar">
-                            <div class="connector-info">
-                                <span class="connector-name">Outlook Calendar</span>
-                                <span class="connector-status">Disconnected</span>
-                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle_outlook">
+                                <span class="toggle-track"></span>
+                                <span class="toggle-knob"></span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -2397,9 +2467,7 @@
                     </button>
                     <button class="ob-win-btn close" onclick="window.friday.close()">
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                            <path
-                                d="M11.53.47a.75.75 0 0 0-1.06 0L6 4.94 1.53.47C1.24.18.76.18.47.47s-.29.76 0 1.06L4.94 6 .47 10.47c-.29.29-.29.76 0 1.06s.76.29 1.06 0L6 7.06l4.47 4.47c.29.29.76.29 1.06 0s.29-.76 0-1.06L7.06 6l4.47-4.47c.29-.29.29-.76 0-1.06z">
-                            </path>
+                            <path d="M1 1l10 10M1 11L11 1z" fill="none" stroke="currentColor" stroke-width="1.2"></path>
                         </svg>
                     </button>
                 </div>
@@ -2416,8 +2484,8 @@
                 <h2 class="ob-title">Meet Friday</h2>
                 <p class="ob-desc">Your autonomous AI partner that lives on your desktop, ready to help with any task.</p>
                 <div class="ob-actions">
-                    <button class="ob-btn-primary" onclick="nextObStep(2)">Next</button>
-                    <button class="ob-btn-secondary" onclick="nextObStep(6)">Skip</button>
+                    <button class="ob-btn-primary" onclick="window.nextObStep(2)">Next</button>
+                    <button class="ob-btn-secondary" onclick="window.nextObStep(6)">Skip</button>
                 </div>
             </div>
 
@@ -2425,10 +2493,10 @@
             <div id="obStep2" class="ob-step hidden">
                 <img src="assets/ob_step3.png" alt="Hotkey" class="ob-feature-img">
                 <h2 class="ob-title">Summon Instantly</h2>
-                <p class="ob-desc">Press <kbd style="background: var(--bg-hover); padding: 4px 8px; border-radius: 6px; font-family: inherit; font-weight: 700;">Ctrl + Q</kbd> from anywhere on your computer to bring Friday to the front.</p>
+                <p class="ob-desc">Press <kbd style="background: var(--bg-hover); padding: 4px 8px; border-radius: 6px; font-family: inherit; font-weight: 700;">Ctrl + Q</kbd> from anywhere to bring Friday to the front.</p>
                 <div class="ob-actions">
-                    <button class="ob-btn-primary" onclick="nextObStep(3)">Next</button>
-                    <button class="ob-btn-secondary" onclick="nextObStep(6)">Skip</button>
+                    <button class="ob-btn-primary" onclick="window.nextObStep(3)">Next</button>
+                    <button class="ob-btn-secondary" onclick="window.nextObStep(6)">Skip</button>
                 </div>
             </div>
 
@@ -2438,8 +2506,8 @@
                 <h2 class="ob-title">Action Oriented</h2>
                 <p class="ob-desc">Friday can browse the web, manage files, and execute commands to get things done for you.</p>
                 <div class="ob-actions">
-                    <button class="ob-btn-primary" onclick="nextObStep(4)">Next</button>
-                    <button class="ob-btn-secondary" onclick="nextObStep(6)">Skip</button>
+                    <button class="ob-btn-primary" onclick="window.nextObStep(4)">Next</button>
+                    <button class="ob-btn-secondary" onclick="window.nextObStep(6)">Skip</button>
                 </div>
             </div>
 
@@ -2449,8 +2517,8 @@
                 <h2 class="ob-title">See & Hear</h2>
                 <p class="ob-desc">Friday can see your screen to understand context and talk to you naturally via voice.</p>
                 <div class="ob-actions">
-                    <button class="ob-btn-primary" onclick="nextObStep(5)">Next</button>
-                    <button class="ob-btn-secondary" onclick="nextObStep(6)">Skip</button>
+                    <button class="ob-btn-primary" onclick="window.nextObStep(5)">Next</button>
+                    <button class="ob-btn-secondary" onclick="window.nextObStep(6)">Skip</button>
                 </div>
             </div>
 
@@ -2460,60 +2528,161 @@
                 <h2 class="ob-title">Work in Parallel</h2>
                 <p class="ob-desc">Friday can delegate complex tasks to specialized sub-agents that work in the background.</p>
                 <div class="ob-actions">
-                    <button class="ob-btn-primary" onclick="nextObStep(6)">Final Step</button>
+                    <button class="ob-btn-primary" onclick="window.nextObStep(6)">Final Step</button>
                 </div>
             </div>
 
-            <!-- Step 6: Sign In -->
+            <!-- Step 6: Auth (Sign In / Sign Up) -->
             <div id="obStep6" class="ob-step hidden">
                 <img src="assets/logo.png" alt="Friday Logo" class="ob-logo">
                 <h2 class="ob-title">Ready for Takeoff?</h2>
-                <p class="ob-desc">Sign in to unlock Friday's full potential and secure your persistent memory.</p>
+                <p class="ob-desc">Sign in or create an account to unlock Friday's full potential.</p>
                 <div class="ob-actions">
-                    <button class="ob-btn-primary signin" onclick="window.fridayAuth.signIn()">Sign In to Continue</button>
+                    <button class="ob-btn-primary signin" onclick="window.fridayAuth.signIn()">Sign Up</button>
+                    <button class="ob-btn-secondary" onclick="window.fridayAuth.signIn()">Login</button>
+                </div>
+            </div>
+
+            <!-- Step 7: Persona Name (Shown after Auth if missing) -->
+            <div id="obStepName" class="ob-step hidden">
+                <h1 class="ob-title">What should Friday call you?</h1>
+                <p class="ob-desc">Tell us your name or a nickname you'd like Friday to use.</p>
+                <input type="text" id="obNameInput" class="ob-input" placeholder="Enter your name...">
+                <div class="ob-actions">
+                    <button class="ob-btn-primary" onclick="window.nextObStep('Gender')">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 8: Persona Gender -->
+            <div id="obStepGender" class="ob-step hidden">
+                <h1 class="ob-title">What is your gender?</h1>
+                <p class="ob-desc">This helps Friday understand you better and use preferred pronouns.</p>
+                <select id="obGenderSelect" class="ob-input">
+                    <option value="" disabled selected>Select gender...</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+                <div class="ob-actions">
+                    <button class="ob-btn-secondary" onclick="window.nextObStep('Name')">Back</button>
+                    <button class="ob-btn-primary" onclick="window.nextObStep('Bio')">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 9: Persona Bio -->
+            <div id="obStepBio" class="ob-step hidden">
+                <h1 class="ob-title">Tell Friday about yourself</h1>
+                <p class="ob-desc">Share a short bio, your likes, or dislikes. Helping Friday learn about you enables it to be more useful.</p>
+                <textarea id="obBioInput" class="ob-input" style="height: 120px; resize: none;" placeholder="e.g. I'm a developer who loves sci-fi and hates slow code."></textarea>
+                <div class="ob-actions">
+                    <button class="ob-btn-secondary" onclick="window.nextObStep('Gender')">Back</button>
+                    <button class="ob-btn-primary" id="finishOnboardingBtn">Finish Setup</button>
                 </div>
             </div>
         </div>
 
+
         <script src="./auth-renderer.js"></script>
         <script>
             window.nextObStep = async (step) => {
-                // If they skip or reach the end, mark as completed
-                if (step === 6) {
-                    await window.friday.db.setMemory('onboarding_completed', '1', 'User has seen the onboarding flow.');
+                console.log(`[app.html] Transitioning to onboarding step: ${step}`);
+                
+                // If they skip or reach the auth step (6) or personalization phase, mark basic onboarding as seen
+                if (step === 6 || step === 'Name' || step === 'Gender' || step === 'Bio') {
+                    console.log('[app.html] Marking onboarding as complete in memory');
+                    await window.friday.db.setMemory('onboarding_complete', '1', 'User has reached the auth/persona phase.');
                 }
 
-                document.querySelectorAll('.ob-step').forEach(el => {
+                const steps = document.querySelectorAll('.ob-step');
+                steps.forEach(el => {
                     el.classList.remove('active');
                     el.classList.add('hidden');
                 });
-                const nextStep = document.getElementById('obStep' + step);
+
+                // Resolve the correct ID format: obStep[N] or obStep[String]
+                // Our HTML uses obStep0, obStep1, ..., obStep6, obStepName, obStepGender, obStepBio
+                let stepId = '';
+                if (typeof step === 'number' || !isNaN(step)) {
+                    stepId = 'obStep' + step;
+                } else {
+                    // It's a string like 'Name', 'Gender', 'Bio'
+                    stepId = 'obStep' + step;
+                }
+
+                const nextStep = document.getElementById(stepId);
                 if (nextStep) {
+                    console.log(`[app.html] Showing step element: #${stepId}`);
                     nextStep.classList.remove('hidden');
+                    // Force a reflow for CSS transition
+                    void nextStep.offsetWidth;
                     nextStep.classList.add('active');
+                } else {
+                    console.error(`[app.html] CRITICAL: Target onboarding step NOT found: #${stepId}`);
+                    // Fallback to step 0 if we lose our way
+                    if (step !== 0) {
+                        console.warn('[app.html] Falling back to step 0');
+                        window.nextObStep(0);
+                    }
                 }
             };
 
             document.addEventListener("DOMContentLoaded", () => {
+                console.log('[app.html] Onboarding script initializing...');
                 const player = document.getElementById("splashLottie");
+                const overlay = document.getElementById('onboardingOverlay');
+                
+                // Finish Onboarding (Personalization) Logic
+                const finishBtn = document.getElementById('finishOnboardingBtn');
+                if (finishBtn) {
+                    finishBtn.addEventListener('click', async () => {
+                        const name = document.getElementById('obNameInput')?.value.trim();
+                        const gender = document.getElementById('obGenderSelect')?.value;
+                        const bio = document.getElementById('obBioInput')?.value.trim();
+                        
+                        if (!name || !gender) {
+                            alert("Please enter your name and select your gender so Friday knows how to address you.");
+                            return;
+                        }
+                        
+                        try {
+                            console.log('[app.html] Finalizing personalization...');
+                            await window.friday.db.setMemory('user_name', name);
+                            await window.friday.db.setMemory('user_gender', gender);
+                            await window.friday.db.setMemory('user_bio', bio || '');
+                            
+                            // Sync to settings UI
+                            if (document.getElementById('prefNameInput')) document.getElementById('prefNameInput').value = name;
+                            if (document.getElementById('prefGenderSelect')) document.getElementById('prefGenderSelect').value = gender;
+                            if (document.getElementById('prefBioInput')) document.getElementById('prefBioInput').value = bio || '';
+                            
+                            // Update auth status to include persona for the agent
+                            const state = window.fridayAuth.getAuthState();
+                            window.friday.setAuthStatus(true, { ...state.user, persona: { name, gender, bio } });
+                            
+                            // Hide overlay and enter app
+                            if (overlay) overlay.classList.add('hidden');
+                        } catch (err) {
+                            console.error("[app.html] Failed to save persona data:", err);
+                        }
+                    });
+                }
+
                 if (player) {
                     window.fridayAuth.onAuthStateChange(async (state) => {
-                        const overlay = document.getElementById('onboardingOverlay');
-                        const isCompleted = await window.friday.db.getMemory('onboarding_completed');
+                        const isCompleted = await window.friday.db.getMemory('onboarding_complete');
+                        console.log(`[app.html] Auth state changed: ${state.status}, Onboarding completed: ${isCompleted}`);
 
                         // Update Sidebar & Settings Auth UI
                         const sidebarAuth = document.getElementById('sidebarAuth');
                         const sidebarAvatar = document.getElementById('sidebarAvatar');
-                        const sidebarUserName = document.getElementById('sidebarUserName');
                         const settingsUserEmail = document.getElementById('settingsUserEmail');
 
                         if (state.status === 'authenticated') {
-                            overlay.classList.add('hidden');
+                            // If signed in, we delegate overlay visibility to auth-renderer.js or personalization steps
                             if (sidebarAuth) sidebarAuth.style.display = 'flex';
                             if (sidebarAvatar) sidebarAvatar.src = state.user?.imageUrl || 'assets/logo.png';
                             if (settingsUserEmail) settingsUserEmail.textContent = state.user?.email || 'Authenticated';
 
-                            // Update Profile Link dynamically
                             const navItemProfile = document.getElementById('navItemProfile');
                             if (navItemProfile) {
                                 window.friday.getClerkAccountUrl().then(url => {
@@ -2525,10 +2694,11 @@
                             if (settingsUserEmail) settingsUserEmail.textContent = 'Not signed in';
 
                             if (state.status === 'idle' || state.status === 'error') {
-                                // If not signed in, show overlay. 
-                                // If already onboarded, jump to sign-in step.
-                                if (overlay.classList.contains('hidden')) {
+                                // If overlay is already active, don't reset to step 0 unless needed
+                                if (overlay && overlay.classList.contains('hidden')) {
+                                    console.log('[app.html] Showing onboarding overlay...');
                                     overlay.classList.remove('hidden');
+                                    // If they haven't seen slides, start at 0, else jump to 6 (Auth)
                                     window.nextObStep(isCompleted === '1' ? 6 : 0); 
                                 }
                             }
@@ -2538,12 +2708,16 @@
                     window.fridayAuth.initAuth();
 
                     player.addEventListener("complete", async () => {
+                        console.log('[app.html] Splash animation complete.');
                         const state = window.fridayAuth.getAuthState();
-                        const isCompleted = await window.friday.db.getMemory('onboarding_completed');
                         
                         if (state.status !== 'authenticated') {
-                            // If they've seen it before, go straight to sign-in
-                            window.nextObStep(isCompleted === '1' ? 6 : 1);
+                            // Per user request: ALWAYS show the slides (Step 1) if not signed in, 
+                            // even if they've seen them before, until they reach step 6 or sign in.
+                            console.log('[app.html] Moving to Welcome slide (Step 1)');
+                            window.nextObStep(1);
+                        } else {
+                            console.log('[app.html] User is already authenticated.');
                         }
                     });
                 }
@@ -3015,6 +3189,101 @@
                     thinkingFeed.scrollTop = thinkingFeed.scrollHeight;
                 }
 
+                // ── Onboarding Flow ─────────────────────────────────────────────
+
+                window.nextObStep = function (currentId, nextId) {
+                    const current = document.getElementById(currentId);
+                    const next = document.getElementById(nextId);
+                    if (current && next) {
+                        current.classList.remove('active');
+                        setTimeout(() => {
+                            current.classList.add('hidden');
+                            next.classList.remove('hidden');
+                            setTimeout(() => {
+                                next.classList.add('active');
+                            }, 50);
+                        }, 400);
+                    }
+                };
+
+                const finishOnboardingBtn = document.getElementById('finishOnboardingBtn');
+                finishOnboardingBtn.addEventListener('click', async () => {
+                    const persona = {
+                        name: document.getElementById('obNameInput').value.trim() || 'User',
+                        gender: document.getElementById('obGenderSelect').value || 'other',
+                        bio: document.getElementById('obBioInput').value.trim() || ''
+                    };
+                    
+                    try {
+                        finishOnboardingBtn.disabled = true;
+                        finishOnboardingBtn.textContent = 'Saving...';
+                        
+                        await window.friday.db.setMemory('user_name', persona.name, 'Personal name');
+                        await window.friday.db.setMemory('user_gender', persona.gender, 'Preferred pronouns/gender');
+                        await window.friday.db.setMemory('user_bio', persona.bio, 'User personality/bio');
+                        await window.friday.db.setMemory('onboarding_complete', '1', 'Flag for personalization setup');
+                        
+                        // Sync to settings inputs for later
+                        document.getElementById('prefNameInput').value = persona.name;
+                        document.getElementById('prefGenderSelect').value = persona.gender;
+                        document.getElementById('prefBioInput').value = persona.bio;
+
+                        document.getElementById('onboardingOverlay').classList.add('hidden');
+                        window.friday.showNotification({ 
+                            title: 'Welcome!', 
+                            body: `Setup complete. Friday is ready, ${persona.name}.` 
+                        });
+                        
+                        // Notify auth state change to refresh persona in agent
+                        if (window.fridayAuth) {
+                            const state = window.fridayAuth.getAuthState();
+                            window.friday.setAuthStatus(true, { ...state.user, persona });
+                        }
+
+                    } catch (err) {
+                        console.error('Onboarding save error:', err);
+                        finishOnboardingBtn.disabled = false;
+                        finishOnboardingBtn.textContent = 'Retry Finish';
+                    }
+                });
+
+                // Profile Updates in Settings
+                const savePersonaBtn = document.getElementById('savePersonaBtn');
+                savePersonaBtn.addEventListener('click', async () => {
+                    const name = document.getElementById('prefNameInput').value.trim();
+                    const gender = document.getElementById('prefGenderSelect').value;
+                    const bio = document.getElementById('prefBioInput').value.trim();
+
+                    try {
+                        savePersonaBtn.disabled = true;
+                        savePersonaBtn.textContent = 'Saving...';
+
+                        await window.friday.db.setMemory('user_name', name, 'Personal name');
+                        await window.friday.db.setMemory('user_gender', gender, 'Preferred pronouns/gender');
+                        await window.friday.db.setMemory('user_bio', bio, 'User personality/bio');
+
+                        savePersonaBtn.textContent = 'Saved ✓';
+                        savePersonaBtn.style.background = '#539E4F';
+                        
+                        // Notify agent
+                        if (window.fridayAuth) {
+                            const state = window.fridayAuth.getAuthState();
+                            window.friday.setAuthStatus(true, { ...state.user, persona: { name, gender, bio } });
+                        }
+
+                        setTimeout(() => {
+                            savePersonaBtn.textContent = 'Save Profile Updates';
+                            savePersonaBtn.style.background = '';
+                            savePersonaBtn.disabled = false;
+                        }, 2000);
+
+                    } catch (err) {
+                        console.error('Profile save error:', err);
+                        savePersonaBtn.disabled = false;
+                        savePersonaBtn.textContent = 'Error - Retry';
+                    }
+                });
+
                 // ── Sidebar Navigation ──────────────────────────────────────────
 
                 function switchPage(page) {
@@ -3469,19 +3738,32 @@
                     }
                 });
 
-                // ── Connectors ──────────────────────────────────────────────────
-                const connectors = ['connGmail', 'connGoogleCalendar', 'connGoogleDrive', 'connOutlook', 'connOutlookCalendar'];
-                connectors.forEach(id => {
-                    const el = document.getElementById(id);
+                // ── Connectors (Toggles) ──────────────────────────────────────────
+                const connectivityToggles = [
+                    { id: 'toggle_gmail', provider: 'oauth_google', title: 'Gmail' },
+                    { id: 'toggle_google_calendar', provider: 'oauth_google', title: 'Google Calendar' },
+                    { id: 'toggle_google_drive', provider: 'oauth_google', title: 'Google Drive' },
+                    { id: 'toggle_outlook', provider: 'oauth_outlook', title: 'Outlook' }
+                ];
+
+                connectivityToggles.forEach(item => {
+                    const el = document.getElementById(item.id);
                     if (el) {
-                        el.addEventListener('click', async () => {
-                            const name = el.querySelector('.connector-name').textContent;
-                            window.friday.showNotification({
-                                title: 'Connector Requested',
-                                body: `Redirecting to authenticate with ${name}...`
-                            });
-                            // Trigger mock or real OAuth flow
-                            window.friday.openConnector(id.replace('conn', '').toLowerCase());
+                        el.addEventListener('change', async (e) => {
+                            if (e.target.checked) {
+                                // Checking connectivity via auth-renderer
+                                const state = window.fridayAuth.getAuthState();
+                                const isLinked = state.user?.externalAccounts?.some(a => a.provider === item.provider);
+                                
+                                if (!isLinked) {
+                                    e.target.checked = false; // Revert until linked
+                                    window.friday.showNotification({
+                                        title: 'Account Linking Required',
+                                        body: `Please link your ${item.title} account in the Clerk profile page.`
+                                    });
+                                    window.friday.openConnector();
+                                }
+                            }
                         });
                     }
                 });

@@ -187,4 +187,16 @@ contextBridge.exposeInMainWorld('friday', {
 
     // Clerk Backend Fetch
     clerkGetUser: (userId) => ipcRenderer.invoke('clerk-get-user', userId),
+
+    // Rich Media Fetchers
+    fetchLinkPreview: (url) => ipcRenderer.invoke('app:fetchLinkPreview', url),
+    fetchIframely: (url) => ipcRenderer.invoke('app:fetchIframely', url),
+    // Browser Agent
+    runBrowserTask: (task) => ipcRenderer.invoke('run-browser-task', task),
+    onBrowserAgentUpdate: (cb) => ipcRenderer.on('browser-agent-update', (event, msg) => cb(msg)),
+
+    // MiroFish Memory & Ontology
+    saveToMemory: (content) => ipcRenderer.invoke('app:saveToMemory', content),
+    searchMemory: (query) => ipcRenderer.invoke('app:searchMemory', query),
+    analyzeDocument: (text) => ipcRenderer.invoke('app:analyzeDocument', text),
 });

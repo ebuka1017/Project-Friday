@@ -401,6 +401,54 @@ const SubAgentOnlyTools = [
 
 const WorldTools = [
     {
+        name: "save_to_memory",
+        description: "Save important facts, preferences, or entities to long-term memory for future recall.",
+        parameters: {
+            type: "object",
+            properties: {
+                content: { type: "string", description: "The fact or entity to remember." }
+            },
+            required: ["content"]
+        }
+    },
+    {
+        name: "search_memory",
+        description: "Search long-term memory for facts, preferences, or past events using a semantic query.",
+        parameters: {
+            type: "object",
+            properties: {
+                query: { type: "string", description: "The query to search for." }
+            },
+            required: ["query"]
+        }
+    },
+    {
+        name: "analyze_document",
+        description: "Extract a structured ontology (entities and relationships) from a text document or PDF content.",
+        parameters: {
+            type: "object",
+            properties: {
+                text: { type: "string", description: "The full text content of the document." }
+            },
+            required: ["text"]
+        }
+    },
+    {
+        name: "get_weather",
+        description: "Perform a raw HTTP request (GET, POST, etc.). Useful for simple API interactions without a browser.",
+        parameters: {
+            type: "object",
+            properties: {
+                url: { type: "string", description: "The full URL of the request" },
+                method: { type: "string", description: "The HTTP method (GET, POST, PUT, DELETE, etc.)", default: "GET" },
+                data: { type: "object", description: "The request body for POST/PUT requests", properties: {} },
+                params: { type: "object", description: "URL query parameters", properties: {} },
+                headers: { type: "object", description: "HTTP headers", properties: {} }
+            },
+            required: ["url"]
+        }
+    },
+    {
         name: "http_request",
         description: "Perform a raw HTTP request (GET, POST, etc.). Useful for simple API interactions without a browser.",
         parameters: {
@@ -452,6 +500,17 @@ const WorldTools = [
                 category: { type: "string", enum: ["note", "file", "search", "prepare"] }
             },
             required: ["action"]
+        }
+    },
+    {
+        name: "browse_web",
+        description: "Delegates a web browsing task to an autonomous browser agent. Use this for complex tasks like booking flights, filling forms, or multi-step research on specific sites. The agent will use your signed-in browser sessions.",
+        parameters: {
+            type: "object",
+            properties: {
+                task: { type: "string", description: "Detailed description of the task to perform in the browser." }
+            },
+            required: ["task"]
         }
     }
 ];
@@ -514,6 +573,8 @@ const getVoiceTools = () => [
       parameters: { type: 'object', properties: { taskDescription: { type: 'string' } }, required: ['taskDescription'] } },
     { name: 'browse_visual',        description: 'Delegate to vision-based browser sub-agent.',
       parameters: { type: 'object', properties: { taskDescription: { type: 'string' } }, required: ['taskDescription'] } },
+    { name: 'browse_web',           description: 'Delegate web tasks to an autonomous browser agent.',
+      parameters: { type: 'object', properties: { task: { type: 'string' } }, required: ['task'] } },
 ];
 
 const getAllTools = () => [

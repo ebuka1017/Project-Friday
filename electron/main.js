@@ -3,13 +3,20 @@
 // Orchestrates app lifecycle, HUD, main window, sidecar, and shared state.
 // ═══════════════════════════════════════════════════════════════════════
 
-const { app, globalShortcut, ipcMain, BrowserWindow, session, shell, Tray, Menu, nativeImage, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Notification, dialog, protocol, Tray, Menu, screen, globalShortcut, nativeImage, session } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const { spawn, exec } = require('child_process');
+require('dotenv').config();
+
+// Browser Agent State
+const browserAgentManager = require('./browser-agent-manager');
 const { createHUD, toggleHUD, hideHUD, getWindow } = require('./hud');
 const sidecar = require('./sidecar-launcher');
 const pipeClient = require('./pipe-client');
 const searchTools = require('./search-tools');
 const productivityTools = require('./productivity-tools');
-const path = require('path');
+// const path = require('path'); // This was moved up
 
 // ─── Environment Initialization ──────────────────────────────────────────────
 const envPath = process.env.NODE_ENV === 'development' || !app.isPackaged
@@ -272,9 +279,50 @@ ipcMain.handle('app:webDeepdive', async (_, url) => {
 
 ipcMain.handle('app:openConnector', async () => {
     // Direct users to Clerk's hosted profile page to manage social connections
-    const clerkProfileUrl = 'https://singular-alien-87.accounts.dev/user';
-    await shell.openExternal(clerkProfileUrl);
+    // The user's specific instance URL as requested:
+    const clerkAccountUrl = 'https://singular-alien-87.accounts.dev/user';
+    await shell.openExternal(clerkAccountUrl);
     return { success: true };
+});
+
+// ── Rich Media Metadata Fetchers ──────────────────────────────────────────
+const cheerio = require('cheerio');
+const axios = require('axios');
+
+ipcMain.handle('app:fetchLinkPreview', async (event, url) => {
+    try {
+        const response = await axios.get(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FridayBot/1.0)' },
+            timeout: 5000
+        });
+        const html = response.data;
+        const $ = cheerio.load(html);
+        
+        const og = p => $(`meta[property="${p}"]`).attr('content') || $(`meta[name="${p}"]`).attr('content') || '';
+        
+        return {
+            title: og('og:title') || $('title').text() || url,
+            description: og('og:description') || og('description') || '',
+            image: og('og:image') || '',
+            site: og('og:site_name') || '',
+            favicon: `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`,
+        };
+    } catch (e) {
+        console.error('[RichMedia] Link preview error:', e.message);
+        return { title: url, error: e.message };
+    }
+});
+
+ipcMain.handle('app:fetchIframely', async (event, url) => {
+    const key = process.env.IFRAMELY_KEY;
+    if (!key) return null;
+    try {
+        const response = await axios.get(`https://cdn.iframe.ly/api/iframely?url=${encodeURIComponent(url)}&api_key=${key}&omit_script=1`);
+        return response.data;
+    } catch (e) {
+        console.error('[RichMedia] Iframely error:', e.message);
+        return null;
+    }
 });
 
 // ── Productivity Tools ──
@@ -418,6 +466,17 @@ if (!gotLock) {
         // Start Model Context Protocol Server
         startMCPServer();
 
+        // Initialize browser agent update bridge (No auto-warmup per user request)
+        try {
+            browserAgentManager.setUpdateCallback((msg) => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('browser-agent-update', msg);
+                }
+            });
+        } catch (err) {
+            console.error('[Main] Failed to setup browser agent bridge:', err);
+        }
+
         const launched = sidecar.launch();
         if (!launched) {
             console.warn('[friday] Engine not available — running without native features');
@@ -447,7 +506,6 @@ if (!gotLock) {
             console.error('[friday] Database initialization failed:', err);
         }
 
-        createHUD();
         initMainWindow();
         showMainWindow(); // Show main window on app start
         registerHotkey();
@@ -571,6 +629,44 @@ function registerHotkey() {
     }
 }
 
+
+ipcMain.handle('run-browser-task', async (event, task) => {
+    return await browserAgentManager.runTask(task);
+});
+
+// ── MiroFish Sidecar Tools ──────────────────────────────────────────
+
+const spawnSidecar = (script, input) => {
+    return new Promise((resolve) => {
+        const py = spawn('python', [path.join(__dirname, '../sidecar', script)], {
+            env: { ...process.env, PYTHONPATH: process.cwd() }
+        });
+        let result = '';
+        py.stdout.on('data', d => result += d.toString());
+        py.stderr.on('data', d => console.error(`[${script} Error]`, d.toString()));
+        py.on('close', () => {
+            try { resolve(JSON.parse(result.trim())); }
+            catch(e) { resolve({ error: 'Failed to parse model output' }); }
+        });
+        py.stdin.write(JSON.stringify(input) + '\n');
+        py.stdin.end();
+    });
+};
+
+ipcMain.handle('app:saveToMemory', async (_, content) => {
+    return await spawnSidecar('memory.py', { action: 'save', content });
+});
+
+ipcMain.handle('app:searchMemory', async (_, query) => {
+    return await spawnSidecar('memory.py', { action: 'search', query });
+});
+
+ipcMain.handle('app:analyzeDocument', async (_, text) => {
+    return await spawnSidecar('ontology.py', { action: 'extract', text });
+});
+
+// ── Generic IPC Handlers ──
+
 // ── IPC Handlers ────────────────────────────────────────────────────────
 
 ipcMain.handle('sidecar:send', async (_, method, params) => {
@@ -602,6 +698,7 @@ ipcMain.handle('app:openMain', () => {
     showMainWindow();
     return { opened: true };
 });
+
 
 ipcMain.handle('app:hideMain', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {

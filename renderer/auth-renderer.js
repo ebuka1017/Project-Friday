@@ -69,8 +69,25 @@
             try {
                 await window.friday.db.setSecret("clerk_session_token", token);
                 console.log('[AuthRenderer] Session token secured in DB.');
+                
+                // Check if persona exists
+                const pName = await window.friday.db.getMemory('user_name');
+                const pGender = await window.friday.db.getMemory('user_gender');
+                
+                if (!pName || !pGender) {
+                    // Start Personalization flow within the same overlay
+                    if (window.nextObStep) window.nextObStep('Name');
+                } else {
+                    // Persona exists, hide overlay and enter app
+                    const overlay = document.getElementById('onboardingOverlay');
+                    if (overlay) overlay.classList.add('hidden');
+                    
+                    // Update agent with full identity
+                    const bio = await window.friday.db.getMemory('user_bio');
+                    window.friday.setAuthStatus(true, { ...user, persona: { name: pName, gender: pGender, bio } });
+                }
             } catch (e) {
-                console.error('[AuthRenderer] DB secure storage err:', e);
+                console.error('[AuthRenderer] DB secure storage/persona check err:', e);
             }
         });
 
@@ -93,7 +110,7 @@
             try {
                 // 1. Migration check: if in localStorage, move to secret DB
                 const legacy = localStorage.getItem("clerk_session_token");
-                if (legacy) {
+                if ( legacy) {
                     console.log('[AuthRenderer] Migrating legacy session to secure storage...');
                     await window.friday.db.setSecret("clerk_session_token", legacy);
                     localStorage.removeItem("clerk_session_token");
@@ -101,34 +118,102 @@
 
                 // 2. Load from secure storage
                 const saved = await window.friday.db.getSecret("clerk_session_token");
-                if (saved && saved.length > 10) { // basic check for token validity
+                const overlay = document.getElementById('onboardingOverlay');
+                
+                // Standardize memory keys: if legacy exists, migrate
+                let isCompleted = await window.friday.db.getMemory('onboarding_complete');
+                if (isCompleted !== '1') {
+                    const legacy1 = await window.friday.db.getMemory('onboarding_completed');
+                    const legacy2 = await window.friday.db.getMemory('onboarding_seen');
+                    if (legacy1 === '1' || legacy2 === '1') {
+                        console.log('[AuthRenderer] Migrating legacy onboarding key -> onboarding_complete');
+                        await window.friday.db.setMemory('onboarding_complete', '1');
+                        isCompleted = '1';
+                    }
+                }
+                
+                console.log('[AuthRenderer] Initializing. Onboarding completed status:', isCompleted);
+
+                if (saved && saved.length > 10) {
                     console.log('[AuthRenderer] Restoring session from secure storage...');
                     let user = null;
                     try {
                         const payload = JSON.parse(atob(saved.split(".")[1]));
-                        const now = Math.floor(Date.now() / 1000);
-                        if (payload.exp && payload.exp < now) {
-                            console.log('[AuthRenderer] Session expired.');
-                            await window.friday.db.setSecret("clerk_session_token", "");
-                            setState({ status: "idle" });
-                            return;
-                        }
-
                         user = {
                             id: payload.sub,
                             email: payload.email,
                             name: payload.name || payload.username || payload.sub,
                             imageUrl: payload.image_url,
                         };
-                    } catch {
+                    } catch (e) {
+                        console.error('[AuthRenderer] JWT Parse failed:', e);
                         user = { id: 'unknown', name: 'User' };
                     }
 
-                    setState({ status: "authenticated", token: saved, user });
+                    // Load persona
+                    const pName = await window.friday.db.getMemory('user_name');
+                    const pGender = await window.friday.db.getMemory('user_gender');
+                    const pBio = await window.friday.db.getMemory('user_bio');
+
+                    if (pName && pGender) {
+                        console.log('[AuthRenderer] Authenticated and persona present. Hiding overlay.');
+                        setState({ status: "authenticated", user });
+                        window.friday.setAuthStatus(true, { ...user, persona: { name: pName, gender: pGender, bio: pBio || '' } });
+                        if (overlay) overlay.classList.add('hidden');
+
+                        // Sync settings UI
+                        const prefName = document.getElementById('prefNameInput');
+                        const prefGender = document.getElementById('prefGenderSelect');
+                        const prefBio = document.getElementById('prefBioInput');
+                        if (prefName) prefName.value = pName;
+                        if (prefGender) prefGender.value = pGender;
+                        if (prefBio) prefBio.value = pBio || '';
+                    } else {
+                        // Signed in but no persona (e.g. app crashed after auth)
+                        console.log('[AuthRenderer] User authenticated but persona missing. Triggering personalization...');
+                        setState({ status: "authenticated", user });
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                            if (window.nextObStep) {
+                                await window.nextObStep('Name');
+                            } else {
+                                console.error('[AuthRenderer] nextObStep not found for Name transition');
+                                // Fallback show directly
+                                const nameStep = document.getElementById('obStepName');
+                                if (nameStep) {
+                                    nameStep.classList.remove('hidden');
+                                    nameStep.classList.add('active');
+                                }
+                            }
+                        }
+                    }
                 } else {
-                    console.log('[AuthRenderer] No active session found.');
+                    // Not signed in: Show onboarding slides
+                    console.log('[AuthRenderer] No saved session. Preparing onboarding overlay...');
                     setState({ status: "idle" });
+                    if (overlay) {
+                        if (overlay.classList.contains('hidden')) {
+                            console.log('[AuthRenderer] Un-hiding onboardingOverlay');
+                            overlay.classList.remove('hidden');
+                        }
+                        if (window.nextObStep) {
+                            console.log('[AuthRenderer] Starting from Splash (Step 0)');
+                            window.nextObStep(0);
+                        } else {
+                            console.error('[AuthRenderer] nextObStep not found for initial onboarding');
+                        }
+                    } else {
+                        console.error('[AuthRenderer] onboardingOverlay element NOT found!');
+                    }
                 }
+
+
+                // Initial load of external accounts
+                await refreshExternalAccounts();
+
+                // Periodic check for account linkage
+                setInterval(refreshExternalAccounts, 30000);
+
             } catch (e) {
                 console.error('[AuthRenderer] Restore/Migration err:', e);
                 setState({ status: "idle" });
@@ -136,5 +221,42 @@
         })();
     }
 
-    window.fridayAuth = { initAuth, signIn, signOut, getAuthState, onAuthStateChange };
+    async function refreshExternalAccounts() {
+        if (_authState.status !== 'authenticated' || !_authState.user) return;
+
+        try {
+            const freshUser = await window.friday.clerkGetUser(_authState.user.id);
+            if (freshUser && freshUser.externalAccounts) {
+                const accounts = freshUser.externalAccounts;
+                const providers = accounts.map(a => a.provider);
+                
+                // Update UI toggles/status for each connector
+                updateConnectorUI('connGmail', providers.includes('oauth_google'));
+                updateConnectorUI('connGoogleCalendar', providers.includes('oauth_google'));
+                updateConnectorUI('connGoogleDrive', providers.includes('oauth_google'));
+                updateConnectorUI('connOutlook', providers.includes('oauth_outlook'));
+                updateConnectorUI('connOutlookCalendar', providers.includes('oauth_outlook'));
+
+                // Update auth status to include these links for the agent to know what it has access to
+                window.friday.setAuthStatus(true, { ..._authState.user, externalAccounts: accounts });
+            }
+        } catch (e) {
+            console.error('[AuthRenderer] Refresh external accounts err:', e);
+        }
+    }
+
+    function updateConnectorUI(id, isConnected) {
+        const toggleEl = document.getElementById(`toggle_${id}`);
+        const statusEl = document.getElementById(`status_${id}`);
+        
+        if (toggleEl) {
+            toggleEl.checked = isConnected;
+        }
+        if (statusEl) {
+            statusEl.textContent = isConnected ? 'Connected' : 'Disconnected';
+            statusEl.style.color = isConnected ? 'var(--success)' : 'var(--text-muted)';
+        }
+    }
+
+    window.fridayAuth = { initAuth, signIn, signOut, getAuthState, onAuthStateChange, refreshExternalAccounts };
 })();

@@ -35,29 +35,52 @@ class DesktopService {
         try {
             // 1. Get OS State via Sidecar
             if (pipeClient.isConnected) {
-                const osState = await pipeClient.send('get_desktop_state', {
-                    include_tree: useAccessibility,
-                    include_screenshot: useVision
-                });
-                state.os = osState;
+                // Sidecar doesn't have "get_desktop_state" as a single call anymore.
+                // We split it into UIA dump and Window list.
+                const [tree, windows] = await Promise.all([
+                    useAccessibility ? pipeClient.send('uia.dumpTree') : Promise.resolve(null),
+                    pipeClient.send('window.list')
+                ]);
+                
+                state.os.tree = tree;
+                state.os.windows = windows;
+                
+                if (windows && windows.length > 0) {
+                    state.os.activeWindow = windows.find(w => w.isFocused) || windows[0];
+                }
             }
 
-            // 2. Get Browser State (if an agent browser is provided)
+            // 2. Capture Vision (Always useful for multi-modal)
+            if (useVision) {
+                // We use the electron utility to capture screen
+                const { desktopCapturer } = require('electron');
+                const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1920, height: 1080 }});
+                if (sources.length > 0) {
+                    state.os.screenshot = sources[0].thumbnail.toJPEG(70).toString('base64');
+                }
+            }
+
+            // 3. Get Browser State (if an agent browser is provided)
             if (browser) {
-                state.browser.activeTab = {
-                    title: await browser.evaluate('document.title'),
-                    url: await browser.evaluate('window.location.href')
-                };
-                if (useAccessibility) {
-                    state.browser.dom = await browser.getDOM();
+                try {
+                    state.browser.activeTab = {
+                        title: await browser.evaluate('document.title'),
+                        url: await browser.evaluate('window.location.href')
+                    };
+                    if (useAccessibility) {
+                        state.browser.dom = await browser.getDOM();
+                    }
+                } catch (be) {
+                    console.warn('[DesktopService] Browser state capture partial failure:', be.message);
                 }
             }
 
             this._cachedState = state;
             return state;
         } catch (err) {
-            console.error('[DesktopService] State capture failed:', err);
-            return { error: err.message, timestamp: state.timestamp };
+            const errorMsg = err.message || JSON.stringify(err);
+            console.error('[DesktopService] State capture failed:', errorMsg, err.stack);
+            return { error: errorMsg, timestamp: state.timestamp };
         }
     }
 

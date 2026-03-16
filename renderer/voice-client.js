@@ -105,9 +105,21 @@ class VoiceClient {
 
         return `${basePrompt}
 
+## Speed & Decisiveness
+- When a user says 'do xyz', your FIRST thought MUST be: 'Which specific specialized tool from my inventory solves this fastest?'
+- For any web-related activity (buying, searching, navigating), prioritize the \`browse_web\` tool.
+- For any fact persistence, prioritize \`save_to_memory\`.
+
 ## Current State
 - Resolution: ${res}
-- Mode: ACTIVE`;
+- Mode: ACTIVE
+
+---
+${this._user && this._user.persona ? `USER INFORMATION:
+- Your user's name is ${this._user.persona.name}.
+- User gender/pronouns: ${this._user.persona.gender}.
+- User Bio: ${this._user.persona.bio || 'Not provided'}.
+` : 'USER INFORMATION: Not yet personalized.'}`;
     }
 
     async onWsOpen() {
@@ -139,12 +151,12 @@ class VoiceClient {
     handleInterruption() {
         if (!this.isConnected) return;
         if (Date.now() < this.suppressInterruptionUntil) return;
-        this.isInterrupted = true;
-        this.stopAllAudio();
         
-        // Final polish: Explicitly clear the pipes by sending a small silence or just closing the turn if possible.
-        // For Gemini Live, simply stopping the local stream and setting isInterrupted is usually enough,
-        // but we ensure no stale frames from the worklet reach the WS.
+        if (this.activeSources.size > 0) {
+            console.log('[VoiceClient] User interrupted AI. Stopping playback.');
+            this.isInterrupted = true;
+            this.stopAllAudio();
+        }
     }
 
     stopAllAudio() {
@@ -169,18 +181,14 @@ class VoiceClient {
             this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-worklet');
 
             this.workletNode.port.onmessage = (event) => {
-                if (event.data.type === 'vad_speech') {
+                if (event.data.type === 'debug') {
+                    console.log('[VoiceClient] Worklet Debug:', event.data.msg);
+                } else if (event.data.type === 'vad_speech') {
                     console.log('[VoiceClient] VAD Triggered (Speech detected)');
                     this.handleInterruption();
                 } else if (event.data.type === 'audio_data' && this.ws?.readyState === WebSocket.OPEN) {
                     if (!this.isMicActive) return;
                     
-                    // IF we just interrupted, ignore the tail of the previous stream
-                    if (this.isInterrupted) {
-                        // Stay interrupted until we receive a server turn completion or enough time passes
-                        return; 
-                    }
-
                     const base64 = this.arrayBufferToBase64(event.data.buffer);
                     this.audioSentThisTurn = true;
                     if (Math.random() < 0.05) console.log('[VoiceClient] Sending audio chunk (sample rate match)...');
@@ -190,7 +198,7 @@ class VoiceClient {
                 }
             };
             source.connect(this.workletNode);
-            this.workletNode.connect(this.audioContext.destination);
+            // Removed connection to destination to prevent local feedback/echo
             window.friday.setState({ status: 'listening' });
         } catch (e) {
             console.error('[VoiceClient] Mic error:', e);
@@ -212,7 +220,7 @@ class VoiceClient {
         try {
             const raw = (event.data instanceof Blob) ? await event.data.text() : event.data;
             const data = JSON.parse(raw);
-            console.log('[VoiceClient] WS Message received:', Object.keys(data).join(', '));
+            console.log('[VoiceClient] WS Message received:', JSON.stringify(data).substring(0, 500));
             
             // Log raw server content for debugging
             if (data.serverContent) {
@@ -220,10 +228,13 @@ class VoiceClient {
             } else if (data.toolCall) {
                 console.log('[VoiceClient] Tool Call received:', data.toolCall.functionCalls?.map(f => f.name));
             } else if (data.setupComplete) {
-                console.log('[VoiceClient] Setup complete acknowledged.');
+                console.log('[VoiceClient] Setup complete acknowledged. Full data:', JSON.stringify(data.setupComplete));
+                if (this.playbackCtx && this.playbackCtx.state === 'suspended') {
+                    this.playbackCtx.resume().then(() => console.log('[VoiceClient] Playback context resumed via setup. State:', this.playbackCtx.state));
+                }
                 window.friday.getState().then(s => { 
                     if (s.voiceMode !== 'ptt') {
-                        console.log('[VoiceClient] Starting microphone (handsfree/ambient)...');
+                        console.log('[VoiceClient] Starting microphone...');
                         this.startMicrophone(); 
                     }
                 });
@@ -292,42 +303,11 @@ class VoiceClient {
 
         let response = { success: false, error: 'Unknown function' };
         try {
-            if (call.name === 'navigate_browser') {
-                response = { success: await window.friday.browser.navigate(call.args.url) };
-            } else if (call.name === 'read_browser_dom') {
-                response = await window.friday.browser.getDOM();
-            } else if (call.name === 'evaluate_browser_js') {
-                response = { result: await window.friday.browser.evaluate(call.args.script) };
-            } else if (call.name === 'web_click') {
-                response = await window.friday.browser.click(call.args.selector);
-            } else if (call.name === 'web_type') {
-                response = await window.friday.browser.type(call.args.selector, call.args.text);
-            } else if (call.name === 'web_screenshot') {
-                const b64 = await window.friday.browser.screenshot();
-                if (b64) {
-                    this.ws.send(JSON.stringify({
-                        client_content: { turns: [{ role: "user", parts: [{ inline_data: { mime_type: "image/jpeg", data: b64 } }, { text: "Here is the screenshot." }] }], turn_complete: true }
-                    }));
-                    response = { success: true };
-                }
-                window.friday.addMessage('result', '📸 Browser Screenshot', b64);
-            } else if (call.name === 'desktop_type_string') {
-                response = await window.friday.sidecar('input.typeString', { text: call.args.text });
-            } else if (call.name === 'desktop_send_chord') {
-                response = await window.friday.sidecar('input.sendChord', { keys: call.args.chord });
-            } else if (call.name === 'desktop_click_at') {
-                response = await window.friday.sidecar('input.clickAt', { x: call.args.x, y: call.args.y });
-            } else if (call.name === 'fs_list_directory') {
-                response = await window.friday.fsListDirectory(call.args.path);
-            } else if (call.name === 'fs_read_file') {
-                response = await window.friday.fsReadFileStr(call.args.path);
-            } else if (call.name === 'fs_write_file') {
-                response = await window.friday.fsWriteFileStr(call.args.path, call.args.content);
-            } else if (call.name === 'web_search') {
-                response = await window.friday.webSearch(call.args.query);
-            } else if (call.name === 'silent_action') {
-                window.friday.addMessage('action', `🤫 Silent Action: ${call.args.action}`);
-                response = { success: true };
+            // First, check if this is a specialized "meta-tool" (delegation, screenshot)
+            if (call.name === 'delegate_task') {
+                response = await window.friday.delegateTask(call.args.taskDescription);
+            } else if (call.name === 'browse_visual') {
+                response = await window.friday.browseVisual(call.args.taskDescription);
             } else if (call.name === 'take_screenshot') {
                 const s = await window.friday.takeScreenshot();
                 if (s?.data) {
@@ -337,10 +317,56 @@ class VoiceClient {
                     response = { success: true };
                 }
                 window.friday.addMessage('result', '📸 Screenshot captured', s?.data);
-            } else if (call.name === 'delegate_task') {
-                response = await window.friday.delegateTask(call.args.taskDescription);
-            } else if (call.name === 'browse_visual') {
-                response = await window.friday.browseVisual(call.args.taskDescription);
+            } else if (call.name === 'web_screenshot') {
+                const b64 = await window.friday.browser.screenshot();
+                if (b64) {
+                    this.ws.send(JSON.stringify({
+                        client_content: { turns: [{ role: "user", parts: [{ inline_data: { mime_type: "image/jpeg", data: b64 } }, { text: "Here is the screenshot." }] }], turn_complete: true }
+                    }));
+                    response = { success: true };
+                }
+                window.friday.addMessage('result', '📸 Browser Screenshot', b64);
+            } else {
+                // Route everything else through the unified tool executor
+                // Note: renderer-side friday.sidecar and other IPCs can be replaced by a single 'app:executeTool' in the future.
+                // For now, let's keep the specialized mappings but use the unified logic where possible.
+                
+                if (call.name === 'navigate_browser') {
+                    response = { success: await window.friday.browser.navigate(call.args.url) };
+                } else if (call.name === 'read_browser_dom') {
+                    response = await window.friday.browser.getDOM();
+                } else if (call.name === 'evaluate_browser_js') {
+                    response = { result: await window.friday.browser.evaluate(call.args.script) };
+                } else if (call.name === 'web_click') {
+                    response = await window.friday.browser.click(call.args.selector);
+                } else if (call.name === 'web_type') {
+                    response = await window.friday.browser.type(call.args.selector, call.args.text);
+                } else if (call.name === 'desktop_type_string') {
+                    response = await window.friday.sidecar('input.typeString', { text: call.args.text });
+                } else if (call.name === 'desktop_send_chord') {
+                    response = await window.friday.sidecar('input.sendChord', { keys: call.args.chord });
+                } else if (call.name === 'desktop_click_at') {
+                    response = await window.friday.sidecar('input.clickAt', { x: call.args.x, y: call.args.y });
+                } else if (call.name === 'fs_list_directory') {
+                    response = await window.friday.fsListDirectory(call.args.path);
+                } else if (call.name === 'fs_read_file') {
+                    response = await window.friday.fsReadFileStr(call.args.path);
+                } else if (call.name === 'fs_write_file') {
+                    response = await window.friday.fsWriteFileStr(call.args.path, call.args.content);
+                } else if (call.name === 'browse_web') {
+                    response = await window.friday.runBrowserTask(call.args.task);
+                } else if (call.name === 'save_to_memory') {
+                    response = await window.friday.saveToMemory(call.args.content);
+                } else if (call.name === 'search_memory') {
+                    response = await window.friday.searchMemory(call.args.query);
+                } else if (call.name === 'analyze_document') {
+                    response = await window.friday.analyzeDocument(call.args.text);
+                } else if (call.name === 'web_search') {
+                    response = await window.friday.webSearch(call.args.query);
+                } else if (call.name === 'silent_action') {
+                    window.friday.addMessage('action', `🤫 Silent Action: ${call.args.action}`);
+                    response = { success: true };
+                }
             }
         } catch (err) {
             response = { success: false, error: err.message };
@@ -374,39 +400,56 @@ class VoiceClient {
         }
     }
 
-    playAudioChunk(b64) {
+    async playAudioChunk(b64) {
         try {
-            if (!this.playbackCtx) {
-                console.warn('[VoiceClient] No playbackCtx for audio chunk');
-                return;
-            }
-            if (this.isInterrupted) {
-                console.log('[VoiceClient] Interrupted, skipping audio chunk');
-                return;
-            }
+            if (!this.playbackCtx) return;
+            if (this.playbackCtx.state === 'suspended') await this.playbackCtx.resume();
+            if (this.isInterrupted) return;
 
+            // 1. Efficient Base64 to ArrayBuffer
             const binaryString = atob(b64);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
             
-            // Ensure alignment for Int16Array
-            const int16 = new Int16Array(bytes.buffer.slice(0, bytes.length - (bytes.length % 2)));
+            // 2. PCM16 to Float32
+            const int16 = new Int16Array(bytes.buffer, 0, bytes.length >> 1);
             const float32 = new Float32Array(int16.length);
             for (let i = 0; i < float32.length; i++) float32[i] = int16[i] / 32768.0;
             
+            // 3. Create and Schedule Buffer
             const buf = this.playbackCtx.createBuffer(1, float32.length, 24000);
             buf.getChannelData(0).set(float32);
             
             const src = this.playbackCtx.createBufferSource();
-            src.buffer = buf; src.connect(this.playbackCtx.destination);
+            src.buffer = buf;
+            
+            // 4. Boost audio if user mentioned hearing issues
+            if (!this.gainNode) {
+                this.gainNode = this.playbackCtx.createGain();
+                this.gainNode.gain.value = 1.5; // 50% boost
+                this.gainNode.connect(this.playbackCtx.destination);
+            }
+            src.connect(this.gainNode);
+            
             this.activeSources.add(src);
             src.onended = () => this.activeSources.delete(src);
             
             const now = this.playbackCtx.currentTime;
             this.nextPlayTime = Math.max(this.nextPlayTime, now + 0.02);
-            if (Math.random() < 0.1) console.log(`[VoiceClient] Playing chunk at ${this.nextPlayTime.toFixed(3)}s (duration: ${buf.duration.toFixed(3)}s)`);
+            
+            if (this.nextPlayTime - now > 2.0) {
+                this.nextPlayTime = now + 0.1;
+            }
+
             src.start(this.nextPlayTime);
             this.nextPlayTime += buf.duration;
+            
+            // Broadcast speaking state
+            window.friday.setState({ status: 'speaking' });
+            clearTimeout(this.speakTimeout);
+            this.speakTimeout = setTimeout(() => {
+                if (this.activeSources.size === 0) window.friday.setState({ status: 'idle' });
+            }, 500);
             
             if (this.isAwaitingUserInput) {
                 this.suppressInterruptionUntil = Date.now() + 300;

@@ -30,6 +30,11 @@ async function fetchClerkUser(userId) {
         name: [data.first_name, data.last_name].filter(Boolean).join(" ") || data.username || "there",
         email: data.email_addresses?.[0]?.email_address || "",
         avatar: data.image_url || null,
+        externalAccounts: data.external_accounts?.map(acc => ({
+            provider: acc.provider,
+            email: acc.email_address,
+            linked: true
+        })) || []
     };
 }
 
