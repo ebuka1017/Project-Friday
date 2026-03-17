@@ -1,98 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/assets/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Terms of Service — Friday</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Funnel+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Terms of Use, Friday</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<script>(function(){const s=localStorage.getItem('friday-theme'),p=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(p?'dark':'light'));})();
+</script>
+<style>
+:root,[data-theme="dark"]{--bg:#080B0F;--surface:#0E1318;--surface2:#1A2028;--border:rgba(255,255,255,0.09);--accent:#3BFFA0;--accent2:#5B9EFF;--text:#E8EDF2;--muted:#7A8D9E;--nav-bg:rgba(8,11,15,0.82);--toggle-bg:#1A2028;--toggle-border:rgba(255,255,255,0.14);--toggle-active-bg:#2A3540;--toggle-active-color:#E8EDF2;--toggle-inactive-color:#4A5D6E}
+[data-theme="light"]{--bg:#F0F2F5;--surface:#FFFFFF;--surface2:#E4E8ED;--border:rgba(0,0,0,0.1);--accent:#00A65A;--accent2:#2C6FE8;--text:#0F1923;--muted:#5A6A7A;--nav-bg:rgba(240,242,245,0.88);--toggle-bg:#E4E8ED;--toggle-border:rgba(0,0,0,0.14);--toggle-active-bg:#FFFFFF;--toggle-active-color:#0F1923;--toggle-inactive-color:#8A9AAA}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;overflow-x:hidden;transition:background 0.3s,color 0.3s}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.35}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 48px;background:var(--nav-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:background 0.3s}
+.nav-left{display:flex;align-items:center;gap:36px}
+.nav-links{display:flex;align-items:center;gap:28px;list-style:none}
+.nav-links a{font-size:0.85rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.nav-links a:hover{color:var(--text)}
+.nav-links a.active{color:var(--text);font-weight:500}
+.nav-right{display:flex;align-items:center;gap:14px}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:lpulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes lpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.theme-toggle{background:var(--toggle-bg);border:1px solid var(--toggle-border);border-radius:100px;padding:4px;display:flex;align-items:center;gap:2px}
+.theme-btn{width:32px;height:32px;border-radius:100px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;transition:background 0.2s,color 0.2s;color:var(--toggle-inactive-color)}
+.theme-btn.active{background:var(--toggle-active-bg);color:var(--toggle-active-color);box-shadow:0 1px 6px rgba(0,0,0,0.25)}
+.nav-cta{background:var(--accent);color:#0F1923;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.85rem;padding:9px 20px;border-radius:6px;text-decoration:none;transition:opacity 0.2s,transform 0.2s;white-space:nowrap}
+.nav-cta:hover{opacity:0.85;transform:translateY(-1px)}
+
+.page-wrap{max-width:760px;margin:0 auto;padding:160px 32px 120px;position:relative;z-index:1}
+.page-eyebrow{font-size:0.72rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2rem,5vw,3rem);letter-spacing:-0.03em;line-height:1.1;margin-bottom:12px}
+.page-meta{font-size:0.8rem;color:var(--muted);margin-bottom:48px}
+
+.tldr-box{background:rgba(91,158,255,0.05);border:1px solid rgba(91,158,255,0.15);border-radius:12px;padding:22px 26px;margin-bottom:48px}
+[data-theme="light"] .tldr-box{background:rgba(44,111,232,0.04);border-color:rgba(44,111,232,0.15)}
+.tldr-label{font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent2);margin-bottom:8px}
+.tldr-box p{font-size:0.9rem;color:var(--text);line-height:1.7;margin:0}
+
+.prose h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem;letter-spacing:-0.01em;margin:44px 0 12px}
+.prose h2:first-child{margin-top:0}
+.prose p{font-size:0.93rem;color:var(--muted);line-height:1.8;margin-bottom:14px}
+.prose p strong{color:var(--text);font-weight:500}
+.prose ul{padding-left:20px;margin-bottom:14px}
+.prose ul li{font-size:0.93rem;color:var(--muted);line-height:1.8;margin-bottom:5px}
+.prose a{color:var(--accent2);text-decoration:none}
+.prose a:hover{text-decoration:underline}
+
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;z-index:1}
+.footer-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:0.8rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.footer-links a:hover{color:var(--text)}
+.copy{font-size:0.75rem;color:var(--muted)}
+@media(max-width:768px){nav{padding:16px 20px}.nav-links{display:none}.page-wrap{padding:140px 20px 80px}footer{padding:24px 20px;flex-direction:column;align-items:flex-start}}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity 0.65s ease,transform 0.65s ease}.reveal.visible{opacity:1;transform:translateY(0)}
+</style>
 </head>
-
 <body>
-    <!-- Navbar Start -->
-    <nav class="navbar glass">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a href="index.html" class="navbar__logo">
-                <img src="assets/logo.png" alt="Friday Logo" style="height: 32px; margin-right: 10px;">
-                <span class="text-gradient-green" style="font-weight: 700; font-family: var(--font-display);">FRIDAY</span>
-            </a>
 
-            <div class="navbar__menu">
-                <button id="navbar-toggle" aria-label="Menu Toggle">
-                    <i class="hgi hgi-stroke hgi-menu-01"></i>
-                </button>
+<nav>
+  <div class="nav-left">
+    <a href="index.html" class="logo"><div class="logo-dot"></div>Friday</a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </div>
+  <div class="nav-right">
+    <div class="theme-toggle">
+      <button class="theme-btn" id="btnDark" onclick="setTheme('dark')" title="Dark mode">🌙</button>
+      <button class="theme-btn" id="btnLight" onclick="setTheme('light')" title="Light mode">☀️</button>
+    </div>
+    <a href="https://github.com/ebuka1017/Project-Friday/releases" class="nav-cta">Download Free</a>
+  </div>
+</nav>
 
-                <ul class="d-flex align-items-center gap-4">
-                    <li><a href="index.html">home</a></li>
-                    <li><a href="about.html">about</a></li>
-                    <li><a href="contact.html">contact</a></li>
-                    <li class="nav-actions">
-                        <button class="theme-toggle-btn glass" id="themeBtn" title="Toggle theme" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50% !important;">
-                            <i class="hgi hgi-stroke hgi-sun-01" id="themeIcon" style="font-size: 1.2rem;"></i>
-                        </button>
-                        <a href="download.html" class="btn btn-primary" id="downloadNavBtn">Download Friday</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <!-- Navbar End -->
+<div class="page-wrap">
+  <p class="page-eyebrow reveal">Legal</p>
+  <h1 class="page-title reveal">Terms of Use</h1>
+  <p class="page-meta">Last updated: March 2026</p>
 
-    <main>
-        <section class="hero section-padding">
-            <div class="container legal-container">
-                <h1 class="text-gradient-green">Terms of Service</h1>
-                <p>Last Updated: March 13, 2026</p>
-                
-                <h2>1. Agreement to Terms</h2>
-                <p>By downloading or using Project Friday ("the Software"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Software.</p>
+  <div class="tldr-box reveal">
+    <div class="tldr-label">tl;dr</div>
+    <p>Friday is free to download and use. Use it responsibly, don't use it to harm others, and understand that it comes without warranty. The full legal terms are below.</p>
+  </div>
 
-                <h2>2. Software License</h2>
-                <p>Friday is provided to you as a proprietary desktop software. You are granted a personal, non-exclusive license to use the software for your personal or professional productivity. Redistribution or reverse engineering is prohibited.</p>
+  <div class="prose reveal">
+    <h2>1. Acceptance of terms</h2>
+    <p>By downloading, installing, or using Friday ("the software"), you agree to be bound by these Terms of Use. If you do not agree, do not use the software.</p>
 
-                <h2>3. Local Processing</h2>
-                <p>Friday is designed to process data locally on your machine. You are responsible for the data you provide to the software and the results it generates on your system.</p>
+    <h2>2. License to use</h2>
+    <p>Friday is provided to you as a proprietary software application. You are granted a personal, non-exclusive, non-transferable license to install and use the software on your own devices for personal or professional purposes. You may not redistribute, reverse-engineer, decompile, or create derivative works from the software without explicit written permission from the developer.</p>
 
-                <h2>4. Prohibited Uses</h2>
-                <p>You may not use Friday to perform any illegal activities, violate the privacy of others, or attempt to bypass security measures on any system.</p>
+    <h2>3. Permitted use</h2>
+    <p>You may use Friday for any lawful personal or commercial purpose, including:</p>
+    <ul>
+      <li>Automating tasks on your own computer</li>
+      <li>Integrating Friday into your personal or professional workflow</li>
+    </ul>
 
-                <h2>5. Disclaimer of Warranties</h2>
-                <p>The Software is provided "as is" without warranty of any kind. Use at your own risk. We do not guarantee that the software will be error-free or uninterrupted.</p>
+    <h2>4. Prohibited use</h2>
+    <p>You must not use Friday to:</p>
+    <ul>
+      <li>Access, monitor, or control another person's computer without their explicit knowledge and consent</li>
+      <li>Collect, harvest, or process another person's personal data without legal basis</li>
+      <li>Facilitate illegal activity of any kind</li>
+      <li>Circumvent security controls or authentication mechanisms you are not authorised to bypass</li>
+      <li>Generate, distribute, or act upon content that is abusive, harassing, defamatory, or illegal</li>
+    </ul>
 
-                <h2>6. Limitation of Liability</h2>
-                <p>Project Friday and its contributors shall not be liable for any damages arising out of the use or inability to use the software.</p>
+    <h2>5. Third-party services</h2>
+    <p>Friday relies on <strong>Google Cloud Vertex AI</strong> to process AI requests. By using Friday, you also agree to comply with <a href="https://cloud.google.com/terms/" target="_blank">Google Cloud's Terms of Service</a>. You are responsible for ensuring your use of Friday complies with any third-party service terms applicable to your account.</p>
 
-                <div style="margin-top: 60px;">
-                    <a href="index.html" class="btn btn-secondary">Back to Home</a>
-                </div>
-            </div>
-        </section>
-    </main>
+    <h2>6. No warranty</h2>
+    <p>Friday is provided <strong>"as is"</strong>, without warranty of any kind, express or implied. This includes but is not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. The developer makes no guarantee that the software will be error-free, uninterrupted, or free of harmful components.</p>
 
-    <!-- Footer Start -->
-    <footer class="footer py-5 border-top">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6 footer__text">
-                    <span>© 2026 Project Friday. All Rights Reserved.</span>
-                </div>
-                <div class="col-md-6">
-                    <ul class="footer__links d-flex justify-content-end gap-3 mb-0">
-                        <li><a href="about.html">about</a></li>
-                        <li><a href="privacy.html">privacy policy</a></li>
-                        <li><a href="terms.html">legal</a></li>
-                        <li><a href="contact.html">contact</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </footer>
-    <!-- Footer End -->
+    <h2>7. Limitation of liability</h2>
+    <p>To the maximum extent permitted by applicable law, the developer of Friday shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of or inability to use the software, even if advised of the possibility of such damages.</p>
+
+    <h2>8. Your responsibility</h2>
+    <p>You are solely responsible for how you use Friday and for any outcomes that result from its use. This includes ensuring that any automation Friday performs on your behalf is intentional, authorised, and lawful.</p>
+
+    <h2>9. Changes to these terms</h2>
+    <p>We may revise these terms at any time. The most current version will always be available at this URL. Continued use of the software after changes are posted constitutes acceptance of the revised terms.</p>
+
+    <h2>10. Governing law</h2>
+    <p>These terms are governed by the laws of Nigeria, without regard to conflict of law principles. Any disputes arising under these terms shall be resolved in the courts of competent jurisdiction in Nigeria.</p>
+
+    <h2>11. Contact</h2>
+    <p>Questions about these terms? Reach us via the <a href="contact.html">contact page</a>.</p>
+  </div>
+</div>
+
+<footer>
+  <a href="index.html" class="footer-logo"><div class="logo-dot"></div>Friday</a>
+  <div class="footer-links">
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
+  </div>
+  <p class="copy">© 2026 Isaac Okwuzi</p>
+</footer>
+
+<script>
+function setTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('friday-theme',t);updateBtns(t)}
+function updateBtns(t){document.getElementById('btnDark').classList.toggle('active',t==='dark');document.getElementById('btnLight').classList.toggle('active',t==='light')}
+updateBtns(document.documentElement.getAttribute('data-theme'));
+const _revealEls=document.querySelectorAll(".reveal");const _revealObs=new IntersectionObserver(entries=>{entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add("visible"),i*70);_revealObs.unobserve(e.target)}});},{threshold:0.08});_revealEls.forEach(el=>_revealObs.observe(el));
+</script>
 </body>
-
 </html>

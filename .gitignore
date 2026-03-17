@@ -26,3 +26,6 @@ Desktop.ini
 website/assets/*.exe
 
 *.env
+
+
+reviews/

@@ -1,100 +1,214 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/assets/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Contact — Project Friday</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Funnel+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Contact, Friday</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<script>(function(){const s=localStorage.getItem('friday-theme'),p=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(p?'dark':'light'));})();
+</script>
+<style>
+:root,[data-theme="dark"]{--bg:#080B0F;--surface:#0E1318;--surface2:#1A2028;--border:rgba(255,255,255,0.09);--accent:#3BFFA0;--accent2:#5B9EFF;--text:#E8EDF2;--muted:#7A8D9E;--nav-bg:rgba(8,11,15,0.82);--toggle-bg:#1A2028;--toggle-border:rgba(255,255,255,0.14);--toggle-active-bg:#2A3540;--toggle-active-color:#E8EDF2;--toggle-inactive-color:#4A5D6E}
+[data-theme="light"]{--bg:#F0F2F5;--surface:#FFFFFF;--surface2:#E4E8ED;--border:rgba(0,0,0,0.1);--accent:#00A65A;--accent2:#2C6FE8;--text:#0F1923;--muted:#5A6A7A;--nav-bg:rgba(240,242,245,0.88);--toggle-bg:#E4E8ED;--toggle-border:rgba(0,0,0,0.14);--toggle-active-bg:#FFFFFF;--toggle-active-color:#0F1923;--toggle-inactive-color:#8A9AAA}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;overflow-x:hidden;transition:background 0.3s,color 0.3s}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.35}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 48px;background:var(--nav-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:background 0.3s}
+.nav-left{display:flex;align-items:center;gap:36px}
+.nav-links{display:flex;align-items:center;gap:28px;list-style:none}
+.nav-links a{font-size:0.85rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.nav-links a:hover{color:var(--text)}
+.nav-links a.active{color:var(--text);font-weight:500}
+.nav-right{display:flex;align-items:center;gap:14px}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:lpulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes lpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.theme-toggle{background:var(--toggle-bg);border:1px solid var(--toggle-border);border-radius:100px;padding:4px;display:flex;align-items:center;gap:2px}
+.theme-btn{width:32px;height:32px;border-radius:100px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;transition:background 0.2s,color 0.2s;color:var(--toggle-inactive-color)}
+.theme-btn.active{background:var(--toggle-active-bg);color:var(--toggle-active-color);box-shadow:0 1px 6px rgba(0,0,0,0.25)}
+.nav-cta{background:var(--accent);color:#0F1923;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.85rem;padding:9px 20px;border-radius:6px;text-decoration:none;transition:opacity 0.2s,transform 0.2s;white-space:nowrap}
+.nav-cta:hover{opacity:0.85;transform:translateY(-1px)}
+
+.page-wrap{max-width:1080px;margin:0 auto;padding:160px 32px 120px;position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start}
+@media(max-width:720px){.page-wrap{grid-template-columns:1fr;gap:48px;padding:140px 20px 80px}}
+
+.page-eyebrow{font-size:0.72rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2rem,5vw,3.2rem);letter-spacing:-0.03em;line-height:1.1;margin-bottom:24px}
+.page-title em{font-style:normal;color:var(--accent)}
+.page-lead{font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:40px}
+
+.contact-methods{display:flex;flex-direction:column;gap:14px}
+.contact-card{display:flex;align-items:flex-start;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;text-decoration:none;color:inherit;transition:border-color 0.2s,transform 0.2s}
+.contact-card:hover{border-color:rgba(59,255,160,0.25);transform:translateX(4px)}
+[data-theme="light"] .contact-card:hover{border-color:rgba(0,166,90,0.25)}
+.contact-icon{width:40px;height:40px;border-radius:10px;background:rgba(59,255,160,0.08);border:1px solid rgba(59,255,160,0.15);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+[data-theme="light"] .contact-icon{background:rgba(0,166,90,0.07);border-color:rgba(0,166,90,0.15)}
+.contact-card-info h3{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;margin-bottom:4px}
+.contact-card-info p{font-size:0.82rem;color:var(--muted)}
+
+/* FORM */
+.form-side h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;letter-spacing:-0.02em;margin-bottom:28px}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:0.78rem;font-weight:500;color:var(--muted);margin-bottom:7px;letter-spacing:0.04em;text-transform:uppercase}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:300;color:var(--text);outline:none;transition:border-color 0.2s;resize:vertical;-webkit-appearance:none}
+.form-group input::placeholder,.form-group textarea::placeholder{color:var(--muted);opacity:0.6}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:rgba(59,255,160,0.45)}
+[data-theme="light"] .form-group input:focus,[data-theme="light"] .form-group select:focus,[data-theme="light"] .form-group textarea:focus{border-color:rgba(0,166,90,0.45)}
+.form-group textarea{min-height:120px}
+.form-group select option{background:var(--surface);color:var(--text)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:480px){.form-row{grid-template-columns:1fr}}
+.btn-submit{background:var(--accent);color:#0F1923;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.95rem;padding:14px 32px;border-radius:8px;border:none;cursor:pointer;width:100%;transition:opacity 0.2s,transform 0.2s;margin-top:8px}
+.btn-submit:hover{opacity:0.9;transform:translateY(-1px)}
+.btn-submit:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+.form-note{font-size:0.75rem;color:var(--muted);margin-top:12px;text-align:center}
+.success-msg{display:none;background:rgba(59,255,160,0.07);border:1px solid rgba(59,255,160,0.2);border-radius:10px;padding:20px;text-align:center;margin-top:16px}
+[data-theme="light"] .success-msg{background:rgba(0,166,90,0.06);border-color:rgba(0,166,90,0.2)}
+.success-msg p{font-size:0.9rem;color:var(--accent)}
+.error-msg{display:none;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);border-radius:10px;padding:14px;text-align:center;margin-top:12px;font-size:0.85rem;color:#ff6060}
+
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;z-index:1}
+.footer-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:0.8rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.footer-links a:hover{color:var(--text)}
+.copy{font-size:0.75rem;color:var(--muted)}
+@media(max-width:768px){nav{padding:16px 20px}.nav-links{display:none}footer{padding:24px 20px;flex-direction:column;align-items:flex-start}}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity 0.65s ease,transform 0.65s ease}.reveal.visible{opacity:1;transform:translateY(0)}
+</style>
 </head>
-
 <body>
-    <!-- Navbar Start -->
-    <nav class="navbar glass">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a href="index.html" class="navbar__logo">
-                <img src="assets/logo.png" alt="Friday Logo" style="height: 32px; margin-right: 10px;">
-                <span class="text-gradient-green" style="font-weight: 700; font-family: var(--font-display);">FRIDAY</span>
-            </a>
 
-            <div class="navbar__menu">
-                <button id="navbar-toggle" aria-label="Menu Toggle">
-                    <i class="hgi hgi-stroke hgi-menu-01"></i>
-                </button>
+<nav>
+  <div class="nav-left">
+    <a href="index.html" class="logo"><div class="logo-dot"></div>Friday</a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="contact.html" class="active">Contact</a></li>
+    </ul>
+  </div>
+  <div class="nav-right">
+    <div class="theme-toggle">
+      <button class="theme-btn" id="btnDark" onclick="setTheme('dark')" title="Dark mode">🌙</button>
+      <button class="theme-btn" id="btnLight" onclick="setTheme('light')" title="Light mode">☀️</button>
+    </div>
+    <a href="https://github.com/ebuka1017/Project-Friday/releases" class="nav-cta">Download Free</a>
+  </div>
+</nav>
 
-                <ul class="d-flex align-items-center gap-4">
-                    <li><a href="index.html">home</a></li>
-                    <li><a href="about.html">about</a></li>
-                    <li><a href="contact.html" class="active">contact</a></li>
-                    <li class="nav-actions">
-                        <button class="theme-toggle-btn glass" id="themeBtn" title="Toggle theme">
-                            <i class="hgi hgi-stroke hgi-sun-01" id="themeIcon"></i>
-                        </button>
-                        <a href="download.html" class="btn btn-primary" id="downloadNavBtn">Download Friday</a>
-                    </li>
-                </ul>
-            </div>
+<div class="page-wrap">
+  <div class="info-side">
+    <p class="page-eyebrow reveal">Get in touch</p>
+    <h1 class="page-title reveal">We'd love to <em>hear</em><br/>from you.</h1>
+    <p class="page-lead reveal">Whether you've found a bug, have a feature idea, or just want to say hello, reach out. Every message gets read.</p>
+
+    <div class="contact-methods reveal">
+      <a href="https://github.com/ebuka1017/Project-Friday/issues" target="_blank" class="contact-card">
+        <div class="contact-icon">🐛</div>
+        <div class="contact-card-info">
+          <h3>Report a bug</h3>
+          <p>Open an issue on GitHub, it's the fastest way to get a fix.</p>
         </div>
-    </nav>
-    <!-- Navbar End -->
-
-    <main>
-        <section class="hero section-padding">
-            <div class="container">
-                <div class="hero-content" data-reveal>
-                    <h1 class="text-gradient-green">Get in Touch</h1>
-                    <p>Have questions or feedback? We'd love to hear from you.</p>
-                </div>
-                
-                <div class="contact-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 80px;">
-                    <div class="feature-card glass" data-reveal>
-                        <div class="feature-icon">
-                            <i class="hgi hgi-stroke hgi-mail-01"></i>
-                        </div>
-                        <h3>Email Us</h3>
-                        <p>For support or business inquiries:</p>
-                        <a href="mailto:isaacokwuzi@gmail.com" class="text-gradient-green" style="font-weight: 600; font-size: 1.1rem;">isaacokwuzi@gmail.com</a>
-                    </div>
-                    
-                    <div class="feature-card glass" data-reveal>
-                        <div class="feature-icon">
-                            <i class="hgi hgi-stroke hgi-new-twitter"></i>
-                        </div>
-                        <h3>Follow on X</h3>
-                        <p>Direct updates and community:</p>
-                        <a href="https://x.com/nothiro__" target="_blank" class="text-gradient-green" style="font-weight: 600; font-size: 1.1rem;">@nothiro__</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Footer Start -->
-    <footer class="footer py-5 border-top">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6 footer__text">
-                    <span>© 2026 Project Friday. All Rights Reserved.</span>
-                </div>
-                <div class="col-md-6">
-                    <ul class="footer__links d-flex justify-content-end gap-3 mb-0">
-                        <li><a href="about.html">about</a></li>
-                        <li><a href="privacy.html">privacy policy</a></li>
-                        <li><a href="terms.html">legal</a></li>
-                        <li><a href="contact.html">contact</a></li>
-                    </ul>
-                </div>
-            </div>
+      </a>
+      <a href="https://x.com/nothiro__" target="_blank" class="contact-card">
+        <div class="contact-icon">𝕏</div>
+        <div class="contact-card-info">
+          <h3>𝕏 / Twitter</h3>
+          <p>DM or mention @nothiro__ for general questions.</p>
         </div>
-    </footer>
-    <!-- Footer End -->
+      </a>
+    </div>
+  </div>
 
-    <script type="module" src="/main.js"></script>
+  <div class="form-side reveal">
+    <h2>Send a message</h2>
+    <form id="contactForm" action="https://api.web3forms.com/submit" method="POST">
+      <input type="hidden" name="access_key" value="ee3c43e5-1659-457e-92c6-dafc286e2de0"/>
+      <input type="hidden" name="subject" id="formSubject" value="New message from Friday website"/>
+      <input type="hidden" name="redirect" value="false"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label>First name</label>
+          <input type="text" name="first_name" placeholder="Ada" required/>
+        </div>
+        <div class="form-group">
+          <label>Last name</label>
+          <input type="text" name="last_name" placeholder="Lovelace"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" placeholder="ada@example.com" required/>
+      </div>
+      <div class="form-group">
+        <label>Topic</label>
+        <select name="topic" id="topicSelect" onchange="updateSubject(this.value)">
+          <option value="">Select a topic…</option>
+          <option value="Bug report">Bug report</option>
+          <option value="Feature request">Feature request</option>
+          <option value="General question">General question</option>
+          <option value="Press / media">Press / media</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea name="message" placeholder="Tell us what's on your mind…" required></textarea>
+      </div>
+      <button type="submit" class="btn-submit" id="submitBtn">Send message →</button>
+      <p class="form-note">We aim to reply within 48 hours.</p>
+      <div class="success-msg" id="successMsg"><p>✓ Message received, we'll be in touch soon!</p></div>
+      <div class="error-msg" id="errorMsg">Something went wrong. Please try again or reach out on 𝕏.</div>
+    </form>
+  </div>
+</div>
+
+<footer>
+  <a href="index.html" class="footer-logo"><div class="logo-dot"></div>Friday</a>
+  <div class="footer-links">
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
+  </div>
+  <p class="copy">© 2026 Isaac Okwuzi</p>
+</footer>
+
+<script>
+function setTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('friday-theme',t);updateBtns(t)}
+function updateBtns(t){document.getElementById('btnDark').classList.toggle('active',t==='dark');document.getElementById('btnLight').classList.toggle('active',t==='light')}
+updateBtns(document.documentElement.getAttribute('data-theme'));
+
+function updateSubject(val){
+  document.getElementById('formSubject').value = val ? 'Friday website: ' + val : 'New message from Friday website';
+}
+
+document.getElementById('contactForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  const data = new FormData(this);
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {method:'POST', body: data});
+    const json = await res.json();
+    if(json.success){
+      document.getElementById('successMsg').style.display = 'block';
+      document.getElementById('errorMsg').style.display = 'none';
+      btn.textContent = 'Sent ✓';
+    } else {
+      throw new Error('Failed');
+    }
+  } catch(err){
+    btn.disabled = false;
+    btn.textContent = 'Send message →';
+    document.getElementById('errorMsg').style.display = 'block';
+  }
+});
+const _revealEls=document.querySelectorAll(".reveal");const _revealObs=new IntersectionObserver(entries=>{entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add("visible"),i*70);_revealObs.unobserve(e.target)}});},{threshold:0.08});_revealEls.forEach(el=>_revealObs.observe(el));
+</script>
 </body>
-
 </html>

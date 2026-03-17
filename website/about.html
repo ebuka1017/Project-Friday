@@ -1,91 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/assets/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>About Friday — Personal Assistant for your Desktop</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Funnel+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>About, Friday</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<script>(function(){const s=localStorage.getItem('friday-theme'),p=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(p?'dark':'light'));})();
+</script>
+<style>
+:root,[data-theme="dark"]{--bg:#080B0F;--surface:#0E1318;--surface2:#1A2028;--border:rgba(255,255,255,0.09);--accent:#3BFFA0;--accent2:#5B9EFF;--text:#E8EDF2;--muted:#7A8D9E;--nav-bg:rgba(8,11,15,0.82);--toggle-bg:#1A2028;--toggle-border:rgba(255,255,255,0.14);--toggle-active-bg:#2A3540;--toggle-active-color:#E8EDF2;--toggle-inactive-color:#4A5D6E}
+[data-theme="light"]{--bg:#F0F2F5;--surface:#FFFFFF;--surface2:#E4E8ED;--border:rgba(0,0,0,0.1);--accent:#00A65A;--accent2:#2C6FE8;--text:#0F1923;--muted:#5A6A7A;--nav-bg:rgba(240,242,245,0.88);--toggle-bg:#E4E8ED;--toggle-border:rgba(0,0,0,0.14);--toggle-active-bg:#FFFFFF;--toggle-active-color:#0F1923;--toggle-inactive-color:#8A9AAA}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;overflow-x:hidden;transition:background 0.3s,color 0.3s}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.35}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 48px;background:var(--nav-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:background 0.3s}
+.nav-left{display:flex;align-items:center;gap:36px}
+.nav-links{display:flex;align-items:center;gap:28px;list-style:none}
+.nav-links a{font-size:0.85rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.nav-links a:hover{color:var(--text)}
+.nav-links a.active{color:var(--text);font-weight:500}
+.nav-right{display:flex;align-items:center;gap:14px}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:lpulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes lpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.theme-toggle{background:var(--toggle-bg);border:1px solid var(--toggle-border);border-radius:100px;padding:4px;display:flex;align-items:center;gap:2px}
+.theme-btn{width:32px;height:32px;border-radius:100px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;transition:background 0.2s,color 0.2s;color:var(--toggle-inactive-color)}
+.theme-btn.active{background:var(--toggle-active-bg);color:var(--toggle-active-color);box-shadow:0 1px 6px rgba(0,0,0,0.25)}
+.nav-cta{background:var(--accent);color:#0F1923;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.85rem;padding:9px 20px;border-radius:6px;text-decoration:none;transition:opacity 0.2s,transform 0.2s;white-space:nowrap}
+.nav-cta:hover{opacity:0.85;transform:translateY(-1px)}
+
+/* PAGE */
+.page-hero{padding:160px 32px 80px;max-width:1080px;margin:0 auto;position:relative;z-index:1}
+.page-eyebrow{font-size:0.72rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2.4rem,6vw,4rem);letter-spacing:-0.03em;line-height:1.08;margin-bottom:24px}
+.page-lead{font-size:1.1rem;color:var(--muted);max-width:560px;line-height:1.75}
+
+/* "me" hover trigger */
+.me-trigger{display:inline-block;cursor:pointer}
+.me-word{text-decoration:underline;text-decoration-style:solid;text-underline-offset:4px;text-decoration-color:var(--accent);color:var(--accent)}
+
+/* cursor-following card, positioned via JS */
+#meCard{
+  position:fixed;
+  width:300px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:24px;
+  text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,0.35);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s;
+  z-index:9999;
+  text-decoration:none;
+  color:inherit;
+  display:block;
+}
+[data-theme="light"] #meCard{box-shadow:0 20px 60px rgba(0,0,0,0.14)}
+#meCard.visible{opacity:1;pointer-events:auto}
+#meCard img{width:110px;height:110px;border-radius:50%;object-fit:cover;margin-bottom:14px;border:3px solid var(--border);display:block;margin-left:auto;margin-right:auto}
+#meCard .me-card-label{font-size:0.88rem;color:var(--accent);font-weight:500}
+
+.content{max-width:1080px;margin:0 auto;padding:0 32px 120px;position:relative;z-index:1}
+
+/* STORY */
+.story-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start;margin-bottom:96px}
+@media(max-width:720px){.story-grid{grid-template-columns:1fr;gap:40px}}
+.story-block h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.5rem;letter-spacing:-0.02em;margin-bottom:16px}
+.story-block p{font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:14px}
+
+/* TEAM */
+.team-section{margin-bottom:96px}
+.team-section h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.6rem;letter-spacing:-0.02em;margin-bottom:40px}
+.team-card{display:flex;align-items:flex-start;gap:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px}
+.team-avatar{width:64px;height:64px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid var(--border)}
+.team-avatar img{width:100%;height:100%;object-fit:cover}
+.team-info h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-bottom:4px}
+.team-info .team-role{font-size:0.8rem;color:var(--accent);font-weight:500;margin-bottom:12px;letter-spacing:0.05em}
+.team-info p{font-size:0.88rem;color:var(--muted);line-height:1.65}
+.team-info .team-links{display:flex;gap:12px;margin-top:16px}
+.team-links a{font-size:0.8rem;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:4px 12px;border-radius:100px;transition:color 0.2s,border-color 0.2s}
+.team-links a:hover{color:var(--text);border-color:rgba(128,128,128,0.4)}
+
+/* VALUES */
+.values-section h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.6rem;letter-spacing:-0.02em;margin-bottom:40px}
+.values-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.value-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px}
+.value-num{font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;color:var(--accent);letter-spacing:0.1em;margin-bottom:12px}
+.value-card h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:8px}
+.value-card p{font-size:0.87rem;color:var(--muted);line-height:1.65}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;z-index:1}
+.footer-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:0.8rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.footer-links a:hover{color:var(--text)}
+.copy{font-size:0.75rem;color:var(--muted)}
+@media(max-width:768px){nav{padding:16px 20px}.nav-links{display:none}.page-hero,.content{padding-left:20px;padding-right:20px}footer{padding:24px 20px;flex-direction:column;align-items:flex-start}}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity 0.65s ease,transform 0.65s ease}.reveal.visible{opacity:1;transform:translateY(0)}
+</style>
 </head>
-
 <body>
-    <!-- Navbar Start -->
-    <nav class="navbar glass">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a href="index.html" class="navbar__logo">
-                <img src="assets/logo.png" alt="Friday Logo" style="height: 32px; margin-right: 10px;">
-                <span class="text-gradient-green" style="font-weight: 700; font-family: var(--font-display);">FRIDAY</span>
-            </a>
 
-            <div class="navbar__menu">
-                <button id="navbar-toggle" aria-label="Menu Toggle">
-                    <i class="hgi hgi-stroke hgi-menu-01"></i>
-                </button>
+<nav>
+  <div class="nav-left">
+    <a href="index.html" class="logo"><div class="logo-dot"></div>Friday</a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html" class="active">About</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </div>
+  <div class="nav-right">
+    <div class="theme-toggle">
+      <button class="theme-btn" id="btnDark" onclick="setTheme('dark')" title="Dark mode">🌙</button>
+      <button class="theme-btn" id="btnLight" onclick="setTheme('light')" title="Light mode">☀️</button>
+    </div>
+    <a href="https://github.com/ebuka1017/Project-Friday/releases" class="nav-cta">Download Free</a>
+  </div>
+</nav>
 
-                <ul class="d-flex align-items-center gap-4">
-                    <li><a href="index.html">home</a></li>
-                    <li><a href="about.html" class="active">about</a></li>
-                    <li><a href="contact.html">contact</a></li>
-                    <li class="nav-actions">
-                        <button class="theme-toggle-btn glass" id="themeBtn" title="Toggle theme">
-                            <i class="hgi hgi-stroke hgi-sun-01" id="themeIcon"></i>
-                        </button>
-                        <a href="download.html" class="btn btn-primary" id="downloadNavBtn">Download Friday</a>
-                    </li>
-                </ul>
-            </div>
+<div class="page-hero">
+  <p class="page-eyebrow reveal">About Friday</p>
+  <h1 class="page-title reveal">
+    Built by
+    <a href="https://isaacokwuzi.vercel.app" target="_blank" class="me-trigger" id="meTrigger"><span class="me-word">me.</span></a>
+    For <em>everyone.</em>
+  </h1>
+
+  <!-- cursor-following hover card (not a link, just a preview) -->
+  <div id="meCard">
+    <img src="https://pub-2063ba9889a54ec89f6447e9f457a276.r2.dev/me.jpg" alt="Isaac Okwuzi" onerror="this.style.cssText='width:110px;height:110px;border-radius:50%;background:#1A2028;display:block;margin:0 auto 14px'"/>
+    <div class="me-card-label">Click to meet me 🤝</div>
+  </div>
+  <p class="page-lead reveal">Friday started as a personal project to answer a simple question: what if your computer could just… do things for you?</p>
+</div>
+
+<div class="content">
+  <div class="story-grid reveal">
+    <div class="story-block">
+      <h2>The problem</h2>
+      <p>Most AI tools sit in a browser tab waiting for you to come to them. You copy text in, paste text out, switch windows, repeat. It's better than nothing, but it's not what AI should feel like.</p>
+      <p>The real promise of AI is a computer that understands what you're trying to do and helps you do it, right where you are, without you having to change how you work.</p>
+    </div>
+    <div class="story-block">
+      <h2>The idea</h2>
+      <p>Friday is built around a different model. It lives on your desktop, always a hotkey away. You talk to it, literally, with your voice, and it acts. It can see your screen, control your apps, browse the web, and run tasks in the background.</p>
+      <p>No new interface to learn. No tab-switching. Just say what you need and get back to work.</p>
+    </div>
+  </div>
+
+  <div class="team-section reveal">
+    <h2>The builder</h2>
+    <div class="team-card">
+      <div class="team-avatar">
+        <img src="https://pub-2063ba9889a54ec89f6447e9f457a276.r2.dev/me.jpg" alt="Isaac Okwuzi"/>
+      </div>
+      <div class="team-info">
+        <h3>Isaac Okwuzi</h3>
+        <div class="team-role">Founder &amp; Developer</div>
+        <p>Design engineer with a passion for building tools that positively impact how people live &amp; work. Friday is my attempt to make AI accessible to anyone, not just "techies".</p>
+        <div class="team-links">
+          <a href="https://x.com/nothiro__" target="_blank">𝕏 @nothiro__</a>
         </div>
-    </nav>
-    <!-- Navbar End -->
+      </div>
+    </div>
+  </div>
 
-    <main>
-        <section class="hero section-padding">
-            <div class="container">
-                <div class="hero-content" data-reveal>
-                    <h1 class="text-gradient-green">The Vision & Values</h1>
-                    <p>Friday is more than just a chatbot. It's a new way to interact with your digital world.</p>
-                </div>
-            </div>
-        </section>
+  <div class="values-section reveal">
+    <h2>What we believe</h2>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="value-num">01</div>
+        <h3>AI should come to you</h3>
+        <p>You shouldn't have to change your workflow to use AI. Friday meets you where you are, on your desktop, in your apps, right now.</p>
+      </div>
+      <div class="value-card">
+        <div class="value-num">02</div>
+        <h3>Voice is the most natural interface</h3>
+        <p>Typing is overhead. Talking is thinking out loud. Friday is built voice-first because that's how people naturally delegate work.</p>
+      </div>
+      <div class="value-card">
+        <div class="value-num">03</div>
+        <h3>Privacy by default</h3>
+        <p>Friday runs locally on your machine. What happens on your computer stays on your computer, no cloud required for core tasks.</p>
+      </div>
+      <div class="value-card">
+        <div class="value-num">04</div>
+        <h3>AI for everyone</h3>
+        <p>Powerful AI tools shouldn't require a technical background to use. Friday is designed to feel as natural as talking to a colleague.</p>
+      </div>
+    </div>
+  </div>
+</div>
 
-        <section id="about-vision" class="about-vision">
-            <div class="container">
-                <div class="about-text" data-reveal>
-                    <h2>Why Project Friday?</h2>
-                    <p style="font-size: 1.1rem; margin-top: 16px;">Current AI tools are trapped in browser tabs.
-                        Friday breaks that barrier by living directly on your desktop, giving AI the context of your
-                        actual files and workflows while keeping your privacy intact via local processing.</p>
-                </div>
-            </div>
-        </section>
-    </main>
+<footer>
+  <a href="index.html" class="footer-logo"><div class="logo-dot"></div>Friday</a>
+  <div class="footer-links">
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
+  </div>
+  <p class="copy">© 2026 Isaac Okwuzi</p>
+</footer>
 
-    <!-- Footer Start -->
-    <footer class="footer py-5 border-top">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6 footer__text">
-                    <span>© 2026 Project Friday. All Rights Reserved.</span>
-                </div>
-                <div class="col-md-6">
-                    <ul class="footer__links d-flex justify-content-end gap-3 mb-0">
-                        <li><a href="about.html">about</a></li>
-                        <li><a href="privacy.html">privacy policy</a></li>
-                        <li><a href="terms.html">legal</a></li>
-                        <li><a href="contact.html">contact</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </footer>
-    <!-- Footer End -->
+<script>
+function setTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('friday-theme',t);updateBtns(t)}
+function updateBtns(t){document.getElementById('btnDark').classList.toggle('active',t==='dark');document.getElementById('btnLight').classList.toggle('active',t==='light')}
+updateBtns(document.documentElement.getAttribute('data-theme'));
 
-    <script type="module" src="/main.js"></script>
+// Preload image so it's ready before first hover
+const preload = new Image();
+preload.src = 'https://pub-2063ba9889a54ec89f6447e9f457a276.r2.dev/me.jpg';
+
+// Cursor-following "me" card
+const trigger = document.getElementById('meTrigger');
+const card    = document.getElementById('meCard');
+const offset  = 16; // gap below cursor
+
+trigger.addEventListener('mouseenter', () => card.classList.add('visible'));
+trigger.addEventListener('mouseleave', () => card.classList.remove('visible'));
+
+document.addEventListener('mousemove', e => {
+  const cw = card.offsetWidth;
+  const ch = card.offsetHeight;
+  let x = e.clientX - cw / 2;
+  let y = e.clientY + offset;
+
+  x = Math.max(8, Math.min(x, window.innerWidth - cw - 8));
+  y = Math.max(8, Math.min(y, window.innerHeight - ch - 8));
+
+  card.style.left = x + 'px';
+  card.style.top  = y + 'px';
+});
+const _revealEls=document.querySelectorAll(".reveal");const _revealObs=new IntersectionObserver(entries=>{entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add("visible"),i*70);_revealObs.unobserve(e.target)}});},{threshold:0.08});_revealEls.forEach(el=>_revealObs.observe(el));
+</script>
 </body>
-
 </html>

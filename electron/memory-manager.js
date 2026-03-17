@@ -35,6 +35,32 @@ class MemoryManager {
                 }]
             });
         } catch (err) {
+            if (err.message.includes('404')) {
+                // Thread not found, create it with the first message
+                try {
+                    // 1. Try to create user first (idempotent-ish)
+                    try {
+                        await client.user.create({
+                            userId: "default_user",
+                            firstName: "Friday",
+                            lastName: "User"
+                        });
+                    } catch (e) {}
+
+                    // 2. Create thread
+                    await client.thread.create({
+                        threadId,
+                        userId: "default_user",
+                        messages: [{
+                            role: role === 'ai' ? 'assistant' : 'user',
+                            content: content
+                        }]
+                    });
+                    return;
+                } catch (createErr) {
+                    console.error(`[MemoryManager] Zep thread creation failed for ${threadId}:`, createErr.message);
+                }
+            }
             console.error(`[MemoryManager] Zep addMessage failed for ${threadId}:`, err.message);
             if (err.message.includes('403')) console.warn('[MemoryManager] 403 Forbidden: Check Zep API Key permissions.');
         }

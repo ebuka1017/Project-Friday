@@ -1,99 +1,151 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/assets/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Privacy Policy — Friday</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Funnel+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Privacy Policy, Friday</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<script>(function(){const s=localStorage.getItem('friday-theme'),p=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(p?'dark':'light'));})();
+</script>
+<style>
+:root,[data-theme="dark"]{--bg:#080B0F;--surface:#0E1318;--surface2:#1A2028;--border:rgba(255,255,255,0.09);--accent:#3BFFA0;--accent2:#5B9EFF;--text:#E8EDF2;--muted:#7A8D9E;--nav-bg:rgba(8,11,15,0.82);--toggle-bg:#1A2028;--toggle-border:rgba(255,255,255,0.14);--toggle-active-bg:#2A3540;--toggle-active-color:#E8EDF2;--toggle-inactive-color:#4A5D6E}
+[data-theme="light"]{--bg:#F0F2F5;--surface:#FFFFFF;--surface2:#E4E8ED;--border:rgba(0,0,0,0.1);--accent:#00A65A;--accent2:#2C6FE8;--text:#0F1923;--muted:#5A6A7A;--nav-bg:rgba(240,242,245,0.88);--toggle-bg:#E4E8ED;--toggle-border:rgba(0,0,0,0.14);--toggle-active-bg:#FFFFFF;--toggle-active-color:#0F1923;--toggle-inactive-color:#8A9AAA}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;overflow-x:hidden;transition:background 0.3s,color 0.3s}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.35}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 48px;background:var(--nav-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:background 0.3s}
+.nav-left{display:flex;align-items:center;gap:36px}
+.nav-links{display:flex;align-items:center;gap:28px;list-style:none}
+.nav-links a{font-size:0.85rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.nav-links a:hover{color:var(--text)}
+.nav-links a.active{color:var(--text);font-weight:500}
+.nav-right{display:flex;align-items:center;gap:14px}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:lpulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes lpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.theme-toggle{background:var(--toggle-bg);border:1px solid var(--toggle-border);border-radius:100px;padding:4px;display:flex;align-items:center;gap:2px}
+.theme-btn{width:32px;height:32px;border-radius:100px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;transition:background 0.2s,color 0.2s;color:var(--toggle-inactive-color)}
+.theme-btn.active{background:var(--toggle-active-bg);color:var(--toggle-active-color);box-shadow:0 1px 6px rgba(0,0,0,0.25)}
+.nav-cta{background:var(--accent);color:#0F1923;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.85rem;padding:9px 20px;border-radius:6px;text-decoration:none;transition:opacity 0.2s,transform 0.2s;white-space:nowrap}
+.nav-cta:hover{opacity:0.85;transform:translateY(-1px)}
+
+.page-wrap{max-width:760px;margin:0 auto;padding:160px 32px 120px;position:relative;z-index:1}
+.page-eyebrow{font-size:0.72rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2rem,5vw,3rem);letter-spacing:-0.03em;line-height:1.1;margin-bottom:12px}
+.page-meta{font-size:0.8rem;color:var(--muted);margin-bottom:48px}
+
+.tldr-box{background:rgba(59,255,160,0.05);border:1px solid rgba(59,255,160,0.15);border-radius:12px;padding:22px 26px;margin-bottom:48px}
+[data-theme="light"] .tldr-box{background:rgba(0,166,90,0.05);border-color:rgba(0,166,90,0.15)}
+.tldr-label{font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.tldr-box p{font-size:0.9rem;color:var(--text);line-height:1.7;margin:0}
+
+.prose h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem;letter-spacing:-0.01em;margin:44px 0 12px}
+.prose h2:first-child{margin-top:0}
+.prose p{font-size:0.93rem;color:var(--muted);line-height:1.8;margin-bottom:14px}
+.prose p strong{color:var(--text);font-weight:500}
+.prose ul{padding-left:20px;margin-bottom:14px}
+.prose ul li{font-size:0.93rem;color:var(--muted);line-height:1.8;margin-bottom:5px}
+.prose a{color:var(--accent2);text-decoration:none}
+.prose a:hover{text-decoration:underline}
+
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;z-index:1}
+.footer-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:0.8rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.footer-links a:hover{color:var(--text)}
+.copy{font-size:0.75rem;color:var(--muted)}
+@media(max-width:768px){nav{padding:16px 20px}.nav-links{display:none}.page-wrap{padding:140px 20px 80px}footer{padding:24px 20px;flex-direction:column;align-items:flex-start}}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity 0.65s ease,transform 0.65s ease}.reveal.visible{opacity:1;transform:translateY(0)}
+</style>
 </head>
-
 <body>
-    <!-- Navbar Start -->
-    <nav class="navbar glass">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a href="index.html" class="navbar__logo">
-                <img src="assets/logo.png" alt="Friday Logo" style="height: 32px; margin-right: 10px;">
-                <span class="text-gradient-green" style="font-weight: 700; font-family: var(--font-display);">FRIDAY</span>
-            </a>
 
-            <div class="navbar__menu">
-                <button id="navbar-toggle" aria-label="Menu Toggle">
-                    <i class="hgi hgi-stroke hgi-menu-01"></i>
-                </button>
+<nav>
+  <div class="nav-left">
+    <a href="index.html" class="logo"><div class="logo-dot"></div>Friday</a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </div>
+  <div class="nav-right">
+    <div class="theme-toggle">
+      <button class="theme-btn" id="btnDark" onclick="setTheme('dark')" title="Dark mode">🌙</button>
+      <button class="theme-btn" id="btnLight" onclick="setTheme('light')" title="Light mode">☀️</button>
+    </div>
+    <a href="https://github.com/ebuka1017/Project-Friday/releases" class="nav-cta">Download Free</a>
+  </div>
+</nav>
 
-                <ul class="d-flex align-items-center gap-4">
-                    <li><a href="index.html">home</a></li>
-                    <li><a href="about.html">about</a></li>
-                    <li><a href="contact.html">contact</a></li>
-                    <li class="nav-actions">
-                        <button class="theme-toggle-btn glass" id="themeBtn" title="Toggle theme" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50% !important;">
-                            <i class="hgi hgi-stroke hgi-sun-01" id="themeIcon" style="font-size: 1.2rem;"></i>
-                        </button>
-                        <a href="download.html" class="btn btn-primary" id="downloadNavBtn">Download Friday</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <!-- Navbar End -->
+<div class="page-wrap">
+  <p class="page-eyebrow reveal">Legal</p>
+  <h1 class="page-title reveal">Privacy Policy</h1>
+  <p class="page-meta">Last updated: March 2026</p>
 
-    <main>
-        <section class="hero section-padding">
-            <div class="container legal-container">
-                <h1 class="text-gradient-green">Privacy Policy</h1>
-                <p>Last Updated: March 13, 2026</p>
-                
-                <h2>1. Principles</h2>
-                <p>Friday is built with a local-first philosophy. We believe your desktop data should stay on your machine. Our goal is to provide a powerful assistant without compromising your privacy.</p>
+  <div class="tldr-box reveal">
+    <div class="tldr-label">tl;dr</div>
+    <p>Friday runs locally on your computer. We don't collect your voice recordings, screen content, or personal files. The only external service Friday uses is Google Cloud Vertex AI to power its AI capabilities, your queries are sent there to be processed.</p>
+  </div>
 
-                <h2>2. Data Collection</h2>
-                <p><strong>Local Data:</strong> Friday processes your files, system information, and session history locally. This data is stored on your computer and is not uploaded to our servers.</p>
-                <p><strong>Authentication:</strong> We use Clerk for user authentication. When you sign in, Clerk manages your identity data according to their privacy policy. Friday only receives the necessary tokens to verify your session.</p>
+  <div class="prose reveal">
+    <h2>1. Who we are</h2>
+    <p>Friday ("the app", "we", "us") is developed and maintained by Isaac Okwuzi. This privacy policy explains how Friday handles your data when you use the application.</p>
 
-                <h2>3. AI Processing</h2>
-                <p>Friday interacts with AI models (like Gemini) via API. Only the specific prompts and context required to fulfill your requests are sent to the AI provider. We do not use your data to train our own models.</p>
+    <h2>2. What data Friday collects</h2>
+    <p>Friday is designed to operate primarily on your local machine. Here is a clear breakdown of what data leaves your device:</p>
+    <ul>
+      <li><strong>Voice audio:</strong> When you speak to Friday, your audio is streamed in real time to Google Cloud Vertex AI (Gemini Live API) for processing. It is not stored by Friday.</li>
+      <li><strong>Text queries and context:</strong> Any text you type or that Friday reads from your screen to fulfil a task may be sent to Google Cloud Vertex AI as part of the request. This is necessary for Friday to function.</li>
+      <li><strong>Conversation memory:</strong> Friday stores a local conversation history in a SQLite database on your device. This data does not leave your computer unless you explicitly share it.</li>
+    </ul>
+    <p>Friday does <strong>not</strong> collect, store, or transmit:</p>
+    <ul>
+      <li>Your name, email address, or account details (no account is required)</li>
+      <li>Continuous screen recordings or screenshots beyond what is needed to complete a specific task you request</li>
+      <li>Keystrokes or clipboard contents beyond active task execution</li>
+      <li>Any data to Friday's own servers (Friday has no backend server)</li>
+    </ul>
 
-                <h2>4. Security</h2>
-                <p>Friday uses system-level encryption to protect your stored session data and any secrets (like API keys) you provide within the application.</p>
+    <h2>3. Third-party services</h2>
+    <p>Friday uses <strong>Google Cloud Vertex AI</strong> to power its AI capabilities. When you interact with Friday, your queries and relevant context are sent to Google's infrastructure for processing. Please refer to <a href="https://cloud.google.com/terms/cloud-privacy-notice" target="_blank">Google Cloud's Privacy Notice</a> for details on how Google handles this data.</p>
+    <p>Friday uses <strong>Clerk</strong> for optional user session management if account features are enabled. Clerk's privacy policy applies to any data processed through their service.</p>
 
-                <h2>5. Changes to This Policy</h2>
-                <p>We may update this policy occasionally. Any significant changes will be reflected in the "Last Updated" date at the top of this page.</p>
+    <h2>4. Local data storage</h2>
+    <p>Friday stores conversation history and user preferences locally on your Windows PC using SQLite. This data is stored in your user application data directory and is not accessible to anyone other than you and applications running on your machine.</p>
 
-                <h2>6. Contact</h2>
-                <p>If you have questions about our privacy practices, please contact us through our official contact page.</p>
+    <h2>5. Screen and computer access</h2>
+    <p>Friday can take screenshots and interact with your desktop when you explicitly ask it to perform tasks that require this. Screenshots are used only to fulfil the specific task you requested and are not stored beyond the active conversation session.</p>
 
-                <div style="margin-top: 60px;">
-                    <a href="index.html" class="btn btn-secondary">Back to Home</a>
-                </div>
-            </div>
-        </section>
-    </main>
+    <h2>6. Children's privacy</h2>
+    <p>Friday is not directed at children under the age of 13. We do not knowingly collect personal information from children.</p>
 
-    <!-- Footer Start -->
-    <footer class="footer py-5 border-top">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6 footer__text">
-                    <span>© 2026 Project Friday. All Rights Reserved.</span>
-                </div>
-                <div class="col-md-6">
-                    <ul class="footer__links d-flex justify-content-end gap-3 mb-0">
-                        <li><a href="about.html">about</a></li>
-                        <li><a href="privacy.html">privacy policy</a></li>
-                        <li><a href="terms.html">legal</a></li>
-                        <li><a href="contact.html">contact</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </footer>
-    <!-- Footer End -->
+    <h2>7. Changes to this policy</h2>
+    <p>We may update this privacy policy from time to time. The date at the top of this page reflects the most recent update.</p>
+
+    <h2>8. Contact</h2>
+    <p>If you have any questions about this privacy policy, you can reach us via the <a href="contact.html">contact page</a>.</p>
+  </div>
+</div>
+
+<footer>
+  <a href="index.html" class="footer-logo"><div class="logo-dot"></div>Friday</a>
+  <div class="footer-links">
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
+  </div>
+  <p class="copy">© 2026 Isaac Okwuzi</p>
+</footer>
+
+<script>
+function setTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('friday-theme',t);updateBtns(t)}
+function updateBtns(t){document.getElementById('btnDark').classList.toggle('active',t==='dark');document.getElementById('btnLight').classList.toggle('active',t==='light')}
+updateBtns(document.documentElement.getAttribute('data-theme'));
+const _revealEls=document.querySelectorAll(".reveal");const _revealObs=new IntersectionObserver(entries=>{entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add("visible"),i*70);_revealObs.unobserve(e.target)}});},{threshold:0.08});_revealEls.forEach(el=>_revealObs.observe(el));
+</script>
 </body>
-
 </html>

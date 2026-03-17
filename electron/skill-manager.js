@@ -41,6 +41,12 @@ class SkillManager {
         
         console.log(`[SkillManager] Total tools available: ${this.skills.size}`);
     }
+    
+    getDefinitions() {
+        return Array.from(this.skills.values())
+            .map(s => s.definition || (s.getDefinition ? s.getDefinition() : null))
+            .filter(d => d !== null);
+    }
 
     async execute(name, args, context) {
         const skill = this.skills.get(name);
