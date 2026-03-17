@@ -9,7 +9,11 @@ const fs = require('fs');
 const { spawn, exec } = require('child_process');
 require('dotenv').config();
 
-// Browser Agent State
+let mainWindow = null; // Global reference for logging
+let currentUser = null;
+let isAuthenticated = false;
+
+// ─── Environment Initialization ──────────────────────────────────────────────
 const browserAgentManager = require('./browser-agent-manager');
 const { createHUD, toggleHUD, hideHUD, getWindow } = require('./hud');
 const sidecar = require('./sidecar-launcher');
@@ -19,11 +23,42 @@ const productivityTools = require('./productivity-tools');
 // const path = require('path'); // This was moved up
 
 // ─── Environment Initialization ──────────────────────────────────────────────
+// ── Environment Initialization ──────────────────────────────────────────────
 const envPath = process.env.NODE_ENV === 'development' || !app.isPackaged
     ? path.join(__dirname, '..', '.env')
     : path.join(process.resourcesPath, '.env');
 
 require('dotenv').config({ path: envPath });
+
+// Override console to broadcast logs to renderer
+const originalConsoleLog = console.log;
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+
+function broadcastLog(level, ...args) {
+    let message = "";
+    try {
+        message = args.map(a => {
+            if (a instanceof Error) return `${a.message}\n${a.stack}`;
+            return typeof a === 'object' ? JSON.stringify(a) : String(a);
+        }).join(' ');
+    } catch (e) {
+        message = "[Serialization Error] " + args.join(' ');
+    }
+
+    if (level === 'log') originalConsoleLog(message);
+    else if (level === 'warn') originalConsoleWarn(message);
+    else if (level === 'error') originalConsoleError(message);
+
+    const time = new Date().toISOString().split('T')[1].slice(0, 12);
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+        mainWindow.webContents.send('app:logLine', { time, level, message });
+    }
+}
+
+console.log = (...args) => broadcastLog('log', ...args);
+console.warn = (...args) => broadcastLog('warn', ...args);
+console.error = (...args) => broadcastLog('error', ...args);
 // ──────────────────────────────────────────────────────────────────────────────
 
 const { registerDeepLink, setMainWindow, handleDeepLinkUrl } = require('./auth-main');
@@ -49,52 +84,22 @@ const fsTools = require('./fs-tools');
 const sysinfoTools = require('./sysinfo-tools');
 const notificationTools = require('./notification-tools');
 const networkTools = require('./network-tools');
-// Load environment variables from app root
-console.log(`[friday] Environment loaded from: ${envPath}`);
-if (process.env.GEMINI_API_KEY) console.log('[friday] GEMINI_API_KEY is present');
-else console.warn('[friday] GEMINI_API_KEY is MISSING after load');
+const connectivityTester = require('./connectivity-tester');
 
-// Override console to broadcast logs to renderer
-const originalConsoleLog = console.log;
-const originalConsoleWarn = console.warn;
-const originalConsoleError = console.error;
-
-// Global error handlers
-process.on('uncaughtException', (err) => {
-    originalConsoleError('[friday] Uncaught Exception:', err);
-});
-process.on('unhandledRejection', (reason, promise) => {
-    originalConsoleError('[friday] Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-function broadcastLog(level, ...args) {
-    let message = "";
-    try {
-        message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-    } catch (e) {
-        message = "[Serialization Error] " + args.join(' ');
-    }
-
-    if (level === 'log') originalConsoleLog(message);
-    else if (level === 'warn') originalConsoleWarn(message);
-    else if (level === 'error') originalConsoleError(message);
-
-    const time = new Date().toISOString().split('T')[1].slice(0, 12);
-    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
-        mainWindow.webContents.send('app:logLine', { time, level, message });
-    }
+// API Connectivity Checks
+if (process.env.GEMINI_API_KEY) {
+    // Delay slightly to ensure logs capture in renderer
+    setTimeout(() => {
+        connectivityTester.testAll().catch(e => console.error('[Connectivity] Startup test failed:', e));
+    }, 1000);
+} else {
+    console.warn('[friday] GEMINI_API_KEY is MISSING after load');
 }
-
-console.log = (...args) => broadcastLog('log', ...args);
-console.warn = (...args) => broadcastLog('warn', ...args);
-console.error = (...args) => broadcastLog('error', ...args);
 
 // CRITICAL for HUD: Allow the background/hidden main window to start WebRTC AudioContext without user DOM clicks
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
-let mainWindow = null;
-let currentUser = null;
-let isAuthenticated = false;
+// ── Auth & Session State ──────────────────────────────────────────────────
 
 ipcMain.handle('auth:setStatus', (_, status, user) => {
     isAuthenticated = status;
@@ -134,91 +139,130 @@ ipcMain.handle('app:close', () => {
     }
 });
 
-// ── Browser Control (Extension Bridge) ───────────────────────────────────
+// ── Browser Control (Strict Extension Bridge) ───────────────────────────
 ipcMain.handle('browser:connect', () => {
     return browserServer.isConnected();
 });
+ipcMain.handle('browser:isConnected', () => {
+    return browserServer.isConnected();
+});
 ipcMain.handle('browser:disconnect', () => {
-    // We basically just check status. The UI handles the toggle.
     return !browserServer.isConnected();
 });
+
+// Helper to ensure extension is connected before any browser action
+async function ensureExtension() {
+    if (!browserServer.isConnected()) {
+        throw new Error("Extension Disconnected: Please connect the Friday Chrome extension to proceed.");
+    }
+}
+
 ipcMain.handle('browser:navigate', async (_, url) => {
     try {
+        await ensureExtension();
         db.logAudit('browser_navigate', { url }).catch(e => console.error('[Audit]', e));
-        if (browserServer.isConnected()) return await browserServer.navigate(url);
-        await mainAgentBrowser.init();
-        return await mainAgentBrowser.navigate(url);
+        return await browserServer.navigate(url);
     } catch (e) {
-        console.error('[Browser] Navigate Error:', e);
-        return false;
+        console.error('[Browser] Navigate Error:', e.message);
+        return { error: e.message };
     }
 });
+
+ipcMain.handle('browser:createTab', async (_, url) => {
+    try {
+        await ensureExtension();
+        db.logAudit('browser_createtab', { url }).catch(e => console.error('[Audit]', e));
+        return await browserServer.createTab(url);
+    } catch (e) {
+        console.error('[Browser] CreateTab Error:', e.message);
+        return { error: e.message };
+    }
+});
+
 ipcMain.handle('browser:evaluate', async (_, expression) => {
     try {
+        await ensureExtension();
         db.logAudit('browser_evaluate', { expression }).catch(e => console.error('[Audit]', e));
-        if (browserServer.isConnected()) return await browserServer.evaluate(expression);
-        return await mainAgentBrowser.evaluate(expression);
+        return await browserServer.evaluate(expression);
     } catch (e) {
-        console.error('[Browser] Evaluate Error:', e);
-        return null;
+        console.error('[Browser] Evaluate Error:', e.message);
+        return { error: e.message };
     }
 });
+
 ipcMain.handle('browser:getDOM', async () => {
     try {
-        if (browserServer.isConnected()) return await browserServer.getDOM();
-        return await mainAgentBrowser.getDOM();
+        await ensureExtension();
+        return await browserServer.getDOM();
     } catch (e) {
-        console.error('[Browser] GetDOM Error:', e);
-        return null;
+        console.error('[Browser] GetDOM Error:', e.message);
+        return { error: e.message };
     }
 });
+
 ipcMain.handle('browser:goBack', async () => {
     try {
+        await ensureExtension();
         db.logAudit('browser_goback').catch(e => console.error('[Audit]', e));
         return await browserServer.goBack();
     } catch (e) {
-        console.error('[Browser] GoBack Error:', e);
-        return false;
+        console.error('[Browser] GoBack Error:', e.message);
+        return { error: e.message };
     }
 });
+
 ipcMain.handle('browser:goForward', async () => {
     try {
+        await ensureExtension();
         db.logAudit('browser_goforward').catch(e => console.error('[Audit]', e));
         return await browserServer.goForward();
     } catch (e) {
-        console.error('[Browser] GoForward Error:', e);
-        return false;
+        console.error('[Browser] GoForward Error:', e.message);
+        return { error: e.message };
     }
 });
-ipcMain.handle('browser:click', async (_, selector) => {
+
+ipcMain.handle('browser:click', async (_, target) => {
     try {
-        db.logAudit('browser_click', { selector }).catch(e => console.error('[Audit]', e));
-        if (browserServer.isConnected()) return await browserServer.click(selector);
-        return await mainAgentBrowser.click(selector);
+        await ensureExtension();
+        db.logAudit('browser_click', { target }).catch(e => console.error('[Audit]', e));
+        return await browserServer.click(target);
     } catch (e) {
         console.error('[Browser] Click Error:', e.message);
         return { error: e.message };
     }
 });
-ipcMain.handle('browser:type', async (_, selector, text) => {
+
+ipcMain.handle('browser:type', async (_, target, text) => {
     try {
-        db.logAudit('browser_type', { selector, text }).catch(e => console.error('[Audit]', e));
-        if (browserServer.isConnected()) return await browserServer.type(selector, text);
-        return await mainAgentBrowser.type(selector, text);
+        await ensureExtension();
+        db.logAudit('browser_type', { target, text }).catch(e => console.error('[Audit]', e));
+        return await browserServer.typeTarget(target, text);
     } catch (e) {
         console.error('[Browser] Type Error:', e.message);
         return { error: e.message };
     }
 });
 
+ipcMain.handle('browser:pressKey', async (_, key) => {
+    try {
+        await ensureExtension();
+        db.logAudit('browser_press_key', { key }).catch(e => console.error('[Audit]', e));
+        return await browserServer.pressKey(key);
+    } catch (e) {
+        console.error('[Browser] PressKey Error:', e.message);
+        return { error: e.message };
+    }
+});
+
 ipcMain.handle('browser:screenshot', async () => {
     try {
+        await ensureExtension();
         db.logAudit('browser_screenshot').catch(e => console.error('[Audit]', e));
-        if (browserServer.isConnected()) return await browserServer.screenshot();
-        return await mainAgentBrowser.screenshot();
+        return await browserServer.screenshot();
     } catch (e) {
         console.error('[Browser] Screenshot Error:', e.message);
-        return null;
+        return { error: e.message };
     }
 });
 ipcMain.handle('browser:annotate', async () => {
@@ -325,7 +369,7 @@ ipcMain.handle('app:fetchIframely', async (event, url) => {
     const key = process.env.IFRAMELY_KEY;
     if (!key) return null;
     try {
-        const response = await axios.get(`https://cdn.iframe.ly/api/iframely?url=${encodeURIComponent(url)}&api_key=${key}&omit_script=1`);
+        const response = await axios.get(`https://cdn.iframe.ly/api/iframely?url=${encodeURIComponent(url)}&key=${key}&omit_script=1`);
         return response.data;
     } catch (e) {
         console.error('[RichMedia] Iframely error:', e.message);
@@ -392,6 +436,17 @@ ipcMain.handle('app:getAgentTools', () => {
 
 ipcMain.handle('app:getVoiceTools', () => {
     return toolsRegistry.getVoiceTools();
+});
+
+// ── Memory Management (Zep Cloud & Local) ────────────────────────────────
+ipcMain.handle('memory:save', async (_, content) => {
+    if (!currentUser) return { success: false, error: 'Not authenticated' };
+    return await memoryManager.saveToMemory(currentUser.id, content);
+});
+
+ipcMain.handle('memory:search', async (_, query) => {
+    if (!currentUser) return { success: false, error: 'Not authenticated' };
+    return await memoryManager.searchMemory(currentUser.id, query);
 });
 
 // ── Native File System Tools ─────────────────────────────────────────────
@@ -899,8 +954,8 @@ ipcMain.handle('env:getGeminiKey', () => {
 ipcMain.handle('env:getClerkKey', () => {
     return process.env.CLERK_PUBLISHABLE_KEY || '';
 });
-ipcMain.handle('env:getClerkDomain', () => process.env.CLERK_DOMAIN || 'singular-alien-87.clerk.accounts.dev');
-ipcMain.handle('env:getClerkAccountUrl', () => process.env.CLERK_ACCOUNT_URL || `https://${process.env.CLERK_DOMAIN || 'singular-alien-87.clerk.accounts.dev'}/user`);
+ipcMain.handle('env:getClerkDomain', () => process.env.CLERK_DOMAIN || 'clerk.algospend.tech');
+ipcMain.handle('env:getClerkAccountUrl', () => process.env.CLERK_ACCOUNT_URL || `https://accounts.algospend.tech/user`);
 
 
 

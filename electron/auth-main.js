@@ -7,7 +7,7 @@ const path = require("path");
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const PROTOCOL = "friday";
-const DOMAIN = process.env.CLERK_DOMAIN || "singular-alien-87.clerk.accounts.dev";
+const DOMAIN = process.env.CLERK_DOMAIN || "clerk.algospend.tech";
 
 // ─── PKCE Helpers ────────────────────────────────────────────────────────────
 

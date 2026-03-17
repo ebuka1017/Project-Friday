@@ -22,11 +22,12 @@ function connectToFriday() {
     ws.onopen = () => {
         console.log("[Friday Bridge] Connected to Friday App!");
         connectionPending = false;
+        // Notify Friday that we are ready
+        ws.send(JSON.stringify({ event: 'ready', clientId }));
     };
 
     ws.onclose = (event) => {
         connectionPending = false;
-        // Code 4000 = we were replaced by a newer extension instance — don't fight it
         if (event.code === 4000) {
             console.log("[Friday Bridge] Replaced by another instance. Stopping reconnect.");
             return;
@@ -43,9 +44,14 @@ function connectToFriday() {
     ws.onmessage = async (event) => {
         try {
             const msg = JSON.parse(event.data);
-            if (msg.method) {
-                const result = await handleCommand(msg.method, msg.params);
+            if (msg.method === 'cdp') {
+                const result = await handleCDP(msg.params.command, msg.params.args);
                 ws.send(JSON.stringify({ id: msg.id, result }));
+            } else if (msg.method === 'browser_create_tab') {
+                const tab = await chrome.tabs.create({ url: msg.params.url });
+                // We don't attach immediately, the next CDP command will attach to active tab
+                // or we could explicitly attach here. Let's return the tabId.
+                ws.send(JSON.stringify({ id: msg.id, result: { tabId: tab.id } }));
             }
         } catch (err) {
             console.error("[Friday Bridge] Command error:", err);
@@ -57,63 +63,29 @@ function connectToFriday() {
     };
 }
 
-// Connect on browser start or extension update
-chrome.runtime.onStartup.addListener(() => connectToFriday());
-chrome.runtime.onInstalled.addListener(() => connectToFriday());
+// CDP tunnel implementation
+async function handleCDP(command, args = {}) {
+    // If command is directed at a specific tab, use that, otherwise use active
+    const targetTabId = args._tabId;
+    delete args._tabId;
 
-// Initial connection (runs each time service worker wakes)
-connectToFriday();
-
-// Handle messages from popup
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.type === 'getStatus') {
-        sendResponse({ connected: ws && ws.readyState === WebSocket.OPEN });
-    } else if (msg.type === 'reconnect') {
-        // Force close existing and reconnect
-        if (ws) {
-            try { ws.close(); } catch (e) {}
-            ws = null;
-        }
-        connectionPending = false;
-        connectToFriday();
-        sendResponse({ ok: true });
-    }
-    return true; // keep channel open for async response
-});
-
-// ── Command Handling ───────────────────────────────────────────────────
-
-async function handleCommand(method, params) {
-    if (method === "navigate") {
-        return await navigate(params.url);
-    } else if (method === "getDOM") {
-        return await getDOM();
-    } else if (method === "evaluate") {
-        return await evaluate(params.expression);
-    } else if (method === "goBack") {
-        return await goBack();
-    } else if (method === "goForward") {
-        return await goForward();
-    } else if (method === "click") {
-        return await click(params.selector);
-    } else if (method === "type") {
-        return await type(params.selector, params.text);
-    } else if (method === "cdp") {
-        const tabId = await ensureDebugger();
-        return new Promise((resolve, reject) => {
-            chrome.debugger.sendCommand({ tabId }, params.command, params.args || {}, (result) => {
-                if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
-                resolve(result || {});
-            });
+    const tabId = await ensureDebugger(targetTabId);
+    return new Promise((resolve, reject) => {
+        chrome.debugger.sendCommand({ tabId }, command, args, (result) => {
+            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+            resolve(result || {});
         });
-    }
-    throw new Error(`Unknown method: ${method}`);
+    });
 }
 
-async function ensureDebugger() {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tabs || tabs.length === 0) throw new Error("No active tab found");
-    const tabId = tabs[0].id;
+async function ensureDebugger(targetTabId = null) {
+    let tabId = targetTabId;
+    
+    if (!tabId) {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs || tabs.length === 0) throw new Error("No active tab found");
+        tabId = tabs[0].id;
+    }
 
     if (attachedTabId !== tabId) {
         if (attachedTabId) {
@@ -122,128 +94,19 @@ async function ensureDebugger() {
         await chrome.debugger.attach({ tabId }, "1.3");
         attachedTabId = tabId;
 
+        // Auto-enable standard domains
         await chrome.debugger.sendCommand({ tabId }, "Page.enable");
         await chrome.debugger.sendCommand({ tabId }, "DOM.enable");
         await chrome.debugger.sendCommand({ tabId }, "Runtime.enable");
+        await chrome.debugger.sendCommand({ tabId }, "Accessibility.enable");
     }
     return tabId;
 }
 
-// ── Commands ───────────────────────────────────────────────────────────
-
-async function navigate(url) {
-    const tabId = await ensureDebugger();
-    return new Promise((resolve, reject) => {
-        chrome.debugger.sendCommand({ tabId }, "Page.navigate", { url }, (result) => {
-            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
-
-            // Wait for load event
-            const onEvent = (source, method, params) => {
-                if (source.tabId === tabId && method === "Page.loadEventFired") {
-                    chrome.debugger.onEvent.removeListener(onEvent);
-                    resolve({ success: true, frameId: result.frameId });
-                }
-            };
-            chrome.debugger.onEvent.addListener(onEvent);
-
-            // Fallback timeout
-            setTimeout(() => {
-                chrome.debugger.onEvent.removeListener(onEvent);
-                resolve({ success: true, note: "Timeout waiting for loadEventFired" });
-            }, 8000);
-        });
-    });
-}
-
-async function getDOM() {
-    const tabId = await ensureDebugger();
-    return new Promise((resolve, reject) => {
-        const expression = `
-            (() => {
-                return {
-                    title: document.title,
-                    url: window.location.href,
-                    text: document.body.innerText.substring(0, 2000)
-                };
-            })()
-        `;
-
-        chrome.debugger.sendCommand({ tabId }, "Runtime.evaluate", {
-            expression,
-            returnByValue: true
-        }, (result) => {
-            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
-            if (result.exceptionDetails) return reject(new Error(result.exceptionDetails.exception.description));
-            resolve(result.result.value);
-        });
-    });
-}
-
-async function evaluate(expression) {
-    const tabId = await ensureDebugger();
-    return new Promise((resolve, reject) => {
-        chrome.debugger.sendCommand({ tabId }, "Runtime.evaluate", {
-            expression,
-            returnByValue: true
-        }, (result) => {
-            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
-            if (result.exceptionDetails) return reject(new Error(result.exceptionDetails.exception.description));
-            resolve(result.result.value);
-        });
-    });
-}
-
-async function goBack() {
-    return await evaluate("window.history.back()");
-}
-
-async function goForward() {
-    return await evaluate("window.history.forward()");
-}
-
-async function click(selector) {
-    // Escape quotes in selector to prevent injection breaking the script
-    const safeSelector = selector.replace(/"/g, '\\"');
-    return await evaluate(`
-        (function() {
-            const el = document.querySelector("${safeSelector}");
-            if (!el) throw new Error("Element not found: ${safeSelector}");
-            el.click();
-            return true;
-        })()
-    `);
-}
-
-async function type(selector, text) {
-    const safeSelector = selector.replace(/"/g, '\\"');
-    const safeText = text.replace(/"/g, '\\"').replace(/\\n/g, '\\\\n');
-    return await evaluate(`
-        (function() {
-            const el = document.querySelector("${safeSelector}");
-            if (!el) throw new Error("Element not found: ${safeSelector}");
-            
-            el.focus();
-            
-            // Try native setter first for React 16+ compatibility
-            try {
-                const proto = Object.getPrototypeOf(el);
-                const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set 
-                                  || Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-                if (nativeSetter) {
-                    nativeSetter.call(el, "${safeText}");
-                } else {
-                    el.value = "${safeText}";
-                }
-            } catch (e) {
-                el.value = "${safeText}";
-            }
-            
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-            return true;
-        })()
-    `);
-}
+// Connect on browser start or extension update
+chrome.runtime.onStartup.addListener(() => connectToFriday());
+chrome.runtime.onInstalled.addListener(() => connectToFriday());
+connectToFriday();
 
 // Handle detachment external to us
 chrome.debugger.onDetach.addListener((source, reason) => {
@@ -251,4 +114,17 @@ chrome.debugger.onDetach.addListener((source, reason) => {
         attachedTabId = null;
         console.log("[Friday Bridge] Debugger detached:", reason);
     }
+});
+
+// Handle messages from popup
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type === 'getStatus') {
+        sendResponse({ connected: ws && ws.readyState === WebSocket.OPEN });
+    } else if (msg.type === 'reconnect') {
+        if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+        connectionPending = false;
+        connectToFriday();
+        sendResponse({ ok: true });
+    }
+    return true;
 });

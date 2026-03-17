@@ -53,13 +53,33 @@ class FridayMCPServer {
                         inputSchema: { type: "object", properties: {} }
                     },
                     {
-                        name: "navigate_browser",
+                        name: "browser_navigate",
                         description: "Navigate the active browser tab to a URL.",
                         inputSchema: { type: "object", properties: { url: { type: "string" } }, required: ["url"] }
                     },
                     {
-                        name: "read_browser_dom",
+                        name: "browser_get_dom",
                         description: "Read the current browser page title, URL, and DOM text.",
+                        inputSchema: { type: "object", properties: {} }
+                    },
+                    {
+                        name: "browser_click",
+                        description: "Click a target on the browser page (text, selector, or x,y).",
+                        inputSchema: { type: "object", properties: { target: { type: "string", description: "Text or CSS selector or x,y coordinates" } }, required: ["target"] }
+                    },
+                    {
+                        name: "browser_type",
+                        description: "Type text into a target on the browser page.",
+                        inputSchema: { type: "object", properties: { target: { type: "string" }, text: { type: "string" } }, required: ["target", "text"] }
+                    },
+                    {
+                        name: "browser_press_key",
+                        description: "Press a key on the browser page (e.g., Enter, Escape).",
+                        inputSchema: { type: "object", properties: { key: { type: "string" } }, required: ["key"] }
+                    },
+                    {
+                        name: "browser_capture_screenshot",
+                        description: "Capture a screenshot of the active browser tab.",
                         inputSchema: { type: "object", properties: {} }
                     },
                     {
@@ -87,6 +107,11 @@ class FridayMCPServer {
                     throw new Error("Unauthorized: Please sign in to the Friday app first.");
                 }
 
+                // Check extension connectivity for browser tools
+                if (name.includes('browser') && name !== 'open_default_browser' && !browserServer.isConnected()) {
+                    throw new Error("Extension Disconnected: Please connect the Friday Chrome extension to use this tool.");
+                }
+
                 if (!pipeClient.isConnected && name.startsWith('desktop_')) {
                     throw new Error("Desktop sidecar engine is not connected.");
                 }
@@ -111,12 +136,24 @@ class FridayMCPServer {
                     resultText = JSON.stringify(res);
                 }
                 // Browser Tools
-                else if (name === 'navigate_browser') {
+                else if (name === 'browser_navigate') {
                     const res = await browserServer.navigate(args.url);
                     resultText = JSON.stringify(res);
-                } else if (name === 'read_browser_dom') {
+                } else if (name === 'browser_get_dom') {
                     const res = await browserServer.getDOM();
                     resultText = JSON.stringify(res);
+                } else if (name === 'browser_click') {
+                    const res = await browserServer.clickTarget(args.target);
+                    resultText = JSON.stringify(res);
+                } else if (name === 'browser_type') {
+                    const res = await browserServer.typeTarget(args.target, args.text);
+                    resultText = JSON.stringify(res);
+                } else if (name === 'browser_press_key') {
+                    const res = await browserServer.pressKey(args.key);
+                    resultText = JSON.stringify(res);
+                } else if (name === 'browser_capture_screenshot') {
+                    const res = await browserServer.captureScreenshot();
+                    resultText = res ? "Screenshot captured (base64 data)" : "Failed to capture screenshot";
                 } else if (name === 'evaluate_browser_js') {
                     const res = await browserServer.evaluate(args.script);
                     resultText = JSON.stringify(res);

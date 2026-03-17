@@ -532,8 +532,9 @@ body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--warning);
+  background: var(--error);
   flex-shrink: 0;
+  transition: background 0.3s ease;
 }
 
 .hud-footer .status-dot.connected {

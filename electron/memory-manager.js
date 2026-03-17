@@ -28,7 +28,11 @@ class MemoryManager {
                 await client.graph.add({ userId, type: 'text', data: content });
                 zepSuccess = true;
             } catch (err) {
-                console.error('[MemoryManager] Zep Cloud save failed:', err.message);
+                if (err.message.includes('404')) {
+                    console.warn('[MemoryManager] Zep Cloud Graph/User not found (404). Check Zep Project settings.');
+                } else {
+                    console.error('[MemoryManager] Zep Cloud save failed:', err.message);
+                }
                 zepError = err.message;
             }
         } else {
@@ -66,7 +70,11 @@ class MemoryManager {
                 }
                 zepSuccess = true;
             } catch (err) {
-                console.error('[MemoryManager] Zep Cloud search failed:', err.message);
+                if (err.message.includes('404')) {
+                    console.warn('[MemoryManager] Zep Cloud Graph/User not found (404). Check Zep Project settings.');
+                } else {
+                    console.error('[MemoryManager] Zep Cloud search failed:', err.message);
+                }
                 zepError = err.message;
             }
         } else {
@@ -80,7 +88,7 @@ class MemoryManager {
                 // Simple keyword search for local fallback
                 const lowerQuery = query.toLowerCase();
                 const matchedMemories = localMemories
-                    .filter(m => m.value && m.value.toLowerCase().includes(lowerQuery))
+                    .filter(m => m.value && typeof m.value === 'string' && m.value.toLowerCase().includes(lowerQuery))
                     .map(m => m.value);
 
                 facts = facts.concat(matchedMemories);

@@ -57,33 +57,33 @@ class SubAgentManager {
         this.taskCounter++;
         const jobId = `job-${this.taskCounter}`;
 
-        // Use local browser if connected, otherwise spawn AgentBrowser
+        // Strictly use the extension bridge as per user request
         const browserServer = require('./browser-server');
-        let browser;
-        let useExtension = false;
-
-        if (browserServer.isConnected()) {
-            console.log(`[SubAgents][${jobId}] Extension detected. Using local browser context.`);
-            browser = browserServer;
-            useExtension = true;
-        } else {
-            browser = new AgentBrowser(jobId, isVisual ? 'Visual Assistant' : 'Deep Researcher');
-        }
+        const browser = browserServer;
+        const useExtension = true;
 
         this.tasks.set(jobId, { id: jobId, description: taskDescription, status: 'running', history: [], isVisual, browser, useExtension });
 
         const executeResiliently = async () => {
             const MAX_ATTEMPTS = 3;
-            const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-            const deadline = Date.now() + TIMEOUT_MS;
+            // Check for extension connection BEFORE starting
+            if (!browserServer.isConnected()) {
+                if (onUpdate) onUpdate({ jobId, type: 'status', content: "Extension Disconnected: Please go to the Friday Chrome extension and click 'Connect' to proceed." });
+                // We don't throw yet, maybe the user connects it while we are in the retry loop
+            }
 
             for (let i = 1; i <= MAX_ATTEMPTS; i++) {
                 try {
-                    if (Date.now() > deadline) throw new Error('Task timeout');
+                    if (!browserServer.isConnected()) {
+                        throw new Error("Extension not connected. Please connect the Friday Chrome extension.");
+                    }
                     return await this._runAgentLoop(jobId, taskDescription, onUpdate, isVisual);
                 } catch (err) {
                     console.warn(`[SubAgents] Attempt ${i} failed:`, err.message);
+                    if (onUpdate) onUpdate({ jobId, type: 'status', content: `Attempt ${i} failed: ${err.message}` });
                     if (i === MAX_ATTEMPTS) throw err;
+                    // Wait 5s before retrying, giving user time to connect
+                    await new Promise(r => setTimeout(r, 5000));
                 }
             }
         };
@@ -96,11 +96,6 @@ class SubAgentManager {
             const task = this.tasks.get(jobId);
             if (task) { task.status = 'failed'; task.error = err.message; }
             onComplete({ jobId, error: err.message });
-        }).finally(() => {
-            const task = this.tasks.get(jobId);
-            if (task && !task.useExtension && task.browser && typeof task.browser.close === 'function') {
-                task.browser.close();
-            }
         });
 
         return jobId;
@@ -118,11 +113,6 @@ class SubAgentManager {
     async _runAgentLoop(jobId, taskDescription, onUpdate, isVisual) {
         const task = this.tasks.get(jobId);
         let browser = task.browser;
-        let useExtension = task.useExtension;
-
-        if (!useExtension) {
-            await browser.init();
-        }
 
         const soul = this._getSoul();
         const tools = [{ functionDeclarations: skillManager.getDefinitions() }];
@@ -139,19 +129,34 @@ class SubAgentManager {
         let isDone = false;
         let resultSummary = "";
 
-        // Initial prompt with Desktop State
+        // 1. Fetch relevant Zep memory for this task
+        let zepContext = "";
+        try {
+            const memoryResults = await memoryManager.searchMemory("default_user", taskDescription);
+            if (memoryResults && memoryResults.facts && memoryResults.facts.length > 0) {
+                zepContext = `\nRELEVANT PAST CONTEXT:\n${memoryResults.facts.map(f => `- ${f}`).join('\n')}`;
+            }
+        } catch (memErr) { console.warn('[SubAgents] Zep context fetch failed:', memErr); }
+
+        // Initial prompt with Desktop State + Zep Context
         const initialState = await desktopService.getFullState({ browser });
         let messageParts = [
-            { text: `TASK: ${taskDescription}\n\nCURRENT STATE:\n${JSON.stringify(initialState, null, 2)}` }
+            { text: `TASK: ${taskDescription}\n${zepContext}\n\nCURRENT STATE:\n${JSON.stringify(initialState, null, 2)}` }
         ];
 
         if (isVisual) {
-            const screenshot = useExtension ? await browser.captureScreenshot() : await browser.screenshot();
+            const screenshot = await browser.captureScreenshot();
             if (screenshot) messageParts.push({ inlineData: { mimeType: "image/jpeg", data: screenshot } });
         }
 
         while (!isDone && turns < 20) {
             turns++;
+            
+            // Heartbeat check for extension
+            if (!browser.isConnected()) {
+                throw new Error("Extension disconnected during task execution. Please reconnect.");
+            }
+
             const result = await chat.sendMessage(messageParts);
             const response = result.response;
             const text = response.text();
@@ -191,10 +196,14 @@ class SubAgentManager {
             ];
             
             if (isVisual) {
-                const screenshot = useExtension ? await browser.captureScreenshot() : await browser.screenshot();
+                const screenshot = await browser.captureScreenshot();
                 if (screenshot) messageParts.push({ inlineData: { mimeType: "image/jpeg", data: screenshot } });
             }
-            // The loop continues, and messageParts will be sent in the next iteration's chat.sendMessage(messageParts)
+        }
+
+        // AUTOMATIC SYNC TO ZEP
+        if (resultSummary) {
+            memoryManager.saveToMemory("default_user", `Task Result [${taskDescription}]: ${resultSummary}`).catch(e => console.error('[SubAgents] Zep save failed:', e));
         }
 
         return resultSummary || "Task completed.";

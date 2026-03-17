@@ -5,134 +5,70 @@
 
 const BrowserTools = [
     {
-        name: "navigate_browser",
-        description: "Navigate the browser to a URL. The URL must be in the user's allowlist.",
+        name: "browser_navigate",
+        description: "Navigate the browser to a URL.",
         parameters: {
             type: "object",
             properties: {
-                url: { type: "string", description: "The full URL to navigate to" }
+                url: { type: "string" }
             },
             required: ["url"]
         }
     },
     {
-        name: "read_browser_dom",
-        description: "Read the current browser page title, URL, and DOM text. Useful for understanding what's on the screen.",
+        name: "browser_get_dom",
+        description: "Read the current browser page title, URL, and DOM text.",
+        parameters: { type: "object", properties: {} }
+    },
+    {
+        name: "browser_click",
+        description: "Click a target on the browser page (text, selector, or x,y).",
+        parameters: {
+            type: "object",
+            properties: {
+                target: { type: "string", description: "Text or CSS selector or x,y coordinates" }
+            },
+            required: ["target"]
+        }
+    },
+    {
+        name: "browser_type",
+        description: "Type text into a target on the browser page.",
+        parameters: {
+            type: "object",
+            properties: {
+                target: { type: "string" },
+                text: { type: "string" }
+            },
+            required: ["target", "text"]
+        }
+    },
+    {
+        name: "browser_press_key",
+        description: "Press a key on the browser page (e.g., Enter, Escape).",
+        parameters: {
+            type: "object",
+            properties: {
+                key: { type: "string" }
+            },
+            required: ["key"]
+        }
+    },
+    {
+        name: "browser_capture_screenshot",
+        description: "Capture a screenshot of the active browser tab.",
         parameters: { type: "object", properties: {} }
     },
     {
         name: "evaluate_browser_js",
-        description: "Execute JavaScript in the active browser tab. Use for clicking, scrolling, extracting data.",
+        description: "Execute JavaScript in the active browser tab.",
         parameters: {
             type: "object",
             properties: {
-                script: { type: "string", description: "JavaScript code to execute" }
+                script: { type: "string" }
             },
             required: ["script"]
         }
-    },
-    // ── Email Tools ──
-    {
-        name: 'gmail_list',
-        description: 'List the 10 most recent email message IDs and snippets from Gmail.',
-        parameters: { type: 'object', properties: {} }
-    },
-    {
-        name: 'gmail_read',
-        description: 'Read the full content of a specific Gmail message.',
-        parameters: {
-            type: 'object',
-            properties: { id: { type: 'string', description: 'The message ID to read.' } },
-            required: ['id']
-        }
-    },
-    {
-        name: 'gmail_send',
-        description: 'Send a new email message via Gmail.',
-        parameters: {
-            type: 'object',
-            properties: {
-                to: { type: 'string', description: 'Recipient email address.' },
-                subject: { type: 'string', description: 'Subject of the email.' },
-                body: { type: 'string', description: 'Body text of the email.' }
-            },
-            required: ['to', 'subject', 'body']
-        }
-    },
-    // ── Calendar Tools ──
-    {
-        name: 'calendar_google_list',
-        description: 'List primary Google Calendar events.',
-        parameters: { type: 'object', properties: {} }
-    },
-    {
-        name: 'calendar_google_create',
-        description: 'Create a new event in the primary Google Calendar.',
-        parameters: {
-            type: 'object',
-            properties: {
-                summary: { type: 'string', description: 'Event title.' },
-                start: {
-                    type: 'object',
-                    description: 'Start time object.',
-                    properties: {
-                        dateTime: { type: 'string', description: 'ISO 8601 timestamp (e.g., 2024-03-10T10:00:00Z)' },
-                        timeZone: { type: 'string', description: 'Timezone ID.' }
-                    }
-                },
-                end: {
-                    type: 'object',
-                    description: 'End time object.',
-                    properties: {
-                        dateTime: { type: 'string', description: 'ISO 8601 timestamp' },
-                        timeZone: { type: 'string', description: 'Timezone ID' }
-                    }
-                }
-            },
-            required: ['summary', 'start', 'end']
-        }
-    },
-    // ── Drive Tools ──
-    {
-        name: 'drive_list',
-        description: 'Search and list files in Google Drive.',
-        parameters: {
-            type: 'object',
-            properties: { query: { type: 'string', description: 'Search query (e.g., "name contains \'report\'").' } }
-        }
-    },
-    {
-        name: 'drive_read',
-        description: 'Get metadata and download/export links for a Google Drive file.',
-        parameters: {
-            type: 'object',
-            properties: { fileId: { type: 'string', description: 'The file ID to read.' } },
-            required: ['fileId']
-        }
-    },
-    // ── Outlook/Graph Tools ──
-    {
-        name: 'outlook_list',
-        description: 'List recent Outlook email messages.',
-        parameters: { type: 'object', properties: {} }
-    },
-    {
-        name: 'outlook_send',
-        description: 'Send a new email via Outlook.',
-        parameters: {
-            type: 'object',
-            properties: {
-                to: { type: 'string', description: 'Recipient email.' },
-                subject: { type: 'string', description: 'Subject.' },
-                body: { type: 'string', description: 'Body content.' }
-            },
-            required: ['to', 'subject', 'body']
-        }
-    },
-    {
-        name: 'calendar_outlook_list',
-        description: 'List recent Outlook calendar events.',
-        parameters: { type: 'object', properties: {} }
     },
     {
         name: "open_default_browser",
@@ -140,7 +76,7 @@ const BrowserTools = [
         parameters: {
             type: "object",
             properties: {
-                url: { type: "string", description: "The URL to open" }
+                url: { type: "string" }
             },
             required: ["url"]
         }
@@ -154,39 +90,6 @@ const BrowserTools = [
         name: "browser_forward",
         description: "Navigate forward in the browser history.",
         parameters: { type: "object", properties: {} }
-    },
-    {
-        name: "web_click",
-        description: "Click an element on the webpage. Provide its CSS selector, its semantic accessible name (e.g. 'Submit Form'), or exact coordinates 'x,y' if taking an annotated screenshot.",
-        parameters: {
-            type: "object",
-            properties: {
-                selector: { type: "string", description: "CSS selector, exact text name, or 'x,y'" }
-            },
-            required: ["selector"]
-        }
-    },
-    {
-        name: "web_type",
-        description: "Type text into an input field on the webpage. Provide its CSS selector, its semantic accessible name, or exact coordinates 'x,y'.",
-        parameters: {
-            type: "object",
-            properties: {
-                selector: { type: "string", description: "CSS selector, exact text name, or 'x,y'" },
-                text: { type: "string", description: "The text to type" }
-            },
-            required: ["selector", "text"]
-        }
-    },
-    {
-        name: "web_screenshot",
-        description: "Captures a screenshot of the active browser tab. If annotated is true, draws numbered boxes over interactive elements (Set-of-Marks) before capturing.",
-        parameters: {
-            type: "object",
-            properties: {
-                annotated: { type: "boolean", description: "If true, draws numbered boxes on elements." }
-            }
-        }
     }
 ];
 

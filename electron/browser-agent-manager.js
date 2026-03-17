@@ -28,28 +28,14 @@ class BrowserAgentManager {
     }
 
     async launchChromeWithDebugging(force = false) {
-        if (!force) {
-            console.log('[BrowserAgentManager] Skipping auto-launch (no task running)');
-            return;
-        }
-
         const running = await this.isChromeRunning();
         if (running) {
             console.log('[BrowserAgentManager] Chrome is already running on port 9222.');
             return;
         }
-
-        return new Promise((resolve) => {
-            const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-            const userDataDir = path.join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Friday Profile');
-            
-            console.log('[BrowserAgentManager] Launching Chrome with CDP on port 9222...');
-            this.chromeProcess = exec(`"${chromePath}" --remote-debugging-port=9222 --user-data-dir="${userDataDir}"`, (err) => {
-                if (err) console.error('[BrowserAgentManager] Chrome launch error:', err);
-            });
-            
-            setTimeout(resolve, 3000);
-        });
+        
+        // Complying with user request: STOP THE AGENT FROM OPENING AN ELECTRON CHROMIUM BROWSER
+        throw new Error("Browser not found on port 9222. Please ensure Chrome is running correctly or use the Friday Chrome Extension to bridge your active tab.");
     }
 
     start() {

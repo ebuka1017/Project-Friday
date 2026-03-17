@@ -90,18 +90,21 @@ class VoiceClient {
         
         let basePrompt = '';
         try {
-            // Try to load external prompt
             const result = await window.friday.fsReadFileStr('friday-program.md');
-            if (result && result.success) {
-                basePrompt = result.content;
-            } else {
-                console.warn('[VoiceClient] friday-program.md not found or error:', result?.error);
-                basePrompt = `You are Friday, an autonomous Windows desktop and browser automation agent.`;
-            }
-        } catch (e) {
-            console.warn('[VoiceClient] Failed to load friday-program.md, using default.');
-            basePrompt = `You are Friday, an autonomous Windows desktop and browser automation agent.`;
-        }
+            if (result && result.success) basePrompt = result.content;
+            else basePrompt = `You are Friday, an autonomous Windows desktop and browser automation agent.`;
+        } catch (e) { basePrompt = `You are Friday...`; }
+
+        // AUTOMATIC CONTEXT FETCH (Zep Cloud)
+        let zepFacts = [];
+        try {
+            const memRes = await window.friday.searchMemory("Provide a summary of the most recent user goals and conversation history.");
+            if (memRes && memRes.facts) zepFacts = memRes.facts;
+        } catch (memErr) { console.warn('[VoiceClient] Memory fetch failed:', memErr); }
+
+        const zepContext = zepFacts.length > 0 
+            ? `\n## RECENT CONTEXT (ZEP CLOUD):\n${zepFacts.map(f => `- ${f}`).join('\n')}`
+            : '';
 
         return `${basePrompt}
 
@@ -111,16 +114,18 @@ class VoiceClient {
 - For any fact persistence, prioritize \`save_to_memory\`.
 
 ## URL Output
-- If you find a URL or website that you want to share with the user, ALWAYS output the raw URL on its own line (e.g. \`https://www.youtube.com/watch?v=...\`). Do not add any formatting or text around it on that line, so the rich media parser can detect and embed it.
+- If you find a URL or website that you want to share with the user, ALWAYS output the raw URL on its own line (e.g. \`https://www.youtube.com/watch?v=...\`).
 
 ## Current State
 - Resolution: ${res}
 - Mode: ACTIVE
 
 ---
+${zepContext}
+
+---
 ${this._user && this._user.persona ? `USER INFORMATION:
 - Your user's name is ${this._user.persona.name}.
-- User gender/pronouns: ${this._user.persona.gender}.
 - User Bio: ${this._user.persona.bio || 'Not provided'}.
 ` : 'USER INFORMATION: Not yet personalized.'}`;
     }
@@ -246,6 +251,14 @@ ${this._user && this._user.persona ? `USER INFORMATION:
                 console.log('[VoiceClient] Other message:', Object.keys(data));
             }
 
+            if (data.serverContent?.modelTurn?.parts) {
+                const textPart = data.serverContent.modelTurn.parts.find(p => p.text);
+                if (textPart && textPart.text.trim()) {
+                    // AUTOMATIC SYNC TO ZEP
+                    window.friday.saveToMemory(`Friday: ${textPart.text}`).catch(e => console.error('[VoiceClient] Zep save failed:', e));
+                }
+            }
+
             if (data.toolCall?.functionCalls) {
                 for (const fc of data.toolCall.functionCalls) await this.handleFunctionCall(fc);
                 return;
@@ -320,7 +333,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
                     response = { success: true };
                 }
                 window.friday.addMessage('result', '📸 Screenshot captured', s?.data);
-            } else if (call.name === 'web_screenshot') {
+            } else if (call.name === 'browser_capture_screenshot') {
                 const b64 = await window.friday.browser.screenshot();
                 if (b64) {
                     this.ws.send(JSON.stringify({
@@ -334,19 +347,18 @@ ${this._user && this._user.persona ? `USER INFORMATION:
                 response = { success: true };
             } else {
                 // Route everything else through the unified tool executor
-                // Note: renderer-side friday.sidecar and other IPCs can be replaced by a single 'app:executeTool' in the future.
-                // For now, let's keep the specialized mappings but use the unified logic where possible.
-                
-                if (call.name === 'navigate_browser') {
+                if (call.name === 'browser_navigate') {
                     response = { success: await window.friday.browser.navigate(call.args.url) };
-                } else if (call.name === 'read_browser_dom') {
+                } else if (call.name === 'browser_get_dom') {
                     response = await window.friday.browser.getDOM();
                 } else if (call.name === 'evaluate_browser_js') {
                     response = { result: await window.friday.browser.evaluate(call.args.script) };
-                } else if (call.name === 'web_click') {
-                    response = await window.friday.browser.click(call.args.selector);
-                } else if (call.name === 'web_type') {
-                    response = await window.friday.browser.type(call.args.selector, call.args.text);
+                } else if (call.name === 'browser_click') {
+                    response = await window.friday.browser.click(call.args.target);
+                } else if (call.name === 'browser_type') {
+                    response = await window.friday.browser.type(call.args.target, call.args.text);
+                } else if (call.name === 'browser_press_key') {
+                    response = await window.friday.browser.pressKey(call.args.key);
                 } else if (call.name === 'desktop_type_string') {
                     response = await window.friday.sidecar('input.typeString', { text: call.args.text });
                 } else if (call.name === 'desktop_send_chord') {

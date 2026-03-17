@@ -5,7 +5,8 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "electron .",
-    "build:sidecar": "dotnet publish sidecar/Sidecar.csproj -c Release -r win-x64",
+    "build:sidecar": "dotnet publish sidecar/Sidecar.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true",
+    "postinstall": "npm run build:sidecar",
     "build": "npm run build:sidecar && electron-builder",
     "test:pipe": "node electron/test-pipe.js"
   },

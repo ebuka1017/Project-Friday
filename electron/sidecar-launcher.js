@@ -18,7 +18,6 @@ function getSidecarPath() {
     const devPaths = [
         path.join(__dirname, '..', 'sidecar', 'bin', 'Release', 'net9.0-windows', 'win-x64', 'publish', 'Sidecar.exe'),
         path.join(__dirname, '..', 'sidecar', 'bin', 'Debug', 'net9.0-windows', 'win-x64', 'Sidecar.exe'),
-        path.join(__dirname, '..', 'sidecar', 'bin', 'Release', 'net9.0-windows', 'win-x64', 'Sidecar.exe'),
         path.join(__dirname, '..', 'sidecar', 'bin', 'Debug', 'net9.0-windows', 'Sidecar.exe'),
     ];
 
@@ -87,7 +86,12 @@ function launch() {
         });
 
         sidecarProcess.on('error', (err) => {
-            console.error('[sidecar] Failed to start:', err.message);
+            if (err.code === 'ENOENT') {
+                console.error('[sidecar] Failed to start: Binary not found at path.');
+            } else {
+                console.error('[sidecar] Failed to start:', err.message);
+                console.error('[sidecar] TIP: Ensure .NET 9.0 Desktop Runtime is installed.');
+            }
             sidecarProcess = null;
         });
     });
@@ -113,4 +117,4 @@ function isRunning() {
     return sidecarProcess !== null && !sidecarProcess.killed;
 }
 
-module.exports = { launch, kill, isRunning };
+module.exports = { launch, kill, isRunning, getSidecarPath };

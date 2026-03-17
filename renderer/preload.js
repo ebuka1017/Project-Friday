@@ -112,6 +112,7 @@ contextBridge.exposeInMainWorld('friday', {
         connect: () => ipcRenderer.invoke('browser:connect'),
         disconnect: () => ipcRenderer.invoke('browser:disconnect'),
         navigate: (url) => ipcRenderer.invoke('browser:navigate', url),
+        createTab: (url) => ipcRenderer.invoke('browser:createTab', url),
         evaluate: (expression) => ipcRenderer.invoke('browser:evaluate', expression),
         getDOM: () => ipcRenderer.invoke('browser:getDOM'),
         goBack: () => ipcRenderer.invoke('browser:goBack'),
@@ -120,7 +121,8 @@ contextBridge.exposeInMainWorld('friday', {
         type: (selector, text) => ipcRenderer.invoke('browser:type', selector, text),
         screenshot: () => ipcRenderer.invoke('browser:screenshot'),
         annotate: () => ipcRenderer.invoke('browser:annotate'),
-        clearAnnotations: () => ipcRenderer.invoke('browser:clearAnnotations')
+        clearAnnotations: () => ipcRenderer.invoke('browser:clearAnnotations'),
+        isConnected: () => ipcRenderer.invoke('browser:isConnected')
     },
 
     // ── Shared State ────────────────────────────────────────────────

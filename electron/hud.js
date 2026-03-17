@@ -17,7 +17,7 @@ let hudWindow = null;
 function createHUD() {
     hudWindow = new BrowserWindow({
         width: 320,
-        height: 290,
+        height: 480,
         x: 20,
         y: 80,
         transparent: true,

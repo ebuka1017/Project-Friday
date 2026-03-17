@@ -61,9 +61,18 @@ async function checkSystems() {
         systemsDot.classList.toggle('connected', s.connected);
         systemsStatusEl.textContent = s.connected ? 'Systems: ready' : 'Systems: offline';
         window.friday.setState({ systemsConnected: s.connected });
-    } catch {
+
+        const extConnected = await window.friday.browser.isConnected();
+        const extDot = document.getElementById('extensionDot');
+        const extStatusEl = document.getElementById('extensionStatus');
+        if (extDot && extStatusEl) {
+            extDot.classList.toggle('connected', extConnected);
+            extStatusEl.textContent = extConnected ? 'Extension: ready' : 'Extension: disconnected';
+        }
+    } catch (e) {
         systemsDot.classList.remove('connected');
         systemsStatusEl.textContent = 'Systems: error';
+        console.error('[HUD] System check error:', e);
     }
 }
 
