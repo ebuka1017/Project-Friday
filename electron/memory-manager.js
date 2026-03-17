@@ -16,93 +16,227 @@ class MemoryManager {
         return this.zepClient;
     }
 
-    async saveToMemory(userId = "default_user", content) {
-        // Save to Zep Cloud (Graph)
-        let zepSuccess = false;
-        let zepError = null;
-
+    /**
+     * Records a message to a Zep thread. Zep will automatically extract facts and entities.
+     * @param {string} threadId - Unique ID for the conversation/task
+     * @param {string} role - 'human' or 'ai'
+     * @param {string} content - Message text
+     */
+    async addMessage(threadId, role, content) {
         const client = this._initZep();
+        if (!client) return;
+
+        try {
+            await client.thread.addMessages(threadId, {
+                messages: [{
+                    role: role === 'ai' ? 'assistant' : 'user',
+                    roleType: role === 'ai' ? 'assistant' : 'user',
+                    content: content
+                }]
+            });
+        } catch (err) {
+            console.error(`[MemoryManager] Zep addMessage failed for ${threadId}:`, err.message);
+            if (err.message.includes('403')) console.warn('[MemoryManager] 403 Forbidden: Check Zep API Key permissions.');
+        }
+    }
+
+    /**
+     * Saves a summary or specific fact to memory.
+     */
+    async saveToMemory(userId = "default_user", content, threadId = null) {
+        const client = this._initZep();
+        let zepSuccess = false;
+
         if (client) {
             try {
-                // Add fact to knowledge graph
-                await client.graph.add({ userId, type: 'text', data: content });
+                if (threadId) {
+                    // Prefer adding to thread for automatic extraction
+                    await this.addMessage(threadId, 'ai', content);
+                } else {
+                    // Fallback to manual graph add
+                    await client.graph.add({ userId, type: 'text', data: content });
+                }
                 zepSuccess = true;
             } catch (err) {
-                if (err.message.includes('404')) {
-                    console.warn('[MemoryManager] Zep Cloud Graph/User not found (404). Check Zep Project settings.');
-                } else {
-                    console.error('[MemoryManager] Zep Cloud save failed:', err.message);
-                }
-                zepError = err.message;
+                console.error('[MemoryManager] Zep Cloud save failed:', err.message);
             }
-        } else {
-            zepError = "ZEP_API_KEY not found in environment.";
         }
 
-        // Always save to Local SQLite Memory as well
+        // Always local fallback
         const localKey = `fact_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         try {
             await db.setMemory(localKey, content, "Fact saved from conversation");
-            console.log(`[MemoryManager] Saved to local SQLite memory: ${localKey}`);
-        } catch (dbErr) {
-            console.error('[MemoryManager] SQLite save failed:', dbErr.message);
-        }
+        } catch (e) {}
 
-        return {
-            success: zepSuccess || !zepError, // Consider success if local worked
-            zepSuccess,
-            zepError
-        };
+        return { success: zepSuccess };
     }
 
-    async searchMemory(userId = "default_user", query) {
-        let facts = [];
-        let zepSuccess = false;
-        let zepError = null;
+    /**
+     * Retrieves assembly of relevant context (facts/entities) for a thread.
+     */
+    async searchMemory(userId = "default_user", query, threadId = null) {
+        const ctx = await this.getStructuredContext(userId, threadId, query);
+        // Fallback for current searchMemory signature users
+        const facts = [...ctx.importantToKnow, ...ctx.pastConversations];
+        return { success: true, facts, zepSuccess: true, structured: ctx };
+    }
 
-        const client = this._initZep();
-        if (client) {
+    /**
+     * Helper to fetch ALL messages for a thread using pagination.
+     */
+    async _fetchAllMessages(client, threadId) {
+        let allMessages = [];
+        let cursor = 1;
+        const limit = 100;
+        let hasMore = true;
+
+        while (hasMore) {
             try {
-                // Search the Zep knowledge graph
-                const results = await client.graph.search({ userId, query, limit: 5 });
-                if (results && results.edges) {
-                    facts = results.edges.map(e => e.fact);
-                }
-                zepSuccess = true;
-            } catch (err) {
-                if (err.message.includes('404')) {
-                    console.warn('[MemoryManager] Zep Cloud Graph/User not found (404). Check Zep Project settings.');
+                const response = await client.thread.get(threadId, { cursor, limit });
+                if (response && response.messages && response.messages.length > 0) {
+                    allMessages = allMessages.concat(response.messages);
+                    cursor += response.messages.length;
+                    hasMore = response.messages.length === limit;
                 } else {
-                    console.error('[MemoryManager] Zep Cloud search failed:', err.message);
+                    hasMore = false;
                 }
-                zepError = err.message;
+            } catch (err) {
+                console.error(`[MemoryManager] Failed to fetch page for thread ${threadId}:`, err.message);
+                hasMore = false;
             }
-        } else {
-            zepError = "ZEP_API_KEY not found in environment.";
         }
+        return allMessages;
+    }
 
-        // If Zep failed or didn't return much, search local SQLite
-        if (facts.length === 0) {
+    /**
+     * Helper to fetch ALL threads using pagination.
+     */
+    async _fetchAllThreads(client) {
+        let allThreads = [];
+        let pageNumber = 1;
+        const pageSize = 100;
+        let hasMore = true;
+
+        while (hasMore) {
             try {
-                const localMemories = await db.getAllMemories();
-                // Simple keyword search for local fallback
-                const lowerQuery = query.toLowerCase();
-                const matchedMemories = localMemories
-                    .filter(m => m.value && typeof m.value === 'string' && m.value.toLowerCase().includes(lowerQuery))
-                    .map(m => m.value);
-
-                facts = facts.concat(matchedMemories);
-            } catch (dbErr) {
-                console.error('[MemoryManager] SQLite search failed:', dbErr.message);
+                const response = await client.thread.listAll({ pageNumber, pageSize });
+                if (response && response.threads && response.threads.length > 0) {
+                    allThreads = allThreads.concat(response.threads);
+                    pageNumber++;
+                    hasMore = response.threads.length === pageSize;
+                } else {
+                    hasMore = false;
+                }
+            } catch (err) {
+                console.error(`[MemoryManager] Failed to fetch page ${pageNumber} of threads:`, err.message);
+                hasMore = false;
             }
         }
+        return allThreads;
+    }
 
-        return {
-            success: true,
-            facts,
-            zepSuccess,
-            zepError
+    /**
+     * Returns structured memory components as requested by user.
+     */
+    async getStructuredContext(userId = "default_user", threadId = null, query = "") {
+        const client = this._initZep();
+        const response = {
+            currentThread: [],
+            pastConversations: [],
+            importantToKnow: []
         };
+
+        if (!client) return response;
+
+        try {
+            // 1. Current Thread Messages (UNLIMITED)
+            if (threadId) {
+                const messages = await this._fetchAllMessages(client, threadId);
+                response.currentThread = messages.map(m => `${m.role}: ${m.content}`);
+            }
+
+            // 2. Important to Know (Knowledge Graph Facts)
+            if (threadId) {
+                const contextResponse = await client.thread.getUserContext(threadId);
+                if (contextResponse && contextResponse.context) {
+                    response.importantToKnow = [contextResponse.context];
+                }
+            } else {
+                const graphResults = await client.graph.search({ userId, query, limit: 30 });
+                if (graphResults && graphResults.edges) {
+                    response.importantToKnow = graphResults.edges.map(e => e.fact);
+                }
+            }
+
+            // 3. Past Conversations (UNLIMITED threads + transcripts)
+            const allThreads = await this._fetchAllThreads(client);
+            if (allThreads && allThreads.length > 0) {
+                const pastThreads = allThreads.filter(t => t.threadId !== threadId);
+                
+                for (const t of pastThreads) {
+                    try {
+                        const messages = await this._fetchAllMessages(client, t.threadId);
+                        if (messages && messages.length > 0) {
+                            const transcript = messages
+                                .map(m => `  ${m.role}: ${m.content}`)
+                                .join('\n');
+                            response.pastConversations.push(`CONVERSATION ${t.threadId}:\n${transcript}`);
+                        }
+                    } catch (e) {
+                        response.pastConversations.push(`CONVERSATION ${t.threadId} (Metadata): Started ${t.createdAt}`);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('[MemoryManager] getStructuredContext failed:', err.message);
+        }
+
+        return response;
+    }
+
+    /**
+     * Synchronizes any unsynced local messages from SQLite to Zep Cloud.
+     */
+    async syncLocalToZep(userId = "default_user") {
+        const client = this._initZep();
+        if (!client) return;
+
+        try {
+            const db = require('./db');
+            const unsynced = await db.getUnsyncedMessages();
+            if (!unsynced || unsynced.length === 0) return;
+
+            console.log(`[MemoryManager] Syncing ${unsynced.length} messages to Zep Cloud...`);
+
+            // Group by session_id
+            const groups = unsynced.reduce((acc, msg) => {
+                if (!acc[msg.session_id]) acc[msg.session_id] = [];
+                acc[msg.session_id].push({
+                    role: msg.role,
+                    content: msg.text,
+                    createdAt: msg.created_at
+                });
+                return acc;
+            }, {});
+
+            for (const sessionId in groups) {
+                try {
+                    await client.thread.addMessages(sessionId, {
+                        messages: groups[sessionId]
+                    });
+                    
+                    // Mark all in group as synced
+                    for (const msg of unsynced.filter(m => m.session_id === sessionId)) {
+                        await db.markMessageSynced(msg.id);
+                    }
+                    console.log(`[MemoryManager] Synced session: ${sessionId}`);
+                } catch (err) {
+                    console.error(`[MemoryManager] Failed to sync session ${sessionId}:`, err.message);
+                }
+            }
+        } catch (err) {
+            console.error('[MemoryManager] Sync failed:', err.message);
+        }
     }
 }
 

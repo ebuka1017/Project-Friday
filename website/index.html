@@ -31,9 +31,9 @@
                 </button>
 
                 <ul class="d-flex align-items-center gap-4">
-                    <li><a href="index.html">Product</a></li>
-                    <li><a href="about.html">Company</a></li>
-                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="index.html" class="active">home</a></li>
+                    <li><a href="about.html">about</a></li>
+                    <li><a href="contact.html">contact</a></li>
                     <li class="nav-actions">
                         <button class="theme-toggle-btn glass" id="themeBtn" title="Toggle theme">
                             <i class="hgi hgi-stroke hgi-sun-01" id="themeIcon"></i>
@@ -62,9 +62,8 @@
                             <div class="hero__para">
                                 <p>A sharp, high-performance OS companion <br>built for technical workflows.</p>
                             </div>
-                             <div class="hero__actions mt-5">
+                             <div class="hero__actions mt-5 text-center">
                                  <a href="download.html" class="btn btn-primary btn-lg" style="padding: 18px 45px; font-size: 1.1rem; border-radius: 50px !important;">Download Desktop App</a>
-                                 <button class="btn btn-outlined btn-lg ms-3" style="padding: 18px 45px; font-size: 1.1rem; border-radius: 50px !important; border: 1px solid var(--border);">Documentation</button>
                              </div>
                         </div>
                     </div>
@@ -76,102 +75,48 @@
         </section>
         <!-- Hero End -->
 
-        <!-- Usecases Start -->
-        <section class="usecases section">
-            <div class="container text-md-center">
-                <h2><span class="text-gradient-green">10K+ engineers</span> <br class="d-md-none">trust Friday for <br>their local workflows.</h2>
-                <p class="mt-3">A desktop native companion makes your technical identity unmissable.</p>
-
-                <div class="usecases-tabs mt-5">
-                    <div class="usecases-tabs__heading d-flex justify-content-center gap-4 flex-wrap">
-                        <h3 class="active" data-tab="0" role="button">Developers</h3>
-                        <h3 data-tab="1" role="button">Writers</h3>
-                        <h3 data-tab="2" role="button">Managers</h3>
-                        <h3 data-tab="3" role="button">Designers</h3>
-                    </div>
-
-                    <div class="usecases-tabs__content mt-4">
-                        <div class="usecases-tabs__domain-list active" id="tab-0">
-                            <div class="feature-grid">
-                                <div class="feature-card glass">
-                                    <div class="feature-icon"><i class="hgi hgi-stroke hgi-terminal-01"></i></div>
-                                    <h3>Terminal Integration</h3>
-                                    <p>Refactor code and run scripts directly through natural language.</p>
-                                </div>
-                                <div class="feature-card glass">
-                                    <div class="feature-icon"><i class="hgi hgi-stroke hgi-code"></i></div>
-                                    <h3>API Control</h3>
-                                    <p>Interact with your local services and APIs effortlessly.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="usecases-tabs__domain-list d-none" id="tab-1">
-                            <div class="feature-grid">
-                                <div class="feature-card glass">
-                                    <div class="feature-icon"><i class="hgi hgi-stroke hgi-file-01"></i></div>
-                                    <h3>Document Search</h3>
-                                    <p>Find and summarize any local file in seconds.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Additional tabs hidden for brevity -->
-                    </div>
-                </div>
-            </div>
-        </section>
-        <!-- Usecases End -->
-
-        <!-- FAQs Start -->
-        <section class="faqs section pb-5">
+        <!-- Features Start -->
+        <section id="features" class="section">
             <div class="container">
-                <div class="row">
-                    <div class="col-md-5">
-                        <h2><span class="text-gradient-green">questions?</span> <br>consider them <br>answered.</h2>
+                <div class="text-center mb-5">
+                    <h2 class="section-title">Your OS, Now with a <span class="text-gradient-green">Voice</span></h2>
+                    <p class="section-para">Everything you need from your computer, just a conversation away.</p>
+                </div>
+                <div class="feature-grid mt-5">
+                    <div class="feature-card glass">
+                        <div class="feature-icon"><i class="hgi hgi-stroke hgi-mic-02"></i></div>
+                        <h3>Natural Conversations</h3>
+                        <p>Talk to Friday just like you'd talk to a real person. No complex commands, no typing—just natural dialogue.</p>
                     </div>
-                    <div class="col-md-7">
-                        <div class="faqs__accordion">
-                            <div class="accordion js-accordion border-bottom py-3">
-                                <div class="accordion__header d-flex justify-content-between align-items-center" role="button">
-                                    <span>What is Friday, and who is it for?</span>
-                                    <i class="hgi hgi-stroke hgi-plus"></i>
-                                </div>
-                                <div class="accordion__body mt-2 d-none">
-                                    <p>Friday is a Desktop Native Agent for power users. It tells your OS, files, and tools that you're in control.</p>
-                                </div>
-                            </div>
-                            <div class="accordion js-accordion border-bottom py-3">
-                                <div class="accordion__header d-flex justify-content-between align-items-center" role="button">
-                                    <span>Is my data safe locally?</span>
-                                    <i class="hgi hgi-stroke hgi-plus"></i>
-                                </div>
-                                <div class="accordion__body mt-2 d-none">
-                                    <p>Yes. Friday follows a local-first philosophy. Your files stay on your machine, always.</p>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="feature-card glass">
+                        <div class="feature-icon"><i class="hgi hgi-stroke hgi-flash"></i></div>
+                        <h3>Instantly Anywhere</h3>
+                        <p>Friday is always one shortcut away. Press <code>Ctrl + Q</code> to summon her instantly from any app or window.</p>
+                    </div>
+                    <div class="feature-card glass">
+                        <div class="feature-icon"><i class="hgi hgi-stroke hgi-eye"></i></div>
+                        <h3>Your Hands and Eyes</h3>
+                        <p>Friday handles the busywork—summarizing pages, managing files, and executing tasks while you stay focused.</p>
                     </div>
                 </div>
             </div>
         </section>
-        <!-- FAQs End -->
+        <!-- Features End -->
+
     </main>
 
     <!-- Footer Start -->
     <footer class="footer py-5 border-top">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6 footer__text">
-                    <span>© 2026 Project Friday. All Rights Reserved.</span>
-                </div>
-                <div class="col-md-6">
-                    <ul class="footer__links d-flex justify-content-end gap-3 mb-0">
-                        <li><a href="about.html">about</a></li>
-                        <li><a href="privacy.html">privacy policy</a></li>
-                        <li><a href="terms.html">legal</a></li>
-                        <li><a href="contact.html">contact</a></li>
-                    </ul>
-                </div>
+        <div class="container footer-content">
+            <div class="footer-text">
+                <span>© 2026 Project Friday. All Rights Reserved.</span>
             </div>
+            <ul class="footer-links mb-0">
+                <li><a href="about.html">about</a></li>
+                <li><a href="privacy.html">privacy policy</a></li>
+                <li><a href="terms.html">legal</a></li>
+                <li><a href="contact.html">contact</a></li>
+            </ul>
         </div>
     </footer>
     <!-- Footer End -->

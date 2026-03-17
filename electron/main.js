@@ -602,6 +602,12 @@ if (!gotLock) {
             console.error('[friday] Failed to load initial sessions:', err);
         }
 
+        // Sync local memory to Zep Cloud if online
+        if (process.env.ZEP_API_KEY) {
+            const userId = getState().currentUser?.id || 'default_user';
+            memoryManager.syncLocalToZep(userId).catch(e => console.error('[Memory] Background sync failed:', e.message));
+        }
+
         console.log('[friday] Initialization complete');
     });
 }

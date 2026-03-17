@@ -42,28 +42,16 @@ class SkillManager {
         console.log(`[SkillManager] Total tools available: ${this.skills.size}`);
     }
 
-    getDefinitions(filter = 'all') {
-        const voiceToolNames = toolsRegistry.getVoiceTools().map(t => t.name);
-        return Array.from(this.skills.values())
-            .filter(s => {
-                if (filter === 'voice') return voiceToolNames.includes(s.definition.name);
-                return true;
-            })
-            .map(s => s.definition);
-    }
-
     async execute(name, args, context) {
         const skill = this.skills.get(name);
         if (!skill) throw new Error(`Skill not found: ${name}`);
         
-        // If it's a static tool with no local execute function, it might need to be routed
-        // to a dedicated tool executor or handled by the caller (like VoiceClient does).
-        // For the Unified Loader, we prefer skills to have an .execute()
+        // 1. Handle Dynamic/Local Skills
         if (skill.execute) {
             return await skill.execute(args, context);
         }
         
-        // Fallback for tools defined only in registry (routed via main.js IPCs usually)
+        // Fallback for tools defined only in registry
         throw new Error(`Skill ${name} is static and has no execution logic in SkillManager.`);
     }
 }

@@ -10,6 +10,8 @@ const { getState } = require('./state');
 const fs = require('fs');
 const path = require('path');
 
+const memoryManager = require('./memory-manager');
+
 class SubAgentManager {
     constructor() {
         this.tasks = new Map();
@@ -129,19 +131,37 @@ class SubAgentManager {
         let isDone = false;
         let resultSummary = "";
 
-        // 1. Fetch relevant Zep memory for this task
-        let zepContext = "";
+        // 1. Fetch structured Zep context for this thread
+        let structuredContext = `
+{{current thread}}
+[No recent messages in this session]
+
+{{past conversations}}
+[No past conversations found]
+
+{{important to know}}
+[No prior facts or context extracted yet]`;
+
         try {
-            const memoryResults = await memoryManager.searchMemory("default_user", taskDescription);
-            if (memoryResults && memoryResults.facts && memoryResults.facts.length > 0) {
-                zepContext = `\nRELEVANT PAST CONTEXT:\n${memoryResults.facts.map(f => `- ${f}`).join('\n')}`;
-            }
+            const ctx = await memoryManager.getStructuredContext("default_user", jobId, taskDescription);
+            structuredContext = `
+{{current thread}}
+${ctx.currentThread.length > 0 ? ctx.currentThread.join('\n') : '[No recent messages in this session]'}
+
+{{past conversations}}
+${ctx.pastConversations.length > 0 ? ctx.pastConversations.join('\n') : '[No past conversations found]'}
+
+{{important to know}}
+${ctx.importantToKnow.length > 0 ? ctx.importantToKnow.join('\n') : '[No prior facts or context extracted yet]'}`;
         } catch (memErr) { console.warn('[SubAgents] Zep context fetch failed:', memErr); }
 
-        // Initial prompt with Desktop State + Zep Context
+        // Record initial task to Zep thread
+        memoryManager.addMessage(jobId, 'human', `TASK: ${taskDescription}`).catch(() => {});
+
+        // Initial prompt with Desktop State + Structured Zep Context
         const initialState = await desktopService.getFullState({ browser });
         let messageParts = [
-            { text: `TASK: ${taskDescription}\n${zepContext}\n\nCURRENT STATE:\n${JSON.stringify(initialState, null, 2)}` }
+            { text: `TASK: ${taskDescription}\n\nMEMORY CONTEXT:\n${structuredContext}\n\nCURRENT DESKTOP STATE:\n${JSON.stringify(initialState, null, 2)}` }
         ];
 
         if (isVisual) {
@@ -163,6 +183,9 @@ class SubAgentManager {
 
             if (onUpdate) onUpdate({ jobId, type: 'thought', content: text });
             task.history.push({ role: 'model', text });
+            
+            // Record assistant thought/response to Zep
+            memoryManager.addMessage(jobId, 'ai', text).catch(() => {});
 
             const calls = response.functionCalls();
             if (!calls || calls.length === 0) break;
@@ -201,9 +224,9 @@ class SubAgentManager {
             }
         }
 
-        // AUTOMATIC SYNC TO ZEP
+        // AUTOMATIC SYNC TO ZEP (Final Summary)
         if (resultSummary) {
-            memoryManager.saveToMemory("default_user", `Task Result [${taskDescription}]: ${resultSummary}`).catch(e => console.error('[SubAgents] Zep save failed:', e));
+            memoryManager.saveToMemory("default_user", `Task Result [${taskDescription}]: ${resultSummary}`, jobId).catch(e => console.error('[SubAgents] Zep final save failed:', e));
         }
 
         return resultSummary || "Task completed.";

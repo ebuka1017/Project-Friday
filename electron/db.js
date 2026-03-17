@@ -45,6 +45,7 @@ class DatabaseManager {
                 role TEXT,
                 text TEXT,
                 image TEXT,
+                synced INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
             )`,
@@ -86,22 +87,13 @@ class DatabaseManager {
     }
 
     _runMigrations() {
-        return new Promise((resolve, reject) => {
-            // Add image column to messages if it doesn't exist
-            this.db.run("ALTER TABLE messages ADD COLUMN image TEXT", (err) => {
-                if (err) {
-                    if (err.message.includes("duplicate column name")) {
-                        // Migration already applied
-                        resolve();
-                    } else {
-                        console.error("[DB] Migration failed:", err);
-                        // Still resolve because the next steps might work (or it might fail later)
-                        resolve();
-                    }
-                } else {
-                    console.log("[DB] Added image column to messages table.");
+        return new Promise((resolve) => {
+            // Migration: Add image column
+            this.db.run("ALTER TABLE messages ADD COLUMN image TEXT", () => {
+                // Migration: Add synced column
+                this.db.run("ALTER TABLE messages ADD COLUMN synced INTEGER DEFAULT 0", () => {
                     resolve();
-                }
+                });
             });
         });
     }
@@ -162,11 +154,11 @@ class DatabaseManager {
 
     // ── Messages ────────────────────────────────────────────────────────┐
 
-    saveMessage(id, sessionId, role, text, image = null) {
+    saveMessage(id, sessionId, role, text, image = null, synced = 0) {
         return new Promise((resolve, reject) => {
             this.db.run(
-                `INSERT INTO messages (id, session_id, role, text, image) VALUES (?, ?, ?, ?, ?)`,
-                [id, sessionId, role, text, image],
+                `INSERT INTO messages (id, session_id, role, text, image, synced) VALUES (?, ?, ?, ?, ?, ?)`,
+                [id, sessionId, role, text, image, synced],
                 function (err) {
                     if (err) return reject(err);
 
@@ -174,6 +166,32 @@ class DatabaseManager {
                     this.db.run(`UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [sessionId]);
                     resolve(id);
                 }.bind(this)
+            );
+        });
+    }
+
+    getUnsyncedMessages() {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                `SELECT * FROM messages WHERE synced = 0 ORDER BY created_at ASC`,
+                [],
+                (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                }
+            );
+        });
+    }
+
+    markMessageSynced(id) {
+        return new Promise((resolve, reject) => {
+            this.db.run(
+                `UPDATE messages SET synced = 1 WHERE id = ?`,
+                [id],
+                (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                }
             );
         });
     }
