@@ -1,412 +1,1036 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>How It Works, Friday</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
-<script>(function(){const s=localStorage.getItem('friday-theme'),p=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.setAttribute('data-theme',s||(p?'dark':'light'));})();</script>
-<style>
-:root,[data-theme="dark"]{--bg:#080B0F;--surface:#0E1318;--surface2:#1A2028;--border:rgba(255,255,255,0.09);--accent:#3BFFA0;--accent2:#5B9EFF;--text:#E8EDF2;--muted:#7A8D9E;--nav-bg:rgba(8,11,15,0.82);--toggle-bg:#1A2028;--toggle-border:rgba(255,255,255,0.14);--toggle-active-bg:#2A3540;--toggle-active-color:#E8EDF2;--toggle-inactive-color:#4A5D6E}
-[data-theme="light"]{--bg:#F0F2F5;--surface:#FFFFFF;--surface2:#E4E8ED;--border:rgba(0,0,0,0.1);--accent:#00A65A;--accent2:#2C6FE8;--text:#0F1923;--muted:#5A6A7A;--nav-bg:rgba(240,242,245,0.88);--toggle-bg:#E4E8ED;--toggle-border:rgba(0,0,0,0.14);--toggle-active-bg:#FFFFFF;--toggle-active-color:#0F1923;--toggle-inactive-color:#8A9AAA}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;overflow-x:hidden;transition:background 0.3s,color 0.3s}
-body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.35}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How It Works, Friday</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Friday, How It Works" />
+  <meta property="og:description"
+    content="See exactly how Friday works. Voice-native, desktop-native, and built to get things done on your behalf." />
+  <meta property="og:image" content="https://pub-6212f924aa8e4fb3976da3b29313bc1b.r2.dev/how%20it%20works.png" />
+  <meta property="og:url" content="https://fridayy.netlify.app/how-it-works.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Friday, How It Works" />
+  <meta name="twitter:description"
+    content="See exactly how Friday works. Voice-native, desktop-native, and built to get things done on your behalf." />
+  <meta name="twitter:image" content="https://pub-6212f924aa8e4fb3976da3b29313bc1b.r2.dev/how%20it%20works.png" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+    rel="stylesheet" />
+  <script>(function () { const s = localStorage.getItem('friday-theme'), p = window.matchMedia('(prefers-color-scheme: dark)').matches; document.documentElement.setAttribute('data-theme', s || (p ? 'dark' : 'light')); })();</script>
+  <style>
+    :root,
+    [data-theme="dark"] {
+      --bg: #080B0F;
+      --surface: #0E1318;
+      --surface2: #1A2028;
+      --border: rgba(255, 255, 255, 0.09);
+      --accent: #3BFFA0;
+      --accent2: #5B9EFF;
+      --text: #E8EDF2;
+      --muted: #7A8D9E;
+      --nav-bg: rgba(8, 11, 15, 0.82);
+      --toggle-bg: #1A2028;
+      --toggle-border: rgba(255, 255, 255, 0.14);
+      --toggle-active-bg: #2A3540;
+      --toggle-active-color: #E8EDF2;
+      --toggle-inactive-color: #4A5D6E
+    }
 
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 48px;background:var(--nav-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:background 0.3s}
-.nav-left{display:flex;align-items:center;gap:36px}
-.nav-links{display:flex;align-items:center;gap:28px;list-style:none}
-.nav-links a{font-size:0.85rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
-.nav-links a:hover{color:var(--text)}
-.nav-links a.active{color:var(--text);font-weight:500}
-.nav-right{display:flex;align-items:center;gap:14px}
-.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:lpulse 2s ease-in-out infinite;flex-shrink:0}
-@keyframes lpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
-.theme-toggle{background:var(--toggle-bg);border:1px solid var(--toggle-border);border-radius:100px;padding:4px;display:flex;align-items:center;gap:2px}
-.theme-btn{width:32px;height:32px;border-radius:100px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;transition:background 0.2s,color 0.2s;color:var(--toggle-inactive-color)}
-.theme-btn.active{background:var(--toggle-active-bg);color:var(--toggle-active-color);box-shadow:0 1px 6px rgba(0,0,0,0.25)}
-.nav-cta{background:var(--accent);color:#0F1923;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.85rem;padding:9px 20px;border-radius:6px;text-decoration:none;transition:opacity 0.2s,transform 0.2s;white-space:nowrap}
-.nav-cta:hover{opacity:0.85;transform:translateY(-1px)}
+    [data-theme="light"] {
+      --bg: #F0F2F5;
+      --surface: #FFFFFF;
+      --surface2: #E4E8ED;
+      --border: rgba(0, 0, 0, 0.1);
+      --accent: #00A65A;
+      --accent2: #2C6FE8;
+      --text: #0F1923;
+      --muted: #5A6A7A;
+      --nav-bg: rgba(240, 242, 245, 0.88);
+      --toggle-bg: #E4E8ED;
+      --toggle-border: rgba(0, 0, 0, 0.14);
+      --toggle-active-bg: #FFFFFF;
+      --toggle-active-color: #0F1923;
+      --toggle-inactive-color: #8A9AAA
+    }
 
-/* PAGE HERO */
-.page-hero{padding:160px 32px 80px;max-width:1080px;margin:0 auto;position:relative;z-index:1}
-.page-eyebrow{font-size:0.72rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
-.page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2.4rem,6vw,4rem);letter-spacing:-0.03em;line-height:1.08;margin-bottom:24px}
-.page-title em{font-style:normal;color:var(--accent)}
-.page-lead{font-size:1.1rem;color:var(--muted);max-width:580px;line-height:1.75}
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-/* CONTENT */
-.content{max-width:1080px;margin:0 auto;padding:0 32px 120px;position:relative;z-index:1}
+    html {
+      scroll-behavior: smooth
+    }
 
-/* STEPS, detailed */
-.steps-detailed{display:flex;flex-direction:column;gap:2px;margin-bottom:96px}
-.step-row{display:grid;grid-template-columns:72px 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color 0.2s}
-.step-row:hover{border-color:rgba(59,255,160,0.2)}
-[data-theme="light"] .step-row:hover{border-color:rgba(0,166,90,0.2)}
-.step-num-col{background:var(--surface2);display:flex;align-items:flex-start;justify-content:center;padding:36px 0 0;border-right:1px solid var(--border)}
-.step-num-col span{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--accent);opacity:0.5}
-.step-body{padding:36px 40px}
-.step-body h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1.2rem;letter-spacing:-0.01em;margin-bottom:10px}
-.step-body p{font-size:0.92rem;color:var(--muted);line-height:1.75;margin-bottom:12px}
-.step-body p:last-child{margin-bottom:0}
-.step-tag{display:inline-flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--accent2);background:rgba(91,158,255,0.08);border:1px solid rgba(91,158,255,0.15);border-radius:100px;padding:3px 10px;margin-top:4px;margin-right:6px}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+      transition: background 0.3s, color 0.3s
+    }
 
-/* FEATURES DEEP DIVE */
-.section-heading{font-family:'Syne',sans-serif;font-weight:700;font-size:clamp(1.6rem,3.5vw,2.2rem);letter-spacing:-0.025em;line-height:1.2;margin-bottom:12px}
-.section-sub{font-size:0.95rem;color:var(--muted);max-width:520px;margin-bottom:48px}
-.section-label{font-size:0.72rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.35
+    }
 
-.feature-deep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:96px}
-.feature-deep-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.feature-deep-head{padding:28px 28px 20px;display:flex;align-items:flex-start;gap:16px}
-.feature-deep-icon{width:44px;height:44px;border-radius:10px;background:rgba(59,255,160,0.08);border:1px solid rgba(59,255,160,0.15);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
-[data-theme="light"] .feature-deep-icon{background:rgba(0,166,90,0.07);border-color:rgba(0,166,90,0.15)}
-.feature-deep-head h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:4px}
-.feature-deep-head .sub{font-size:0.8rem;color:var(--muted)}
-.feature-deep-body{padding:0 28px 28px;border-top:1px solid var(--border)}
-.feature-deep-body p{font-size:0.88rem;color:var(--muted);line-height:1.7;padding-top:20px}
-.detail-list{list-style:none;padding:0;margin-top:14px}
-.detail-list li{font-size:0.85rem;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.detail-list li:last-child{border-bottom:none}
-.detail-list li::before{content:'→';color:var(--accent);font-size:0.8rem;flex-shrink:0}
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 48px;
+      background: var(--nav-bg);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.3s
+    }
 
-/* FAQ */
-.faq-section{margin-bottom:96px}
-.faq-list{display:flex;flex-direction:column;gap:2px;margin-top:40px}
-.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.faq-q{width:100%;background:none;border:none;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left;font-family:'Syne',sans-serif;font-weight:600;font-size:0.95rem;color:var(--text);gap:16px}
-.faq-q:hover{background:var(--surface2)}
-.faq-chevron{font-size:0.75rem;color:var(--muted);transition:transform 0.2s;flex-shrink:0}
-.faq-item.open .faq-chevron{transform:rotate(180deg)}
-.faq-a{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
-.faq-item.open .faq-a{max-height:300px}
-.faq-a-inner{padding:0 28px 22px;font-size:0.9rem;color:var(--muted);line-height:1.75}
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 36px
+    }
 
-/* CTA STRIP */
-.cta-strip{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap}
-.cta-strip h2{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:-0.02em}
-.cta-strip h2 em{font-style:normal;color:var(--accent)}
-.cta-strip p{font-size:0.9rem;color:var(--muted);margin-top:6px}
-.btn-primary{background:var(--accent);color:#0F1923;font-weight:500;font-size:0.95rem;padding:14px 32px;border-radius:8px;text-decoration:none;transition:opacity 0.2s,transform 0.2s,box-shadow 0.2s;box-shadow:0 0 24px rgba(59,255,160,0.2);white-space:nowrap}
-.btn-primary:hover{opacity:0.9;transform:translateY(-2px)}
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none
+    }
 
-/* FOOTER */
-footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;z-index:1}
-.footer-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none}
-.footer-links{display:flex;gap:24px;flex-wrap:wrap}
-.footer-links a{font-size:0.8rem;color:var(--muted);text-decoration:none;transition:color 0.2s}
-.footer-links a:hover{color:var(--text)}
-.copy{font-size:0.75rem;color:var(--muted)}
+    .nav-links a {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s
+    }
 
-/* REVEAL */
-.reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease}
-.reveal.visible{opacity:1;transform:translateY(0)}
+    .nav-links a:hover {
+      color: var(--text)
+    }
 
-@media(max-width:768px){
-  nav{padding:16px 20px}.nav-links{display:none}
-  .page-hero,.content{padding-left:20px;padding-right:20px}
-  .step-row{grid-template-columns:1fr}.step-num-col{display:none}
-  .cta-strip{flex-direction:column;align-items:flex-start}
-  footer{padding:24px 20px;flex-direction:column;align-items:flex-start}
-}
-</style>
+    .nav-links a.active {
+      color: var(--text);
+      font-weight: 500
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 14px
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none
+    }
+
+    .logo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+      animation: lpulse 2s ease-in-out infinite;
+      flex-shrink: 0
+    }
+
+    @keyframes lpulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1)
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(0.8)
+      }
+    }
+
+    .theme-toggle {
+      background: var(--toggle-bg);
+      border: 1px solid var(--toggle-border);
+      border-radius: 100px;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      gap: 2px
+    }
+
+    .theme-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 100px;
+      border: none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s, color 0.2s;
+      color: var(--toggle-inactive-color)
+    }
+
+    .theme-btn.active {
+      background: var(--toggle-active-bg);
+      color: var(--toggle-active-color);
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25)
+    }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #0F1923;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 9px 20px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap
+    }
+
+    .nav-cta:hover {
+      opacity: 0.85;
+      transform: translateY(-1px)
+    }
+
+    /* PAGE HERO */
+    .page-hero {
+      padding: 160px 32px 80px;
+      max-width: 1080px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1
+    }
+
+    .page-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px
+    }
+
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      margin-bottom: 24px
+    }
+
+    .page-title em {
+      font-style: normal;
+      color: var(--accent)
+    }
+
+    .page-lead {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 580px;
+      line-height: 1.75
+    }
+
+    /* CONTENT */
+    .content {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 32px 120px;
+      position: relative;
+      z-index: 1
+    }
+
+    /* STEPS, detailed */
+    .steps-detailed {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 96px
+    }
+
+    .step-row {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s
+    }
+
+    .step-row:hover {
+      border-color: rgba(59, 255, 160, 0.2)
+    }
+
+    [data-theme="light"] .step-row:hover {
+      border-color: rgba(0, 166, 90, 0.2)
+    }
+
+    .step-num-col {
+      background: var(--surface2);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 36px 0 0;
+      border-right: 1px solid var(--border)
+    }
+
+    .step-num-col span {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--accent);
+      opacity: 0.5
+    }
+
+    .step-body {
+      padding: 36px 40px
+    }
+
+    .step-body h3 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: -0.01em;
+      margin-bottom: 10px
+    }
+
+    .step-body p {
+      font-size: 0.92rem;
+      color: var(--muted);
+      line-height: 1.75;
+      margin-bottom: 12px
+    }
+
+    .step-body p:last-child {
+      margin-bottom: 0
+    }
+
+    .step-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: var(--accent2);
+      background: rgba(91, 158, 255, 0.08);
+      border: 1px solid rgba(91, 158, 255, 0.15);
+      border-radius: 100px;
+      padding: 3px 10px;
+      margin-top: 4px;
+      margin-right: 6px
+    }
+
+    /* FEATURES DEEP DIVE */
+    .section-heading {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+      letter-spacing: -0.025em;
+      line-height: 1.2;
+      margin-bottom: 12px
+    }
+
+    .section-sub {
+      font-size: 0.95rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin-bottom: 48px
+    }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px
+    }
+
+    .feature-deep-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 96px
+    }
+
+    .feature-deep-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden
+    }
+
+    .feature-deep-head {
+      padding: 28px 28px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px
+    }
+
+    .feature-deep-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(59, 255, 160, 0.08);
+      border: 1px solid rgba(59, 255, 160, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0
+    }
+
+    [data-theme="light"] .feature-deep-icon {
+      background: rgba(0, 166, 90, 0.07);
+      border-color: rgba(0, 166, 90, 0.15)
+    }
+
+    .feature-deep-head h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px
+    }
+
+    .feature-deep-head .sub {
+      font-size: 0.8rem;
+      color: var(--muted)
+    }
+
+    .feature-deep-body {
+      padding: 0 28px 28px;
+      border-top: 1px solid var(--border)
+    }
+
+    .feature-deep-body p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.7;
+      padding-top: 20px
+    }
+
+    .detail-list {
+      list-style: none;
+      padding: 0;
+      margin-top: 14px
+    }
+
+    .detail-list li {
+      font-size: 0.85rem;
+      color: var(--muted);
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .detail-list li:last-child {
+      border-bottom: none
+    }
+
+    .detail-list li::before {
+      content: '→';
+      color: var(--accent);
+      font-size: 0.8rem;
+      flex-shrink: 0
+    }
+
+    /* FAQ */
+    .faq-section {
+      margin-bottom: 96px
+    }
+
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-top: 40px
+    }
+
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden
+    }
+
+    .faq-q {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 22px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      text-align: left;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+      gap: 16px
+    }
+
+    .faq-q:hover {
+      background: var(--surface2)
+    }
+
+    .faq-chevron {
+      font-size: 0.75rem;
+      color: var(--muted);
+      transition: transform 0.2s;
+      flex-shrink: 0
+    }
+
+    .faq-item.open .faq-chevron {
+      transform: rotate(180deg)
+    }
+
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease
+    }
+
+    .faq-item.open .faq-a {
+      max-height: 300px
+    }
+
+    .faq-a-inner {
+      padding: 0 28px 22px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.75
+    }
+
+    /* CTA STRIP */
+    .cta-strip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      flex-wrap: wrap
+    }
+
+    .cta-strip h2 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.6rem;
+      letter-spacing: -0.02em
+    }
+
+    .cta-strip h2 em {
+      font-style: normal;
+      color: var(--accent)
+    }
+
+    .cta-strip p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 6px
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0F1923;
+      font-weight: 500;
+      font-size: 0.95rem;
+      padding: 14px 32px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 24px rgba(59, 255, 160, 0.2);
+      white-space: nowrap
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-2px)
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      position: relative;
+      z-index: 1
+    }
+
+    .footer-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap
+    }
+
+    .footer-links a {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s
+    }
+
+    .footer-links a:hover {
+      color: var(--text)
+    }
+
+    .copy {
+      font-size: 0.75rem;
+      color: var(--muted)
+    }
+
+    /* REVEAL */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0)
+    }
+
+    @media(max-width:768px) {
+      nav {
+        padding: 16px 20px
+      }
+
+      .nav-links {
+        display: none
+      }
+
+      .page-hero,
+      .content {
+        padding-left: 20px;
+        padding-right: 20px
+      }
+
+      .step-row {
+        grid-template-columns: 1fr
+      }
+
+      .step-num-col {
+        display: none
+      }
+
+      .cta-strip {
+        flex-direction: column;
+        align-items: flex-start
+      }
+
+      footer {
+        padding: 24px 20px;
+        flex-direction: column;
+        align-items: flex-start
+      }
+    }
+  </style>
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Friday, How It Works" />
+  <meta property="og:description"
+    content="Friday, your voice-native AI desktop agent for Windows. Press Ctrl+Q and get things done." />
+  <meta property="og:image" content="https://pub-6212f924aa8e4fb3976da3b29313bc1b.r2.dev/how%20it%20works.png" />
+  <meta property="og:url" content="https://fridayy.netlify.app/how-it-works.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Friday, How It Works" />
+  <meta name="twitter:description"
+    content="Friday, your voice-native AI desktop agent for Windows. Press Ctrl+Q and get things done." />
+  <meta name="twitter:image" content="https://pub-6212f924aa8e4fb3976da3b29313bc1b.r2.dev/how%20it%20works.png" />
 </head>
+
 <body>
 
-<nav>
-  <div class="nav-left">
-    <a href="index.html" class="logo"><div class="logo-dot"></div>Friday</a>
-    <ul class="nav-links">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="how-it-works.html" class="active">How it works</a></li>
-      <li><a href="contact.html">Contact</a></li>
-    </ul>
-  </div>
-  <div class="nav-right">
-    <div class="theme-toggle">
-      <button class="theme-btn" id="btnDark" onclick="setTheme('dark')" title="Dark mode">🌙</button>
-      <button class="theme-btn" id="btnLight" onclick="setTheme('light')" title="Light mode">☀️</button>
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="logo">
+        <div class="logo-dot"></div>Friday
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="how-it-works.html" class="active">How it works</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
     </div>
-    <a href="https://github.com/ebuka1017/Project-Friday/releases" class="nav-cta">Download Free</a>
-  </div>
-</nav>
-
-<!-- HERO -->
-<div class="page-hero">
-  <p class="page-eyebrow">How it works</p>
-  <h1 class="page-title">Your computer, finally<br/><em>working for you.</em></h1>
-  <p class="page-lead">Friday sits on your desktop and acts on your behalf, no tab-switching, no copy-pasting, no learning new tools. Here's exactly how it does that.</p>
-</div>
-
-<div class="content">
-
-  <!-- STEPS -->
-  <div class="reveal" style="margin-bottom:16px">
-    <p class="section-label">The basics</p>
-    <h2 class="section-heading">Three steps, every time</h2>
-    <p class="section-sub">Every interaction with Friday follows the same simple pattern, no matter how complex the task.</p>
-  </div>
-
-  <div class="steps-detailed reveal">
-    <div class="step-row">
-      <div class="step-num-col"><span>01</span></div>
-      <div class="step-body">
-        <h3>Summon Friday from anywhere</h3>
-        <p>Press <strong>Ctrl + Q</strong> on your keyboard, from any app, any window, any moment. Friday's HUD overlay appears instantly without interrupting what you were doing.</p>
-        <p>You don't need to minimize your work, open a browser tab, or find an app icon. Friday is always one keystroke away, running quietly in your system tray until you need it.</p>
-        <span class="step-tag">⌨️ Global hotkey</span>
-        <span class="step-tag">⚡ Instant launch</span>
+    <div class="nav-right">
+      <div class="theme-toggle">
+        <button class="theme-btn" id="btnDark" onclick="setTheme('dark')" title="Dark mode">🌙</button>
+        <button class="theme-btn" id="btnLight" onclick="setTheme('light')" title="Light mode">☀️</button>
       </div>
+      <a href="https://github.com/ebuka1017/Project-Friday/releases" class="nav-cta">Download Free</a>
     </div>
-    <div class="step-row">
-      <div class="step-num-col"><span>02</span></div>
-      <div class="step-body">
-        <h3>Talk to it naturally</h3>
-        <p>Click the microphone or just start speaking. Friday uses real-time voice streaming, it hears you as you talk, not after you finish. No push-to-talk, no waiting.</p>
-        <p>You can also type if you prefer. Either way, use plain language, "summarise my emails from this morning", "find the invoice from last Tuesday", "book me a meeting with the team for Thursday". No commands to memorise.</p>
-        <span class="step-tag">🎙️ Live voice</span>
-        <span class="step-tag">💬 Or type</span>
-        <span class="step-tag">🌍 Plain English</span>
-      </div>
-    </div>
-    <div class="step-row">
-      <div class="step-num-col"><span>03</span></div>
-      <div class="step-body">
-        <h3>Friday acts, you stay focused</h3>
-        <p>Friday doesn't just answer, it does. It can open apps, click buttons, fill in forms, search the web, read your screen, and run long tasks in the background while you keep working.</p>
-        <p>When it needs your input, a confirmation, a choice, a correction, it asks. When it's done, it reports back. You stay in the driver's seat the whole time.</p>
-        <span class="step-tag">🖱️ Takes real actions</span>
-        <span class="step-tag">🔄 Background tasks</span>
-        <span class="step-tag">✅ Checks in when needed</span>
-      </div>
-    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="page-hero">
+    <p class="page-eyebrow">How it works</p>
+    <h1 class="page-title">Your computer, finally<br /><em>working for you.</em></h1>
+    <p class="page-lead">Friday sits on your desktop and acts on your behalf, no tab-switching, no copy-pasting, no
+      learning new tools. Here's exactly how it does that.</p>
   </div>
 
-  <!-- FEATURES DEEP DIVE -->
-  <div class="reveal" style="margin-bottom:16px">
-    <p class="section-label">Under the hood</p>
-    <h2 class="section-heading">What Friday can actually do</h2>
-    <p class="section-sub">Here's a closer look at Friday's core capabilities and how each one works in practice.</p>
-  </div>
+  <div class="content">
 
-  <div class="feature-deep-grid reveal">
+    <!-- STEPS -->
+    <div class="reveal" style="margin-bottom:16px">
+      <p class="section-label">The basics</p>
+      <h2 class="section-heading">Three steps, every time</h2>
+      <p class="section-sub">Every interaction with Friday follows the same simple pattern, no matter how complex the
+        task.</p>
+    </div>
 
-    <div class="feature-deep-card">
-      <div class="feature-deep-head">
-        <div class="feature-deep-icon">🎙️</div>
-        <div>
-          <h3>Real-time voice conversations</h3>
-          <div class="sub">Powered by Gemini Live API</div>
+    <div class="steps-detailed reveal">
+      <div class="step-row">
+        <div class="step-num-col"><span>01</span></div>
+        <div class="step-body">
+          <h3>Summon Friday from anywhere</h3>
+          <p>Press <strong>Ctrl + Q</strong> on your keyboard, from any app, any window, any moment. Friday's HUD
+            overlay appears instantly without interrupting what you were doing.</p>
+          <p>You don't need to minimize your work, open a browser tab, or find an app icon. Friday is always one
+            keystroke away, running quietly in your system tray until you need it.</p>
+          <span class="step-tag">⌨️ Global hotkey</span>
+          <span class="step-tag">⚡ Instant launch</span>
         </div>
       </div>
-      <div class="feature-deep-body">
-        <p>Friday uses Google's Gemini Live API over a persistent WebSocket connection for bidirectional audio. It processes your voice as you speak, not after, so responses feel instant, like talking to a person.</p>
-        <ul class="detail-list">
-          <li>Low-latency 16-bit audio streaming</li>
-          <li>Understands natural speech, accents, and hesitations</li>
-          <li>Responds in voice or text depending on context</li>
-          <li>No wake word required, just press Ctrl+Q and speak</li>
-        </ul>
+      <div class="step-row">
+        <div class="step-num-col"><span>02</span></div>
+        <div class="step-body">
+          <h3>Talk to it naturally</h3>
+          <p>Click the microphone or just start speaking. Friday uses real-time voice streaming, it hears you as you
+            talk, not after you finish. No push-to-talk, no waiting.</p>
+          <p>You can also type if you prefer. Either way, use plain language, "summarise my emails from this morning",
+            "find the invoice from last Tuesday", "book me a meeting with the team for Thursday". No commands to
+            memorise.</p>
+          <span class="step-tag">🎙️ Live voice</span>
+          <span class="step-tag">💬 Or type</span>
+          <span class="step-tag">🌍 Plain English</span>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num-col"><span>03</span></div>
+        <div class="step-body">
+          <h3>Friday acts, you stay focused</h3>
+          <p>Friday doesn't just answer, it does. It can open apps, click buttons, fill in forms, search the web, read
+            your screen, and run long tasks in the background while you keep working.</p>
+          <p>When it needs your input, a confirmation, a choice, a correction, it asks. When it's done, it reports back.
+            You stay in the driver's seat the whole time.</p>
+          <span class="step-tag">🖱️ Takes real actions</span>
+          <span class="step-tag">🔄 Background tasks</span>
+          <span class="step-tag">✅ Checks in when needed</span>
+        </div>
       </div>
     </div>
 
-    <div class="feature-deep-card">
-      <div class="feature-deep-head">
-        <div class="feature-deep-icon">👁️</div>
-        <div>
-          <h3>Screen vision & computer use</h3>
-          <div class="sub">Sees and understands your display</div>
+    <!-- FEATURES DEEP DIVE -->
+    <div class="reveal" style="margin-bottom:16px">
+      <p class="section-label">Under the hood</p>
+      <h2 class="section-heading">What Friday can actually do</h2>
+      <p class="section-sub">Here's a closer look at Friday's core capabilities and how each one works in practice.</p>
+    </div>
+
+    <div class="feature-deep-grid reveal">
+
+      <div class="feature-deep-card">
+        <div class="feature-deep-head">
+          <div class="feature-deep-icon">🎙️</div>
+          <div>
+            <h3>Real-time voice conversations</h3>
+            <div class="sub">Powered by Gemini Live API</div>
+          </div>
+        </div>
+        <div class="feature-deep-body">
+          <p>Friday uses Google's Gemini Live API over a persistent WebSocket connection for bidirectional audio. It
+            processes your voice as you speak, not after, so responses feel instant, like talking to a person.</p>
+          <ul class="detail-list">
+            <li>Low-latency 16-bit audio streaming</li>
+            <li>Understands natural speech, accents, and hesitations</li>
+            <li>Responds in voice or text depending on context</li>
+            <li>No wake word required, just press Ctrl+Q and speak</li>
+          </ul>
         </div>
       </div>
-      <div class="feature-deep-body">
-        <p>Friday can take a screenshot of your screen and understand what's on it using Gemini's Computer Use capability. Ask "what does this error mean?" or "click the confirm button", it sees exactly what you see.</p>
-        <ul class="detail-list">
-          <li>Reads text, buttons, and UI elements on screen</li>
-          <li>Can navigate complex or unfamiliar interfaces</li>
-          <li>Handles web pages, desktop apps, and documents</li>
-          <li>Screenshots are used only for the active task</li>
-        </ul>
+
+      <div class="feature-deep-card">
+        <div class="feature-deep-head">
+          <div class="feature-deep-icon">👁️</div>
+          <div>
+            <h3>Screen vision & computer use</h3>
+            <div class="sub">Sees and understands your display</div>
+          </div>
+        </div>
+        <div class="feature-deep-body">
+          <p>Friday can take a screenshot of your screen and understand what's on it using Gemini's Computer Use
+            capability. Ask "what does this error mean?" or "click the confirm button", it sees exactly what you see.
+          </p>
+          <ul class="detail-list">
+            <li>Reads text, buttons, and UI elements on screen</li>
+            <li>Can navigate complex or unfamiliar interfaces</li>
+            <li>Handles web pages, desktop apps, and documents</li>
+            <li>Screenshots are used only for the active task</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="feature-deep-card">
+        <div class="feature-deep-head">
+          <div class="feature-deep-icon">🖱️</div>
+          <div>
+            <h3>Full desktop control</h3>
+            <div class="sub">Windows UI Automation bridge</div>
+          </div>
+        </div>
+        <div class="feature-deep-body">
+          <p>A lightweight C# bridge uses Windows UI Automation to interact with any native Windows app, not just
+            browsers. Friday can click, type, scroll, and read content in apps like Outlook, Excel, Slack, and more.</p>
+          <ul class="detail-list">
+            <li>Works with any standard Windows application</li>
+            <li>Injects real mouse and keyboard events at OS level</li>
+            <li>Reads UI element labels, values, and states</li>
+            <li>Runs as a background sidecar process</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="feature-deep-card">
+        <div class="feature-deep-head">
+          <div class="feature-deep-icon">⚡</div>
+          <div>
+            <h3>Background sub-agents</h3>
+            <div class="sub">Delegate and forget</div>
+          </div>
+        </div>
+        <div class="feature-deep-body">
+          <p>For longer tasks, research, drafting, data gathering, Friday spawns a background sub-agent that works
+            independently while you continue your conversation or switch back to your work.</p>
+          <ul class="detail-list">
+            <li>Multiple tasks can run simultaneously</li>
+            <li>Sub-agents report back when complete</li>
+            <li>You stay in flow while work happens in the background</li>
+            <li>Each agent is isolated and can be cancelled</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="feature-deep-card">
+        <div class="feature-deep-head">
+          <div class="feature-deep-icon">🌐</div>
+          <div>
+            <h3>Web browsing & automation</h3>
+            <div class="sub">Chrome extension bridge</div>
+          </div>
+        </div>
+        <div class="feature-deep-body">
+          <p>With the Friday Browser Bridge extension installed in Chrome, Friday can navigate websites, fill in forms,
+            extract information, and interact with web apps, going far beyond simple web searches.</p>
+          <ul class="detail-list">
+            <li>Navigates to any URL on your behalf</li>
+            <li>Reads and interacts with live web pages</li>
+            <li>Fills forms, clicks links, extracts content</li>
+            <li>Auto-reconnects via heartbeat, always ready</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="feature-deep-card">
+        <div class="feature-deep-head">
+          <div class="feature-deep-icon">🔒</div>
+          <div>
+            <h3>Local-first & private</h3>
+            <div class="sub">Your data stays on your machine</div>
+          </div>
+        </div>
+        <div class="feature-deep-body">
+          <p>Friday has no backend server. Conversation history is stored locally in a SQLite database on your PC. The
+            only external connection is to Google Cloud Vertex AI to process your AI requests.</p>
+          <ul class="detail-list">
+            <li>No account required to use core features</li>
+            <li>Conversation memory stored on-device only</li>
+            <li>Voice audio is streamed, not stored, by Friday</li>
+            <li>Google Cloud handles AI processing securely</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FAQ -->
+    <div class="faq-section reveal">
+      <p class="section-label">Questions</p>
+      <h2 class="section-heading">Common questions</h2>
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Does Friday work when I'm offline?
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-a">
+            <div class="faq-a-inner">Core app functions and local conversation history are available offline, but AI
+              responses require a connection to Google Cloud Vertex AI. Voice and task execution features need internet
+              access to work.</div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Which apps can Friday control?
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-a">
+            <div class="faq-a-inner">Friday can interact with any standard Windows application that uses Windows UI
+              Automation, which covers the vast majority of desktop apps including Outlook, Excel, Word, Slack, VS Code,
+              browsers, and more. Apps with custom or non-standard UI frameworks may have limited support.</div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Is my voice being recorded and stored?
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-a">
+            <div class="faq-a-inner">No. Friday streams your audio in real time to Google Cloud Vertex AI for
+              processing, but does not store recordings locally or on any Friday server. Google's data handling is
+              governed by their Cloud Privacy Notice.</div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Can Friday act on my computer without asking me first?
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-a">
+            <div class="faq-a-inner">Friday only takes actions you explicitly ask for. For consequential actions, like
+              sending a message or deleting a file, it will confirm with you first. You're always in control, and you
+              can stop any task at any time.</div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            What Windows versions are supported?
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-a">
+            <div class="faq-a-inner">Friday is built for Windows 10 and Windows 11. Support for macOS and Linux is on
+              the roadmap but not yet available.</div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            Do I need the Chrome extension?
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-a">
+            <div class="faq-a-inner">No, the Chrome extension is optional. Without it, Friday can still control the
+              Chrome window through Windows UI Automation, but the extension unlocks deeper web interaction like reading
+              page content, filling forms, and navigating complex web apps more reliably.</div>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <div class="feature-deep-card">
-      <div class="feature-deep-head">
-        <div class="feature-deep-icon">🖱️</div>
-        <div>
-          <h3>Full desktop control</h3>
-          <div class="sub">Windows UI Automation bridge</div>
-        </div>
+    <!-- CTA -->
+    <div class="cta-strip reveal">
+      <div>
+        <h2>Ready to try <em>Friday?</em></h2>
+        <p>Free to download. No account needed.</p>
       </div>
-      <div class="feature-deep-body">
-        <p>A lightweight C# bridge uses Windows UI Automation to interact with any native Windows app, not just browsers. Friday can click, type, scroll, and read content in apps like Outlook, Excel, Slack, and more.</p>
-        <ul class="detail-list">
-          <li>Works with any standard Windows application</li>
-          <li>Injects real mouse and keyboard events at OS level</li>
-          <li>Reads UI element labels, values, and states</li>
-          <li>Runs as a background sidecar process</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="feature-deep-card">
-      <div class="feature-deep-head">
-        <div class="feature-deep-icon">⚡</div>
-        <div>
-          <h3>Background sub-agents</h3>
-          <div class="sub">Delegate and forget</div>
-        </div>
-      </div>
-      <div class="feature-deep-body">
-        <p>For longer tasks, research, drafting, data gathering, Friday spawns a background sub-agent that works independently while you continue your conversation or switch back to your work.</p>
-        <ul class="detail-list">
-          <li>Multiple tasks can run simultaneously</li>
-          <li>Sub-agents report back when complete</li>
-          <li>You stay in flow while work happens in the background</li>
-          <li>Each agent is isolated and can be cancelled</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="feature-deep-card">
-      <div class="feature-deep-head">
-        <div class="feature-deep-icon">🌐</div>
-        <div>
-          <h3>Web browsing & automation</h3>
-          <div class="sub">Chrome extension bridge</div>
-        </div>
-      </div>
-      <div class="feature-deep-body">
-        <p>With the Friday Browser Bridge extension installed in Chrome, Friday can navigate websites, fill in forms, extract information, and interact with web apps, going far beyond simple web searches.</p>
-        <ul class="detail-list">
-          <li>Navigates to any URL on your behalf</li>
-          <li>Reads and interacts with live web pages</li>
-          <li>Fills forms, clicks links, extracts content</li>
-          <li>Auto-reconnects via heartbeat, always ready</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="feature-deep-card">
-      <div class="feature-deep-head">
-        <div class="feature-deep-icon">🔒</div>
-        <div>
-          <h3>Local-first & private</h3>
-          <div class="sub">Your data stays on your machine</div>
-        </div>
-      </div>
-      <div class="feature-deep-body">
-        <p>Friday has no backend server. Conversation history is stored locally in a SQLite database on your PC. The only external connection is to Google Cloud Vertex AI to process your AI requests.</p>
-        <ul class="detail-list">
-          <li>No account required to use core features</li>
-          <li>Conversation memory stored on-device only</li>
-          <li>Voice audio is streamed, not stored, by Friday</li>
-          <li>Google Cloud handles AI processing securely</li>
-        </ul>
-      </div>
+      <a href="https://github.com/ebuka1017/Project-Friday/releases" class="btn-primary">Download for Windows →</a>
     </div>
 
   </div>
 
-  <!-- FAQ -->
-  <div class="faq-section reveal">
-    <p class="section-label">Questions</p>
-    <h2 class="section-heading">Common questions</h2>
-    <div class="faq-list">
-
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">
-          Does Friday work when I'm offline?
-          <span class="faq-chevron">▼</span>
-        </button>
-        <div class="faq-a"><div class="faq-a-inner">Core app functions and local conversation history are available offline, but AI responses require a connection to Google Cloud Vertex AI. Voice and task execution features need internet access to work.</div></div>
-      </div>
-
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">
-          Which apps can Friday control?
-          <span class="faq-chevron">▼</span>
-        </button>
-        <div class="faq-a"><div class="faq-a-inner">Friday can interact with any standard Windows application that uses Windows UI Automation, which covers the vast majority of desktop apps including Outlook, Excel, Word, Slack, VS Code, browsers, and more. Apps with custom or non-standard UI frameworks may have limited support.</div></div>
-      </div>
-
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">
-          Is my voice being recorded and stored?
-          <span class="faq-chevron">▼</span>
-        </button>
-        <div class="faq-a"><div class="faq-a-inner">No. Friday streams your audio in real time to Google Cloud Vertex AI for processing, but does not store recordings locally or on any Friday server. Google's data handling is governed by their Cloud Privacy Notice.</div></div>
-      </div>
-
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">
-          Can Friday act on my computer without asking me first?
-          <span class="faq-chevron">▼</span>
-        </button>
-        <div class="faq-a"><div class="faq-a-inner">Friday only takes actions you explicitly ask for. For consequential actions, like sending a message or deleting a file, it will confirm with you first. You're always in control, and you can stop any task at any time.</div></div>
-      </div>
-
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">
-          What Windows versions are supported?
-          <span class="faq-chevron">▼</span>
-        </button>
-        <div class="faq-a"><div class="faq-a-inner">Friday is built for Windows 10 and Windows 11. Support for macOS and Linux is on the roadmap but not yet available.</div></div>
-      </div>
-
-      <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">
-          Do I need the Chrome extension?
-          <span class="faq-chevron">▼</span>
-        </button>
-        <div class="faq-a"><div class="faq-a-inner">No, the Chrome extension is optional. Without it, Friday can still control the Chrome window through Windows UI Automation, but the extension unlocks deeper web interaction like reading page content, filling forms, and navigating complex web apps more reliably.</div></div>
-      </div>
-
+  <footer>
+    <a href="index.html" class="footer-logo">
+      <div class="logo-dot"></div>Friday
+    </a>
+    <div class="footer-links">
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
     </div>
-  </div>
+    <p class="copy">© 2026 Isaac Okwuzi</p>
+  </footer>
 
-  <!-- CTA -->
-  <div class="cta-strip reveal">
-    <div>
-      <h2>Ready to try <em>Friday?</em></h2>
-      <p>Free to download. No account needed.</p>
-    </div>
-    <a href="https://github.com/ebuka1017/Project-Friday/releases" class="btn-primary">Download for Windows →</a>
-  </div>
+  <script>
+    function setTheme(t) { document.documentElement.setAttribute('data-theme', t); localStorage.setItem('friday-theme', t); updateBtns(t) }
+    function updateBtns(t) { document.getElementById('btnDark').classList.toggle('active', t === 'dark'); document.getElementById('btnLight').classList.toggle('active', t === 'light') }
+    updateBtns(document.documentElement.getAttribute('data-theme'));
 
-</div>
+    function toggleFaq(btn) {
+      const item = btn.parentElement;
+      const wasOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+      if (!wasOpen) item.classList.add('open');
+    }
 
-<footer>
-  <a href="index.html" class="footer-logo"><div class="logo-dot"></div>Friday</a>
-  <div class="footer-links">
-    <a href="about.html">About</a>
-    <a href="contact.html">Contact</a>
-    <a href="privacy.html">Privacy</a>
-    <a href="terms.html">Terms</a>
-  </div>
-  <p class="copy">© 2026 Isaac Okwuzi</p>
-</footer>
-
-<script>
-function setTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('friday-theme',t);updateBtns(t)}
-function updateBtns(t){document.getElementById('btnDark').classList.toggle('active',t==='dark');document.getElementById('btnLight').classList.toggle('active',t==='light')}
-updateBtns(document.documentElement.getAttribute('data-theme'));
-
-function toggleFaq(btn){
-  const item = btn.parentElement;
-  const wasOpen = item.classList.contains('open');
-  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
-  if(!wasOpen) item.classList.add('open');
-}
-
-const reveals = document.querySelectorAll('.reveal');
-const obs = new IntersectionObserver(entries=>{
-  entries.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),i*80);obs.unobserve(e.target)}});
-},{threshold:0.08});
-reveals.forEach(el=>obs.observe(el));
-</script>
+    const reveals = document.querySelectorAll('.reveal');
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 80); obs.unobserve(e.target) } });
+    }, { threshold: 0.08 });
+    reveals.forEach(el => obs.observe(el));
+  </script>
 </body>
+
 </html>
