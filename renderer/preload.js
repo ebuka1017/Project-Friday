@@ -7,7 +7,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('friday', {
     // Get securely injected environment variables
-    getGeminiKey: () => ipcRenderer.invoke('env:getGeminiKey'),
+    // Secure Environment Variables (Managed by Main Process)
     getClerkKey: () => ipcRenderer.invoke('env:getClerkKey'),
     getClerkDomain: () => ipcRenderer.invoke('env:getClerkDomain'),
     getClerkAccountUrl: () => ipcRenderer.invoke('env:getClerkAccountUrl'),
@@ -23,6 +23,15 @@ contextBridge.exposeInMainWorld('friday', {
     // Voice client controls for HUD
     startVoice: () => ipcRenderer.invoke('voice:start'),
     stopVoice: () => ipcRenderer.invoke('voice:stop'),
+
+    // Secure Voice WebSocket Proxy (GEMINI API)
+    voiceConnect: (config) => ipcRenderer.invoke('voice:connect', config),
+    voiceSend: (data) => ipcRenderer.invoke('voice:send', data),
+    voiceClose: () => ipcRenderer.invoke('voice:close'),
+    onVoiceOpen: (callback) => ipcRenderer.on('voice:onOpen', () => callback()),
+    onVoiceMessage: (callback) => ipcRenderer.on('voice:onMessage', (_, data) => callback(data)),
+    onVoiceClose: (callback) => ipcRenderer.on('voice:onClose', (_, data) => callback(data)),
+    onVoiceError: (callback) => ipcRenderer.on('voice:onError', (_, err) => callback(err)),
 
     // Send a command to the engine via Named Pipe
     sidecar: (method, params = {}) =>

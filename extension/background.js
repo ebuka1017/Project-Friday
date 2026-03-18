@@ -17,7 +17,15 @@ function connectToFriday() {
 
     console.log(`[Friday Bridge] Connecting to ${FRIDAY_WS_URL} (ID: ${clientId})`);
     connectionPending = true;
-    ws = new WebSocket(`${FRIDAY_WS_URL}?clientId=${clientId}`);
+
+    // In a real scenario, the secret would be discovered via a local discovery service
+    // or passed via a more secure IPC if the browser allowed it.
+    // For this remediation, we'll assume the secret is provided via a local file
+    // that the extension can read (if permitted) or we'll use a placeholder
+    // that the user would set up.
+    
+    const wsUrl = `${FRIDAY_WS_URL}?clientId=${clientId}&secret=friday-extension-secret-placeholder`;
+    ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
         console.log("[Friday Bridge] Connected to Friday App!");
@@ -113,6 +121,15 @@ chrome.debugger.onDetach.addListener((source, reason) => {
     if (source.tabId === attachedTabId) {
         attachedTabId = null;
         console.log("[Friday Bridge] Debugger detached:", reason);
+    }
+});
+
+// BUG-020: Broadcast CDP events to the main process
+chrome.debugger.onEvent.addListener((source, method, params) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        try {
+            ws.send(JSON.stringify({ event: method, data: params, tabId: source.tabId }));
+        } catch (e) { }
     }
 });
 

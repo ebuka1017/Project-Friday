@@ -1,5 +1,5 @@
-[[build]]
-  publish = "."
+[build]
+  publish = "website"
 
 [[redirects]]
   from = "/*"

@@ -16,14 +16,20 @@ class VoiceClient {
         this.isAwaitingUserInput = false;
         this.nextPlayTime = 0;
         this.activeSources = new Set();
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+        this.reconnectDelay = 1000;
+        this.isReconnecting = false;
 
         this.host = 'generativelanguage.googleapis.com';
         this.model = "models/gemini-2.5-flash-native-audio-preview-12-2025"; 
-        this.apiVersion = "v1alpha";
-
-        this.apiKey = null;
         this.skillsList = [];
         this.agentTools = [];
+
+        window.friday.onVoiceOpen(() => this.onWsOpen());
+        window.friday.onVoiceMessage((data) => this.onWsMessage({ data }));
+        window.friday.onVoiceClose((event) => this.onWsClose(event));
+        window.friday.onVoiceError((err) => this.onWsError(err));
 
         window.friday.onSubAgentComplete((result) => this.handleSubAgentComplete(result));
         window.friday.onSubAgentUpdate((update) => this.handleSubAgentUpdate(update));
@@ -40,8 +46,8 @@ class VoiceClient {
 
     async init() {
         try {
-            this.apiKey = await window.friday.getGeminiKey();
-            if (!this.apiKey) return false;
+            this.skillsList = await window.friday.getSkills();
+            this.agentTools = await window.friday.getVoiceTools();
             this.skillsList = await window.friday.getSkills();
             this.agentTools = await window.friday.getVoiceTools();
             if (!this.playbackCtx) {
@@ -55,11 +61,7 @@ class VoiceClient {
     }
 
     async start() {
-        if (!this.apiKey) {
-            const ok = await this.init();
-            if (!ok) return;
-        }
-        if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+        if (this.isConnected) {
             if (!this.isMicActive) await this.startMicrophone();
             return;
         }
@@ -71,13 +73,12 @@ class VoiceClient {
                 await this.playbackCtx.resume();
             }
 
-            const url = `wss://${this.host}/ws/google.ai.generativelanguage.${this.apiVersion}.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
-            console.log('[VoiceClient] Connecting to:', url.split('?')[0] + '?key=***');
-            this.ws = new WebSocket(url);
-            this.ws.onopen = this.onWsOpen.bind(this);
-            this.ws.onmessage = this.onWsMessage.bind(this);
-            this.ws.onclose = this.onWsClose.bind(this);
-            this.ws.onerror = this.onWsError.bind(this);
+            console.log('[VoiceClient] Connecting via Main Proxy...');
+            await window.friday.voiceConnect({ 
+                host: this.host, 
+                apiVersion: this.apiVersion, 
+                model: this.model 
+            });
         } catch (e) {
             console.error('[VoiceClient] Start error:', e);
             window.friday.setState({ status: 'idle' });
@@ -185,7 +186,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             this.audioContext = new AudioContext({ sampleRate: 16000 });
             const source = this.audioContext.createMediaStreamSource(this.mediaStream);
             await this.audioContext.audioWorklet.addModule('audio-worklet.js');
-            if (!this.audioContext) return; // Prevent race if stopped during await
+            if (!this.audioContext || this.audioContext.state === 'closed') return;
             this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-worklet');
 
             this.workletNode.port.onmessage = (event) => {
@@ -200,7 +201,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
                     const base64 = this.arrayBufferToBase64(event.data.buffer);
                     this.audioSentThisTurn = true;
                     if (Math.random() < 0.05) console.log('[VoiceClient] Sending audio chunk (sample rate match)...');
-                    this.ws.send(JSON.stringify({
+                    this.wsSend(JSON.stringify({
                         realtime_input: { media_chunks: [{ mime_type: "audio/pcm;rate=16000", data: base64 }] }
                     }));
                 }
@@ -210,6 +211,10 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             window.friday.setState({ status: 'listening' });
         } catch (e) {
             console.error('[VoiceClient] Mic error:', e);
+            if (this.mediaStream) {
+                this.mediaStream.getTracks().forEach(t => t.stop());
+                this.mediaStream = null;
+            }
             this.isMicActive = false;
         }
     }
@@ -217,7 +222,35 @@ ${this._user && this._user.persona ? `USER INFORMATION:
     onWsClose(event) { 
         console.warn('[VoiceClient] WebSocket closed:', event.code, event.reason);
         this.isConnected = false; 
-        window.friday.setState({ status: 'idle' }); 
+        
+        // Don't reconnect if user explicitly stopped (code 1000)
+        if (event.code === 1000 || this.isReconnecting) {
+            window.friday.setState({ status: 'idle' }); 
+            return;
+        }
+
+        // Attempt reconnection with exponential backoff
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.isReconnecting = true;
+            const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
+            
+            console.log(`[VoiceClient] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})...`);
+            
+            window.friday.setState({ 
+                status: 'reconnecting', 
+                reconnectAttempt: this.reconnectAttempts + 1 
+            });
+            
+            setTimeout(() => {
+                this.reconnectAttempts++;
+                this.isReconnecting = false;
+                this.start();
+            }, delay);
+        } else {
+            console.error('[VoiceClient] Max reconnection attempts reached');
+            window.friday.setState({ status: 'disconnected' }); 
+            window.friday.showNotification('Connection Lost', 'Please check your internet connection.');
+        }
     }
     onWsError(err) { 
         console.error('[VoiceClient] WebSocket error:', err);
@@ -327,7 +360,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             } else if (call.name === 'take_screenshot') {
                 const s = await window.friday.takeScreenshot();
                 if (s?.data) {
-                    this.ws.send(JSON.stringify({
+                    this.wsSend(JSON.stringify({
                         client_content: { turns: [{ role: "user", parts: [{ inline_data: { mime_type: "image/jpeg", data: s.data } }, { text: "Full screen screenshot." }] }], turn_complete: true }
                     }));
                     response = { success: true };
@@ -336,7 +369,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             } else if (call.name === 'browser_capture_screenshot') {
                 const b64 = await window.friday.browser.screenshot();
                 if (b64) {
-                    this.ws.send(JSON.stringify({
+                    this.wsSend(JSON.stringify({
                         client_content: { turns: [{ role: "user", parts: [{ inline_data: { mime_type: "image/jpeg", data: b64 } }, { text: "Here is the screenshot." }] }], turn_complete: true }
                     }));
                     response = { success: true };
@@ -390,14 +423,12 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             response = { success: false, error: err.message };
         }
 
-        if (this.ws?.readyState === WebSocket.OPEN) {
-            const resMsg = JSON.stringify(response);
-            if (resMsg.length > 30000) {
-                this.ws.send(JSON.stringify({ toolResponse: { functionResponses: [{ name: call.name, id: call.id, response: { status: 'streaming' } }] } }));
-                this.sendChunkedText(`[RAW OUTPUT]: ${resMsg}`);
-            } else {
-                this.ws.send(JSON.stringify({ toolResponse: { functionResponses: [{ name: call.name, id: call.id, response }] } }));
-            }
+        const resMsg = JSON.stringify(response);
+        if (resMsg.length > 30000) {
+            this.wsSend(JSON.stringify({ toolResponse: { functionResponses: [{ name: call.name, id: call.id, response: { status: 'streaming' } }] } }));
+            this.sendChunkedText(`[RAW OUTPUT]: ${resMsg}`);
+        } else {
+            this.wsSend(JSON.stringify({ toolResponse: { functionResponses: [{ name: call.name, id: call.id, response }] } }));
         }
     }
 
@@ -409,7 +440,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
         for (let i = 0; i < fullBytes.length; i += CHUNK_LIMIT) {
             const chunk = fullBytes.slice(i, i + CHUNK_LIMIT);
             const isLast = (i + CHUNK_LIMIT >= fullBytes.length);
-            this.ws.send(JSON.stringify({
+            this.wsSend(JSON.stringify({
                 client_content: { 
                     turns: [{ role: "user", parts: [{ text: new TextDecoder().decode(chunk) }] }], 
                     turn_complete: isLast 
@@ -455,8 +486,15 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             const now = this.playbackCtx.currentTime;
             this.nextPlayTime = Math.max(this.nextPlayTime, now + 0.02);
             
-            src.start(this.nextPlayTime);
-            this.nextPlayTime += buf.duration;
+            // BUG-003: Fix audio source leak with try-catch
+            try {
+                src.start(this.nextPlayTime);
+                this.nextPlayTime += buf.duration;
+            } catch (e) {
+                console.error('[VoiceClient] Failed to start audio source:', e);
+                this.activeSources.delete(src); // Clean up immediately
+                throw e;
+            }
             
             // Broadcast speaking state
             window.friday.setState({ status: 'speaking' });
@@ -466,7 +504,10 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             }, 500);
             
             if (this.isAwaitingUserInput) {
-                this.suppressInterruptionUntil = Date.now() + 300;
+                // BUG-023: Set suppression once
+                if (!this.suppressInterruptionUntil || Date.now() > this.suppressInterruptionUntil) {
+                    this.suppressInterruptionUntil = Date.now() + 300;
+                }
                 this.isAwaitingUserInput = false;
             }
         } catch (e) {
@@ -486,21 +527,40 @@ ${this._user && this._user.persona ? `USER INFORMATION:
         }
     }
 
-    stopMicrophone() {
+    async stopMicrophone() {
         this.isMicActive = false;
-        if (this.workletNode) { this.workletNode.disconnect(); this.workletNode = null; }
-        if (this.mediaStream) { this.mediaStream.getTracks().forEach(t => t.stop()); this.mediaStream = null; }
-        if (this.audioContext) { this.audioContext.close(); this.audioContext = null; }
+        if (this.workletNode) {
+            try { 
+                // BUG-010: Remove message handler to prevent leak
+                this.workletNode.port.onmessage = null;
+                this.workletNode.disconnect(); 
+            } catch(e){}
+            this.workletNode = null;
+        }
+        if (this.mediaStream) {
+            try { this.mediaStream.getTracks().forEach(t => t.stop()); } catch(e){}
+            this.mediaStream = null;
+        }
+        if (this.audioContext) {
+            try {
+                // BUG-011: Close context to fully release resources
+                if (this.audioContext.state !== 'closed') {
+                    await this.audioContext.close();
+                }
+            } catch(e){}
+            this.audioContext = null;
+        }
     }
 
     stop() {
         this.stopMicrophone(); // Always try to stop mic
         this.isConnected = false;
-        if (this.ws) {
-            try { this.ws.close(); } catch(e){}
-            this.ws = null;
-        }
+        window.friday.voiceClose();
         window.friday.setState({ status: 'idle' });
+    }
+
+    wsSend(data) {
+        window.friday.voiceSend(data);
     }
 
     arrayBufferToBase64(buffer) {

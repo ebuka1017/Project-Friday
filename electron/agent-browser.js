@@ -51,7 +51,7 @@ class AgentBrowser {
         });
     }
 
-    async navigate(url) {
+    async navigate(url, timeoutMs = 10000) {
         if (!this.window) await this.init();
         
         console.log(`[AgentBrowser][${this.jobId}] Navigating to: ${url}`);
@@ -60,8 +60,8 @@ class AgentBrowser {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 this.isNavigating = false;
-                resolve({ success: true, note: 'Navigation timeout (8s), proceeding anyway.' });
-            }, 8000);
+                resolve({ success: true, note: `Navigation timeout (${timeoutMs}ms), proceeding anyway.` });
+            }, timeoutMs);
 
             this.window.webContents.once('did-finish-load', () => {
                 clearTimeout(timeout);

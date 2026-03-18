@@ -10,25 +10,16 @@ const { spawn, exec } = require('child_process');
 require('dotenv').config();
 
 let mainWindow = null; // Global reference for logging
-let currentUser = null;
-let isAuthenticated = false;
 
 // ─── Environment Initialization ──────────────────────────────────────────────
+const setupManager = require('./setup-manager');
+const authService = require('./auth-service');
 const browserAgentManager = require('./browser-agent-manager');
 const { createHUD, toggleHUD, hideHUD, getWindow } = require('./hud');
 const sidecar = require('./sidecar-launcher');
 const pipeClient = require('./pipe-client');
 const searchTools = require('./search-tools');
 const productivityTools = require('./productivity-tools');
-// const path = require('path'); // This was moved up
-
-// ─── Environment Initialization ──────────────────────────────────────────────
-// ── Environment Initialization ──────────────────────────────────────────────
-const envPath = process.env.NODE_ENV === 'development' || !app.isPackaged
-    ? path.join(__dirname, '..', '.env')
-    : path.join(process.resourcesPath, '.env');
-
-require('dotenv').config({ path: envPath });
 
 // Override console to broadcast logs to renderer
 const originalConsoleLog = console.log;
@@ -61,10 +52,9 @@ console.warn = (...args) => broadcastLog('warn', ...args);
 console.error = (...args) => broadcastLog('error', ...args);
 // ──────────────────────────────────────────────────────────────────────────────
 
-const { registerDeepLink, setMainWindow, handleDeepLinkUrl } = require('./auth-main');
-
 // Register deep link early, before app ready
-registerDeepLink();
+const authRendererLink = require('./auth-main');
+authRendererLink.registerDeepLink();
 
 const { setState, getState, addMessage, broadcast } = require('./state');
 const browserServer = require('./browser-server');
@@ -73,8 +63,10 @@ const AgentBrowser = require('./agent-browser');
 const memoryManager = require('./memory-manager');
 const mainAgentBrowser = new AgentBrowser('main', 'Friday');
 const { startMCPServer } = require('./mcp-server');
-const isAuth = () => isAuthenticated;
-startMCPServer(isAuth);
+
+// Security: Check if main app state is authenticated via AuthService
+startMCPServer(() => authService.getStatus().isAuthenticated);
+
 const db = require('./db');
 const { v4: uuidv4 } = require('uuid');
 const { installExtension, detectBrowsers } = require("./extensionInstaller");
@@ -86,37 +78,46 @@ const notificationTools = require('./notification-tools');
 const networkTools = require('./network-tools');
 const connectivityTester = require('./connectivity-tester');
 
-// API Connectivity Checks
-if (process.env.GEMINI_API_KEY) {
-    // Delay slightly to ensure logs capture in renderer
-    setTimeout(() => {
+// ── Startup Sequence ───────────────
+async function initializeApp() {
+    // 1. Check for API Keys
+    if (!setupManager.hasKeys()) {
+        console.log('[Startup] Missing API keys. Showing setup dialog...');
+        await setupManager.showSetupDialog();
+    }
+    
+    // 2. Load Keys into Environment
+    const keys = setupManager.getKeys();
+    process.env.GEMINI_API_KEY = keys.geminiKey;
+    process.env.ZEP_API_KEY = keys.zepKey;
+    
+    console.log('[Startup] API keys loaded.');
+
+    // 3. Connectivity Checks
+    if (process.env.GEMINI_API_KEY) {
         connectivityTester.testAll().catch(e => console.error('[Connectivity] Startup test failed:', e));
-    }, 1000);
-} else {
-    console.warn('[friday] GEMINI_API_KEY is MISSING after load');
+    }
+
+    // 4. Initialize Auth Service
+    authService.init();
 }
+
+initializeApp();
 
 // CRITICAL for HUD: Allow the background/hidden main window to start WebRTC AudioContext without user DOM clicks
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 // ── Auth & Session State ──────────────────────────────────────────────────
 
-ipcMain.handle('auth:setStatus', (_, status, user) => {
-    isAuthenticated = status;
-    currentUser = user || null;
-    setState({ currentUser }); // Sync to shared state for sub-agents
-    console.log(`[Auth] User status: ${status}, User: ${currentUser?.email || 'none'}`);
-    return true;
-});
-
 ipcMain.handle('app:getUserProfile', async () => {
-    if (!isAuthenticated || !currentUser) return { error: 'Not signed in' };
-    return currentUser;
+    const status = authService.getStatus();
+    if (!status.isAuthenticated || !status.currentUser) return { error: 'Not signed in' };
+    return status.currentUser;
 });
 
 // Voice control routing (HUD -> Main Window)
 ipcMain.handle('voice:start', () => {
-    if (!isAuthenticated) {
+    if (!authService.getStatus().isAuthenticated) {
         console.warn('[Auth] Blocked voice:start: User not authenticated');
         return;
     }
@@ -521,6 +522,8 @@ if (!gotLock) {
         console.log(`[friday] Screen resolution detected: ${width}x${height}`);
 
         createHUD();
+        const voiceProxy = require('./voice-proxy');
+        voiceProxy.init(mainWindow);
         console.log('[friday] App ready — initializing...');
 
         // Start Browser extension WebSocket bridge
@@ -953,8 +956,10 @@ ipcMain.handle("detect-browsers", async () => {
 
 // ── Secure Env Keys ───────────────────────────────────────────────
 
+// CRITICAL 2.1: Removed raw GEMINI_API_KEY exposure to renderer
 ipcMain.handle('env:getGeminiKey', () => {
-    return process.env.GEMINI_API_KEY;
+    console.warn('[Security] Unauthorized attempt to access raw GEMINI_API_KEY from renderer.');
+    return null; // Do not expose
 });
 
 ipcMain.handle('env:getClerkKey', () => {
@@ -996,8 +1001,9 @@ ipcMain.handle('db:getSecret', (_, key) => db.getSecret(key));
 // This provides a "see what I see" stream for the agent to use as context.
 const backgroundVisionLoop = setInterval(async () => {
     const currentState = getState();
-    // Only capture if we are in an active session (status or engine connected)
-    if (currentState.status !== 'idle' || pipeClient.isConnected) {
+    // BUG-018: Only capture if in an active conversation state (listening/speaking/working)
+    const activeStates = ['listening', 'speaking', 'working'];
+    if (activeStates.includes(currentState.status)) {
        try {
            const { desktopCapturer } = require('electron');
            const sources = await desktopCapturer.getSources({

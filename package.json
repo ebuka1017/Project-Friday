@@ -37,8 +37,7 @@
       {
         "from": "extension/",
         "to": "extension/"
-      },
-      ".env"
+      }
     ],
     "files": [
       "electron/**/*",
@@ -64,8 +63,11 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
     "electron": "^34.0.0",
-    "electron-builder": "^25.0.0"
+    "electron-builder": "^25.0.0",
+    "jest": "^30.3.0",
+    "jsdom": "^29.0.0"
   },
   "dependencies": {
     "@clerk/clerk-js": "^6.0.0",

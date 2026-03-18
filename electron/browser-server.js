@@ -24,11 +24,25 @@ class BrowserServer {
         this.wss.on('connection', (ws, req) => {
             const url = new URL(req.url, `http://${req.headers.host}`);
             const clientId = url.searchParams.get('clientId') || 'unknown';
+            const secret = url.searchParams.get('secret');
+
+            // Security: Verify extension secret
+            if (secret !== global.extensionSecret) {
+                console.error(`[BrowserServer] Unauthorized connection attempt from ${clientId}`);
+                ws.close(4001, 'Unauthorized');
+                return;
+            }
+
             const hadExisting = !!this.extensionSocket;
 
             // Silently close old socket if it exists
             if (this.extensionSocket) {
                 try { this.extensionSocket.close(4000, 'replaced'); } catch (e) {}
+                // BUG-007: Reject pending requests on replacement to avoid hanging
+                for (const [id, req] of this.pendingRequests.entries()) {
+                    req.reject(new Error('Connection replaced'));
+                    this.pendingRequests.delete(id);
+                }
             }
 
             this.extensionSocket = ws;
@@ -67,6 +81,7 @@ class BrowserServer {
             // If it's a response to a command we sent
             if (msg.id && this.pendingRequests.has(msg.id)) {
                 const req = this.pendingRequests.get(msg.id);
+                if (req.timeoutId) clearTimeout(req.timeoutId); // BUG-013: Clear timeout
                 this.pendingRequests.delete(msg.id);
 
                 if (msg.error) req.reject(new Error(msg.error));
@@ -80,24 +95,25 @@ class BrowserServer {
         }
     }
 
-    sendRequest(method, params = {}) {
+    sendRequest(method, params = {}, timeoutMs = 15000) {
         return new Promise((resolve, reject) => {
             if (!this.extensionSocket || this.extensionSocket.readyState !== WebSocket.OPEN) {
                 return reject(new Error('Browser extension is not connected'));
             }
 
-            const id = this.messageCounter++;
             this.pendingRequests.set(id, { resolve, reject });
 
             this.extensionSocket.send(JSON.stringify({ id, method, params }));
 
-            // Timeout after 15 seconds
-            setTimeout(() => {
+            // BUG-013: Store timeoutId to clear it later and prevent leak
+            const timeoutId = setTimeout(() => {
                 if (this.pendingRequests.has(id)) {
                     this.pendingRequests.delete(id);
-                    reject(new Error(`Timeout waiting for ${method}`));
+                    reject(new Error(`Timeout waiting for ${method} (${timeoutMs}ms)`));
                 }
-            }, 15000);
+            }, timeoutMs);
+            
+            this.pendingRequests.get(id).timeoutId = timeoutId;
         });
     }
 

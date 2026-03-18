@@ -321,6 +321,15 @@ internal static class UiaHelper
         if (appWindow == null)
             throw new Exception($"Application window '{app}' not found");
 
+        // BUG-019: Sanity check — verify process is still alive
+        try {
+            int pid = appWindow.get_CurrentProcessId();
+            using var proc = System.Diagnostics.Process.GetProcessById(pid);
+            if (proc.HasExited) throw new Exception("Target process has exited");
+        } catch (Exception ex) {
+            throw new Exception($"Application '{app}' is non-responsive or has exited: {ex.message}");
+        }
+
         return appWindow;
     }
 

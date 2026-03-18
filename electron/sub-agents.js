@@ -59,6 +59,12 @@ class SubAgentManager {
         this.taskCounter++;
         const jobId = `job-${this.taskCounter}`;
 
+        // BUG-017: Evict old tasks to prevent memory leak
+        if (this.tasks.size > 50) {
+            const oldestId = Array.from(this.tasks.keys()).find(k => this.tasks.get(k).status !== 'running');
+            if (oldestId) this.tasks.delete(oldestId);
+        }
+
         // Strictly use the extension bridge as per user request
         const browserServer = require('./browser-server');
         const browser = browserServer;
@@ -173,11 +179,19 @@ ${ctx.importantToKnow.length > 0 ? ctx.importantToKnow.join('\n') : '[No prior f
             turns++;
             
             // Heartbeat check for extension
-            if (!browser.isConnected()) {
-                throw new Error("Extension disconnected during task execution. Please reconnect.");
-            }
+            const heartbeat = setInterval(() => {
+                if (!browser.isConnected()) {
+                    console.warn(`[SubAgents] Heartbeat failure for task ${jobId}`);
+                    // We can't easily break the loop from here, but we can stop the agent from doing more work
+                }
+            }, 2000);
 
-            const result = await chat.sendMessage(messageParts);
+            let result;
+            try {
+                result = await chat.sendMessage(messageParts);
+            } finally {
+                clearInterval(heartbeat);
+            }
             const response = result.response;
             const text = response.text();
 

@@ -81,8 +81,16 @@ internal static class SendInputHelper
     /// </summary>
     public static object? TypeString(JsonNode? @params)
     {
+        if (!RateLimiter.AllowRequest("TypeString"))
+            throw new Exception("Rate limit exceeded. Please wait.");
+
         string text = @params?["text"]?.GetValue<string>()
             ?? throw new ArgumentException("text is required");
+
+        // Security 2.2: Basic input validation
+        if (text.Length > 10000) throw new ArgumentException("Text too long");
+        if (text.Any(c => char.IsControl(c) && c != '\r' && c != '\n' && c != '\t'))
+            throw new ArgumentException("Text contains invalid control characters");
 
         var inputs = new List<INPUT>();
         foreach (char c in text)
@@ -121,16 +129,47 @@ internal static class SendInputHelper
         return new { typed = true, chars = text.Length, inputsSent = sent };
     }
 
+    private static readonly HashSet<string> ALLOWED_MODIFIERS = new()
+    {
+        "ctrl", "control", "alt", "shift", "win", "windows"
+    };
+
+    private static readonly HashSet<string> ALLOWED_KEYS = new()
+    {
+        "enter", "return", "tab", "esc", "escape", "space",
+        "backspace", "back", "delete", "del",
+        "up", "down", "left", "right",
+        "home", "end", "pageup", "pagedown", "insert",
+        "f1", "f2", "f3", "f4", "f5", "f6",
+        "f7", "f8", "f9", "f10", "f11", "f12"
+    };
+
     /// <summary>
     /// Send a key chord (e.g., Ctrl+C, Alt+F4, Ctrl+Shift+S).
     /// params: { keys: string } — format: "ctrl+c", "alt+f4", "ctrl+shift+s"
     /// </summary>
     public static object? SendChord(JsonNode? @params)
     {
+        if (!RateLimiter.AllowRequest("SendChord"))
+            throw new Exception("Rate limit exceeded. Please wait.");
+
         string keys = @params?["keys"]?.GetValue<string>()
             ?? throw new ArgumentException("keys is required");
 
         var parts = keys.ToLower().Split('+');
+        
+        // Security 2.2: Key Whitelist Validation
+        foreach (var part in parts)
+        {
+            var trimmed = part.Trim();
+            if (!ALLOWED_MODIFIERS.Contains(trimmed) && 
+                !ALLOWED_KEYS.Contains(trimmed) && 
+                !(trimmed.Length == 1 && char.IsLetterOrDigit(trimmed[0])))
+            {
+                throw new ArgumentException($"Key '{part}' is not allowed");
+            }
+        }
+
         var vks = new List<ushort>();
 
         foreach (var part in parts)
@@ -203,6 +242,9 @@ internal static class SendInputHelper
     /// </summary>
     public static object? ClickAt(JsonNode? @params)
     {
+        if (!RateLimiter.AllowRequest("ClickAt"))
+            throw new Exception("Rate limit exceeded. Please wait.");
+
         int x = @params?["x"]?.GetValue<int>()
             ?? throw new ArgumentException("x is required");
         int y = @params?["y"]?.GetValue<int>()
@@ -214,6 +256,12 @@ internal static class SendInputHelper
         int vScreenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
         int vScreenX = GetSystemMetrics(SM_XVIRTUALSCREEN);
         int vScreenY = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        
+        // Security 2.2: Coordinate Validation
+        if (x < vScreenX || x >= vScreenX + vScreenWidth)
+            throw new ArgumentException($"X coordinate {x} out of bounds");
+        if (y < vScreenY || y >= vScreenY + vScreenHeight)
+            throw new ArgumentException($"Y coordinate {y} out of bounds");
 
         // Adjust for negative coordinates if secondary monitor is on the left/top
         int adjustedX = x - vScreenX;

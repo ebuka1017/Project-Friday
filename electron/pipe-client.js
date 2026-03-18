@@ -24,6 +24,7 @@ class PipeClient extends EventEmitter {
     this._retries = 0;
     this._reconnectAttempts = 0;
     this._stopReconnect = false;
+    this._reconnecting = false; // BUG-004: Reconnection guard
   }
 
   /**
@@ -89,12 +90,17 @@ class PipeClient extends EventEmitter {
             rej(new Error('Pipe disconnected'));
           }
           this._pending.clear();
-          // Auto-reconnect with exponential backoff
-          if (!this._stopReconnect && this._reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          
+          // BUG-004: Added _reconnecting guard to prevent multiple reconnection attempts from stacking up
+          if (!this._stopReconnect && !this._reconnecting && this._reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            this._reconnecting = true; // Set guard
             this._reconnectAttempts++;
             const delay = Math.min(RECONNECT_BASE_DELAY_MS * Math.pow(1.5, this._reconnectAttempts - 1), 10000);
+            
             console.log(`[pipe] Reconnect attempt ${this._reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${Math.round(delay)}ms...`);
+            
             setTimeout(() => {
+              this._reconnecting = false; // Clear guard
               this._retries = 0;
               tryConnect();
             }, delay);
