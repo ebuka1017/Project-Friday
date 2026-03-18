@@ -263,12 +263,16 @@ internal static class SendInputHelper
         if (y < vScreenY || y >= vScreenY + vScreenHeight)
             throw new ArgumentException($"Y coordinate {y} out of bounds");
 
-        // Adjust for negative coordinates if secondary monitor is on the left/top
-        int adjustedX = x - vScreenX;
-        int adjustedY = y - vScreenY;
+        // Fix BUG-015: Multi-monitor negative coordinate handling
+        int adjustedX = Math.Max(0, x - vScreenX);
+        int adjustedY = Math.Max(0, y - vScreenY);
 
-        int normX = (int)((adjustedX * 65535.0) / (vScreenWidth - 1));
-        int normY = (int)((adjustedY * 65535.0) / (vScreenHeight - 1));
+        // Fix BUG-015: Divide by zero protection
+        if (vScreenWidth <= 1 || vScreenHeight <= 1)
+            throw new Exception("Invalid virtual screen dimensions");
+
+        int normX = (int)Math.Clamp((adjustedX * 65535.0) / (vScreenWidth - 1), 0, 65535);
+        int normY = (int)Math.Clamp((adjustedY * 65535.0) / (vScreenHeight - 1), 0, 65535);
 
         uint downFlag = button == "right" ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
         uint upFlag = button == "right" ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;

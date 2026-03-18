@@ -155,6 +155,11 @@ class DatabaseManager {
     // ── Messages ────────────────────────────────────────────────────────┐
 
     saveMessage(id, sessionId, role, text, image = null, synced = 0) {
+        // Security 2.4: Input Validation
+        const validRoles = ['user', 'assistant', 'system'];
+        if (!validRoles.includes(role)) role = 'user';
+        if (text && text.length > 200000) text = text.substring(0, 200000) + "... [truncated]";
+
         return new Promise((resolve, reject) => {
             this.db.run(
                 `INSERT INTO messages (id, session_id, role, text, image, synced) VALUES (?, ?, ?, ?, ?, ?)`,
@@ -196,11 +201,11 @@ class DatabaseManager {
         });
     }
 
-    getMessages(sessionId) {
+    getMessages(sessionId, limit = 1000, offset = 0) {
         return new Promise((resolve, reject) => {
             this.db.all(
-                `SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC`,
-                [sessionId],
+                `SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC LIMIT ? OFFSET ?`,
+                [sessionId, limit, offset],
                 (err, rows) => {
                     if (err) reject(err);
                     else resolve(rows);

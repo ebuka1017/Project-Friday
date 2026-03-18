@@ -175,6 +175,8 @@ ${ctx.importantToKnow.length > 0 ? ctx.importantToKnow.join('\n') : '[No prior f
             if (screenshot) messageParts.push({ inlineData: { mimeType: "image/jpeg", data: screenshot } });
         }
 
+        let disconnectionDetected = false;
+
         while (!isDone && turns < 20) {
             turns++;
             
@@ -182,12 +184,13 @@ ${ctx.importantToKnow.length > 0 ? ctx.importantToKnow.join('\n') : '[No prior f
             const heartbeat = setInterval(() => {
                 if (!browser.isConnected()) {
                     console.warn(`[SubAgents] Heartbeat failure for task ${jobId}`);
-                    // We can't easily break the loop from here, but we can stop the agent from doing more work
+                    disconnectionDetected = true;
                 }
-            }, 2000);
+            }, 1000);
 
             let result;
             try {
+                if (disconnectionDetected) throw new Error("Extension disconnected during task.");
                 result = await chat.sendMessage(messageParts);
             } finally {
                 clearInterval(heartbeat);

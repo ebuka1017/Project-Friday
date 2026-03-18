@@ -4,6 +4,7 @@
 // Handles HUD click-through, UIA, and SendInput requests from Friday.
 // ═══════════════════════════════════════════════════════════════════════
 
+using System.Collections.Concurrent;
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
@@ -20,6 +21,8 @@ internal static class Program
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
     };
+
+    private static readonly ConcurrentDictionary<int, bool> InstanceBusy = new();
 
     static async Task Main(string[] args)
     {
@@ -74,10 +77,24 @@ internal static class Program
 
         while (server.IsConnected)
         {
-            string? line = await reader.ReadLineAsync();
-            if (line == null) break;
+            // Fix BUG-019: Message size and timeout protection
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            string? line;
+            try {
+                line = await reader.ReadLineAsync(cts.Token);
+            } catch (OperationCanceledException) {
+                Console.Error.WriteLine($"[sidecar-{instanceId}] Request timed out.");
+                break;
+            }
 
+            if (line == null) break;
             if (string.IsNullOrWhiteSpace(line)) continue;
+
+            // Fix BUG-019: Prevent buffer overflow
+            if (line.Length > 1_000_000) {
+                Console.Error.WriteLine($"[sidecar-{instanceId}] Message too large ({line.Length} chars), disconnecting.");
+                break;
+            }
 
             Console.WriteLine($"[sidecar-{instanceId}] ← {line}");
             string response = await DispatchMessage(line);

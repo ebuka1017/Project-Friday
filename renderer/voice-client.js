@@ -254,6 +254,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
     }
     onWsError(err) { 
         console.error('[VoiceClient] WebSocket error:', err);
+        window.friday.addMessage('error', '🎙️ Voice connection error. Attempting to reconnect...');
         this.onWsClose({ code: 0, reason: 'Error' }); 
     }
 
@@ -438,6 +439,12 @@ ${this._user && this._user.persona ? `USER INFORMATION:
         const fullBytes = encoder.encode(text);
         
         for (let i = 0; i < fullBytes.length; i += CHUNK_LIMIT) {
+            // Fix BUG-016: ReadyState safety check
+            if (this.ws?.readyState !== WebSocket.OPEN) {
+                console.warn('[VoiceClient] WS closed during chunked send, aborting.');
+                break;
+            }
+
             const chunk = fullBytes.slice(i, i + CHUNK_LIMIT);
             const isLast = (i + CHUNK_LIMIT >= fullBytes.length);
             this.wsSend(JSON.stringify({
@@ -564,10 +571,8 @@ ${this._user && this._user.persona ? `USER INFORMATION:
     }
 
     arrayBufferToBase64(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i += 8192) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
-        return btoa(binary);
+        // Section 4.1: Modern & Faster Base64 encoding
+        return btoa(new TextDecoder('latin1').decode(new Uint8Array(buffer)));
     }
 }
 

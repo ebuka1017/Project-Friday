@@ -77,6 +77,7 @@ const sysinfoTools = require('./sysinfo-tools');
 const notificationTools = require('./notification-tools');
 const networkTools = require('./network-tools');
 const connectivityTester = require('./connectivity-tester');
+const CONSTANTS = require('../shared/constants');
 
 // ── Startup Sequence ───────────────
 async function initializeApp() {
@@ -1016,7 +1017,7 @@ const backgroundVisionLoop = setInterval(async () => {
            }
        } catch (err) { /* Silent fail */ }
     }
-}, 10000); // Jarvis pulses every 10 seconds
+}, CONSTANTS.VISION_INTERVAL_MS); // Jarvis pulses every 10 seconds
 
 // ── Cleanup ──────────────────────────────────────────────────────────────
 

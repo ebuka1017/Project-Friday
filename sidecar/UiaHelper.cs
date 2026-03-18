@@ -196,19 +196,25 @@ internal static class UiaHelper
         var element = FindRequiredElement(@params);
         var guid = typeof(IUIAutomationInvokePattern).GUID;
         var ptr = element.GetCurrentPatternAs(PatternIds.Invoke, ref guid);
-        if (ptr == IntPtr.Zero)
-        {
-            return new { error = $"Element '{element.get_CurrentName()}' does not support clicking/invoking." };
-        }
-        var pattern = (IUIAutomationInvokePattern)Marshal.GetObjectForIUnknown(ptr);
         try
         {
+            if (ptr == IntPtr.Zero)
+            {
+                return new { error = $"Element '{element.get_CurrentName()}' does not support clicking/invoking." };
+            }
+
+            // Fix BUG-021: Verify element is enabled and visible
+            if (element.get_CurrentIsEnabled() == 0)
+                return new { error = "Element is disabled" };
+
+            var pattern = (IUIAutomationInvokePattern)Marshal.GetObjectForIUnknown(ptr);
             pattern.Invoke();
             return new { invoked = true, name = element.get_CurrentName() };
         }
         finally
         {
-            Marshal.Release(ptr);
+            // Fix BUG-014: Ensure release in all paths
+            if (ptr != IntPtr.Zero) Marshal.Release(ptr);
         }
     }
 
@@ -223,19 +229,23 @@ internal static class UiaHelper
         var element = FindRequiredElement(@params);
         var guid = typeof(IUIAutomationValuePattern).GUID;
         var ptr = element.GetCurrentPatternAs(PatternIds.Value, ref guid);
-        if (ptr == IntPtr.Zero)
-        {
-            return new { error = $"Element '{element.get_CurrentName()}' does not support text input (ValuePattern)." };
-        }
-        var pattern = (IUIAutomationValuePattern)Marshal.GetObjectForIUnknown(ptr);
         try
         {
+            if (ptr == IntPtr.Zero)
+            {
+                return new { error = $"Element '{element.get_CurrentName()}' does not support text input (ValuePattern)." };
+            }
+
+            if (element.get_CurrentIsEnabled() == 0)
+                return new { error = "Element is disabled" };
+
+            var pattern = (IUIAutomationValuePattern)Marshal.GetObjectForIUnknown(ptr);
             pattern.SetValue(value);
             return new { set = true, value };
         }
         finally
         {
-            Marshal.Release(ptr);
+            if (ptr != IntPtr.Zero) Marshal.Release(ptr);
         }
     }
 
@@ -275,13 +285,17 @@ internal static class UiaHelper
         var element = FindRequiredElement(@params);
         var guid = typeof(IUIAutomationTogglePattern).GUID;
         var ptr = element.GetCurrentPatternAs(PatternIds.Toggle, ref guid);
-        if (ptr == IntPtr.Zero)
-        {
-            return new { error = $"Element '{element.get_CurrentName()}' does not support toggling." };
-        }
-        var pattern = (IUIAutomationTogglePattern)Marshal.GetObjectForIUnknown(ptr);
         try
         {
+            if (ptr == IntPtr.Zero)
+            {
+                return new { error = $"Element '{element.get_CurrentName()}' does not support toggling." };
+            }
+
+            if (element.get_CurrentIsEnabled() == 0)
+                return new { error = "Element is disabled" };
+
+            var pattern = (IUIAutomationTogglePattern)Marshal.GetObjectForIUnknown(ptr);
             int before = pattern.get_CurrentToggleState();
             pattern.Toggle();
             int after = pattern.get_CurrentToggleState();
@@ -289,7 +303,7 @@ internal static class UiaHelper
         }
         finally
         {
-            Marshal.Release(ptr);
+            if (ptr != IntPtr.Zero) Marshal.Release(ptr);
         }
     }
 

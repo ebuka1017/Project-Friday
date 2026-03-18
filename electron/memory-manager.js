@@ -5,6 +5,7 @@ const db = require('./db');
 class MemoryManager {
     constructor() {
         this.zepClient = null;
+        this._creatingThreads = new Set();
     }
 
     _initZep() {
@@ -36,8 +37,15 @@ class MemoryManager {
             });
         } catch (err) {
             if (err.message.includes('404')) {
-                // Thread not found, create it with the first message
+                // Fix BUG-011: Thread creation race
+                if (this._creatingThreads.has(threadId)) {
+                    await new Promise(r => setTimeout(r, 200));
+                    return this.addMessage(threadId, role, content);
+                }
+                this._creatingThreads.add(threadId);
+
                 try {
+                    // Thread not found, create it with the first message
                     // 1. Try to create user first (idempotent-ish)
                     try {
                         await client.user.create({
@@ -59,6 +67,8 @@ class MemoryManager {
                     return;
                 } catch (createErr) {
                     console.error(`[MemoryManager] Zep thread creation failed for ${threadId}:`, createErr.message);
+                } finally {
+                    this._creatingThreads.delete(threadId);
                 }
             }
             console.error(`[MemoryManager] Zep addMessage failed for ${threadId}:`, err.message);
@@ -115,8 +125,10 @@ class MemoryManager {
         let cursor = 1;
         const limit = 100;
         let hasMore = true;
+        let iterations = 0;
+        const MAX_ITERATIONS = 500;
 
-        while (hasMore) {
+        while (hasMore && iterations++ < MAX_ITERATIONS) {
             try {
                 const response = await client.thread.get(threadId, { cursor, limit });
                 if (response && response.messages && response.messages.length > 0) {

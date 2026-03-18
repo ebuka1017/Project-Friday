@@ -1,5 +1,9 @@
 [build]
+<<<<<<< HEAD
   publish = "website"
+=======
+  publish = "."
+>>>>>>> b61ba8b13514ebd3b34f89ace12901f6df9f95fa
 
 [[redirects]]
   from = "/*"

@@ -101,6 +101,7 @@ class BrowserServer {
                 return reject(new Error('Browser extension is not connected'));
             }
 
+            const id = this.messageCounter++;
             this.pendingRequests.set(id, { resolve, reject });
 
             this.extensionSocket.send(JSON.stringify({ id, method, params }));
@@ -113,7 +114,8 @@ class BrowserServer {
                 }
             }, timeoutMs);
             
-            this.pendingRequests.get(id).timeoutId = timeoutId;
+            const req = this.pendingRequests.get(id);
+            if (req) req.timeoutId = timeoutId;
         });
     }
 
@@ -221,7 +223,16 @@ class BrowserServer {
 
     /** Resolve target using Phase 1 (A11y) with retries */
     async resolveWebTarget(target, retries = 3) {
+        // Fix BUG-020: Browser Target Resolution Retry Logic
+        const initialUrl = await this.evaluate("window.location.href");
+
         for (let i = 0; i < retries; i++) {
+            const currentUrl = await this.evaluate("window.location.href");
+            if (currentUrl !== initialUrl) {
+                console.warn("[BrowserServer] Page changed during target resolution, aborting.");
+                return null;
+            }
+
             // Phase 1: Accessibility tree
             try {
                 const axTree = await this.sendCDP("Accessibility.getFullAXTree");
