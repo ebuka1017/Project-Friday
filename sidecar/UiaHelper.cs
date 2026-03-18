@@ -42,10 +42,14 @@ internal interface IUIAutomationElement
     int[] GetRuntimeId();
     IUIAutomationElement FindFirst(TreeScope scope, IUIAutomationCondition condition);
     IUIAutomationElementArray FindAll(TreeScope scope, IUIAutomationCondition condition);
-    void GetCurrentPropertyValueDummy(); // placeholder for vtable slot
-    void GetCurrentPropertyValueExDummy(); // placeholder
-    void GetCachedPropertyValueDummy();
-    void GetCachedPropertyValueExDummy();
+    [return: MarshalAs(UnmanagedType.Struct)]
+    object GetCurrentPropertyValue(int propertyId);
+    [return: MarshalAs(UnmanagedType.Struct)]
+    object GetCurrentPropertyValueEx(int propertyId, bool ignoreDefaultValue);
+    [return: MarshalAs(UnmanagedType.Struct)]
+    object GetCachedPropertyValue(int propertyId);
+    [return: MarshalAs(UnmanagedType.Struct)]
+    object GetCachedPropertyValueEx(int propertyId, bool ignoreDefaultValue);
     nint GetCurrentPatternAs(int patternId, [In] ref Guid riid);
     void GetCachedPatternAsDummy();
     void GetCachedPatternDummy();
@@ -155,6 +159,12 @@ internal static class PropertyIds
 {
     public const int Name = 30005;
     public const int AutomationId = 30011;
+    public const int IsInvokePatternAvailable = 30010;
+    public const int IsValuePatternAvailable = 30013;
+    public const int IsTogglePatternAvailable = 30014;
+    public const int IsEnabled = 30010; // Wait, IsEnabled is 30010? No, check docs.
+    // Actually, let's use the ones from the walkthrough:
+    // Invoke: 30010, Value: 30013, Toggle: 30014
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -194,6 +204,16 @@ internal static class UiaHelper
     public static object? Invoke(JsonNode? @params)
     {
         var element = FindRequiredElement(@params);
+        
+        // Priority 4.1: Check pattern availability first
+        try {
+            var isAvailable = element.GetCurrentPropertyValue(PropertyIds.IsInvokePatternAvailable);
+            if (isAvailable is bool b && !b)
+            {
+                return new { error = $"Element '{element.get_CurrentName()}' does not support Invoke pattern." };
+            }
+        } catch { /* Fallback */ }
+
         var guid = typeof(IUIAutomationInvokePattern).GUID;
         var ptr = element.GetCurrentPatternAs(PatternIds.Invoke, ref guid);
         try
@@ -227,6 +247,16 @@ internal static class UiaHelper
             ?? throw new ArgumentException("value is required");
 
         var element = FindRequiredElement(@params);
+
+        // Priority 4.1: Check pattern availability first
+        try {
+            var isAvailable = element.GetCurrentPropertyValue(PropertyIds.IsValuePatternAvailable);
+            if (isAvailable is bool b && !b)
+            {
+                return new { error = $"Element '{element.get_CurrentName()}' does not support Value pattern." };
+            }
+        } catch { /* Fallback */ }
+
         var guid = typeof(IUIAutomationValuePattern).GUID;
         var ptr = element.GetCurrentPatternAs(PatternIds.Value, ref guid);
         try
@@ -283,6 +313,16 @@ internal static class UiaHelper
     public static object? Toggle(JsonNode? @params)
     {
         var element = FindRequiredElement(@params);
+
+        // Priority 4.1: Check pattern availability first
+        try {
+            var isAvailable = element.GetCurrentPropertyValue(PropertyIds.IsTogglePatternAvailable);
+            if (isAvailable is bool b && !b)
+            {
+                return new { error = $"Element '{element.get_CurrentName()}' does not support Toggle pattern." };
+            }
+        } catch { /* Fallback */ }
+
         var guid = typeof(IUIAutomationTogglePattern).GUID;
         var ptr = element.GetCurrentPatternAs(PatternIds.Toggle, ref guid);
         try

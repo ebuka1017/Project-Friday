@@ -137,22 +137,21 @@ class BrowserServer {
 
     /** Extracts HTML structure and text */
     async getDOM() {
-        // Fallback for current sub-agents.js
+        // Code Review 2.5: Use a safe, predefined script for DOM extraction
         const script = `
             (() => {
                 return {
                     title: document.title,
                     url: window.location.href,
-                    text: document.body.innerText.substring(0, 5000)
+                    text: document.body.innerText.substring(0, 10000)
                 };
             })()
         `;
-        const res = await this.evaluate(script);
-        return res;
+        return await this._executeSafeScript(script);
     }
 
-    /** Evaluates stringified JS in the active tab */
-    async evaluate(expression) {
+    async _executeSafeScript(expression) {
+        // Implementation of whitelisting/sanitization if needed
         const res = await this.sendCDP("Runtime.evaluate", {
             expression,
             returnByValue: true,
@@ -160,6 +159,16 @@ class BrowserServer {
         });
         if (res.exceptionDetails) throw new Error(res.exceptionDetails.exception.description);
         return res.result.value;
+    }
+
+    /** Evaluates stringified JS in the active tab */
+    async evaluate(expression) {
+        // Code Review 2.5: Runtime.evaluate whitelist/sanitization
+        const blockedKeywords = ['cookie', 'localStorage', 'sessionStorage', 'indexedDB'];
+        if (blockedKeywords.some(k => expression.includes(k))) {
+            throw new Error("Unsafe script: Access to sensitive storage is blocked.");
+        }
+        return await this._executeSafeScript(expression);
     }
 
     /** Capture Chrome tab screenshot using CDP */

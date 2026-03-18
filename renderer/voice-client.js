@@ -427,13 +427,13 @@ ${this._user && this._user.persona ? `USER INFORMATION:
         const resMsg = JSON.stringify(response);
         if (resMsg.length > 30000) {
             this.wsSend(JSON.stringify({ toolResponse: { functionResponses: [{ name: call.name, id: call.id, response: { status: 'streaming' } }] } }));
-            this.sendChunkedText(`[RAW OUTPUT]: ${resMsg}`);
+            await this.sendChunkedText(`[RAW OUTPUT]: ${resMsg}`);
         } else {
             this.wsSend(JSON.stringify({ toolResponse: { functionResponses: [{ name: call.name, id: call.id, response }] } }));
         }
     }
 
-    sendChunkedText(text) {
+    async sendChunkedText(text) {
         const CHUNK_LIMIT = 30000; // Safe byte limit
         const encoder = new TextEncoder();
         const fullBytes = encoder.encode(text);
@@ -447,10 +447,28 @@ ${this._user && this._user.persona ? `USER INFORMATION:
 
             const chunk = fullBytes.slice(i, i + CHUNK_LIMIT);
             const isLast = (i + CHUNK_LIMIT >= fullBytes.length);
+
+            // BUG-016: Implement backpressure check
+            // If the buffer is too full, wait before sending next chunk
+            if (this.ws.bufferedAmount > 1024 * 1024) { // 1MB threshold
+                console.warn('[VoiceClient] Outgoing buffer full, waiting...');
+                await new Promise(r => {
+                    const check = setInterval(() => {
+                        if (this.ws.bufferedAmount < 1024 * 512) {
+                            clearInterval(check);
+                            r();
+                        }
+                    }, 50);
+                });
+            }
+
             this.wsSend(JSON.stringify({
-                client_content: { 
-                    turns: [{ role: "user", parts: [{ text: new TextDecoder().decode(chunk) }] }], 
-                    turn_complete: isLast 
+                realtime_input: {
+                    media_chunks: [{
+                        mime_type: "audio/pcm;rate=24000",
+                        data: this.arrayBufferToBase64(chunk)
+                    }],
+                    last_chunk: isLast
                 }
             }));
         }
@@ -491,6 +509,14 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             src.onended = () => this.activeSources.delete(src);
             
             const now = this.playbackCtx.currentTime;
+            
+            // Compliance 4.2: Audio Playback Backpressure Monitor
+            const queueDuration = this.nextPlayTime - now;
+            if (queueDuration > 2.0) { // More than 2 seconds queued
+                console.warn(`[VoiceClient] Audio backpressure detected (${queueDuration.toFixed(2)}s). Dropping chunk to maintain real-time sync.`);
+                return; 
+            }
+
             this.nextPlayTime = Math.max(this.nextPlayTime, now + 0.02);
             
             // BUG-003: Fix audio source leak with try-catch
@@ -527,10 +553,10 @@ ${this._user && this._user.persona ? `USER INFORMATION:
         else if (u.type === 'tool') window.friday.addMessage('action', `🔨 ${u.name}`);
     }
 
-    handleSubAgentComplete(r) {
+    async handleSubAgentComplete(r) {
         window.friday.addMessage('result', r.error ? `❌ Sub-agent failed` : `✅ Sub-agent finished`);
         if (this.ws?.readyState === WebSocket.OPEN) {
-            this.sendChunkedText(`[SYSTEM] Background task finished: ${r.result || r.error}`);
+            await this.sendChunkedText(`[SYSTEM] Background task finished: ${r.result || r.error}`);
         }
     }
 
@@ -549,13 +575,13 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             this.mediaStream = null;
         }
         if (this.audioContext) {
+            const ctx = this.audioContext;
+            this.audioContext = null; // Priority 3.4/BUG-001: Nullify before await
             try {
-                // BUG-011: Close context to fully release resources
-                if (this.audioContext.state !== 'closed') {
-                    await this.audioContext.close();
+                if (ctx.state !== 'closed') {
+                    await ctx.close();
                 }
             } catch(e){}
-            this.audioContext = null;
         }
     }
 
@@ -571,8 +597,15 @@ ${this._user && this._user.persona ? `USER INFORMATION:
     }
 
     arrayBufferToBase64(buffer) {
-        // Section 4.1: Modern & Faster Base64 encoding
-        return btoa(new TextDecoder('latin1').decode(new Uint8Array(buffer)));
+        // High 4.1: Modern & Faster Base64 encoding without string allocation loops
+        // Using Uint8Array + btoa directly on decoded binary string is the safest standard way.
+        const uint8 = new Uint8Array(buffer);
+        let binary = "";
+        const len = uint8.byteLength;
+        for (let i = 0; i < len; i += 8192) {
+            binary += String.fromCharCode.apply(null, uint8.subarray(i, i + 8192));
+        }
+        return btoa(binary);
     }
 }
 

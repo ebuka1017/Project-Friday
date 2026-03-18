@@ -82,7 +82,7 @@ internal static class SendInputHelper
     public static object? TypeString(JsonNode? @params)
     {
         if (!RateLimiter.AllowRequest("TypeString"))
-            throw new Exception("Rate limit exceeded. Please wait.");
+            throw new Exception("Rate limit exceeded for TypeString. Please wait.");
 
         string text = @params?["text"]?.GetValue<string>()
             ?? throw new ArgumentException("text is required");
@@ -151,7 +151,7 @@ internal static class SendInputHelper
     public static object? SendChord(JsonNode? @params)
     {
         if (!RateLimiter.AllowRequest("SendChord"))
-            throw new Exception("Rate limit exceeded. Please wait.");
+            throw new Exception("Rate limit exceeded for SendChord. Please wait.");
 
         string keys = @params?["keys"]?.GetValue<string>()
             ?? throw new ArgumentException("keys is required");
@@ -243,7 +243,7 @@ internal static class SendInputHelper
     public static object? ClickAt(JsonNode? @params)
     {
         if (!RateLimiter.AllowRequest("ClickAt"))
-            throw new Exception("Rate limit exceeded. Please wait.");
+            throw new Exception("Rate limit exceeded for ClickAt. Please wait.");
 
         int x = @params?["x"]?.GetValue<int>()
             ?? throw new ArgumentException("x is required");

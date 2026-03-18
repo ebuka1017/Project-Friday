@@ -45,7 +45,10 @@ class MemoryManager {
                 this._creatingThreads.add(threadId);
 
                 try {
-                    // Thread not found, create it with the first message
+                    // BUG-011: Strict checking of creation status
+                    const secondCheck = await client.thread.get(threadId).catch(() => null);
+                    if (secondCheck) return; // Already created by another process
+
                     // 1. Try to create user first (idempotent-ish)
                     try {
                         await client.user.create({
@@ -154,8 +157,10 @@ class MemoryManager {
         let pageNumber = 1;
         const pageSize = 100;
         let hasMore = true;
+        let iter = 0;
+        const MAX_ITER = 200; // BUG-012: Iteration guard
 
-        while (hasMore) {
+        while (hasMore && iter++ < MAX_ITER) {
             try {
                 const response = await client.thread.listAll({ pageNumber, pageSize });
                 if (response && response.threads && response.threads.length > 0) {

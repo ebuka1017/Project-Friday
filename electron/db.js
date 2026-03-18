@@ -155,10 +155,22 @@ class DatabaseManager {
     // ── Messages ────────────────────────────────────────────────────────┐
 
     saveMessage(id, sessionId, role, text, image = null, synced = 0) {
-        // Security 2.4: Input Validation
-        const validRoles = ['user', 'assistant', 'system'];
-        if (!validRoles.includes(role)) role = 'user';
-        if (text && text.length > 200000) text = text.substring(0, 200000) + "... [truncated]";
+        // Code Review 2.4: strict input validation
+        const validRoles = ['user', 'assistant', 'system', 'friday', 'action', 'result', 'thinking'];
+        if (!validRoles.includes(role)) {
+            console.warn(`[DB] Invalid role blocked: ${role}`);
+            role = 'user';
+        }
+        
+        // Length limits
+        if (text && text.length > 500000) {
+            text = text.substring(0, 500000) + "... [truncated due to length]";
+        }
+        
+        // Session ID validation (UUID/simple format)
+        if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 64) {
+            return Promise.reject(new Error("Invalid session ID"));
+        }
 
         return new Promise((resolve, reject) => {
             this.db.run(
@@ -167,8 +179,8 @@ class DatabaseManager {
                 function (err) {
                     if (err) return reject(err);
 
-                    // Touch the session to update its updated_at timestamp
-                    this.db.run(`UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [sessionId]);
+                    // Touch the session
+                    this.db.run(`UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [sessionId], () => {});
                     resolve(id);
                 }.bind(this)
             );
@@ -217,6 +229,10 @@ class DatabaseManager {
     // ── Memory (Key-Value) ──────────────────────────────────────────────┐
 
     setMemory(key, value, description = "") {
+        // Code Review 2.4: Key/Value validation
+        if (!key || typeof key !== 'string' || key.length > 128) return Promise.reject(new Error("Invalid memory key"));
+        if (value && value.length > 1000000) value = value.substring(0, 1000000);
+
         return new Promise((resolve, reject) => {
             this.db.run(
                 `INSERT INTO memory (key, value, description) VALUES (?, ?, ?)

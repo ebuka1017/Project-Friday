@@ -3,7 +3,7 @@
 // Spawns and manages the lifecycle of the Native AOT sidecar binary.
 // ═══════════════════════════════════════════════════════════════════════
 
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -63,37 +63,49 @@ function launch() {
 
     console.log('[sidecar] Launching:', exePath);
 
-    // Ensure no zombie sidecars are running (Asynchronous cleanup)
-    exec('taskkill /F /IM Sidecar.exe /T', () => {
-        sidecarProcess = spawn(exePath, [], {
-            stdio: ['ignore', 'pipe', 'pipe'],
-            windowsHide: true,
-            cwd: path.dirname(exePath)
-        });
+    // Ensure no zombie sidecars are running (Priority 3.4: Synchronous cleanup)
+    try {
+        console.log('[sidecar] Killing existing instances...');
+        execSync('taskkill /F /IM Sidecar.exe /T', { stdio: 'ignore' });
+        // Verify they are actually gone
+        const check = execSync('tasklist /FI "IMAGENAME eq Sidecar.exe"', { encoding: 'utf8' });
+        if (check.includes('Sidecar.exe')) {
+            console.error('[sidecar] WARNING: sidecar instances still present after taskkill.');
+        } else {
+            console.log('[sidecar] Clean slate confirmed.');
+        }
+    } catch (e) {
+        // Ignore if no process was found
+    }
 
-        // Forward sidecar stdout/stderr to Friday console
-        sidecarProcess.stdout.on('data', (data) => {
-            process.stdout.write(`[sidecar:out] ${data}`);
-        });
+    sidecarProcess = spawn(exePath, [], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        windowsHide: true,
+        cwd: path.dirname(exePath)
+    });
 
-        sidecarProcess.stderr.on('data', (data) => {
-            process.stderr.write(`[sidecar:err] ${data}`);
-        });
+    // Forward sidecar stdout/stderr to Friday console
+    sidecarProcess.stdout.on('data', (data) => {
+        process.stdout.write(`[sidecar:out] ${data}`);
+    });
 
-        sidecarProcess.on('exit', (code, signal) => {
-            console.log(`[sidecar] Process exited with code ${code}, signal ${signal}`);
-            sidecarProcess = null;
-        });
+    sidecarProcess.stderr.on('data', (data) => {
+        process.stderr.write(`[sidecar:err] ${data}`);
+    });
 
-        sidecarProcess.on('error', (err) => {
-            if (err.code === 'ENOENT') {
-                console.error('[sidecar] Failed to start: Binary not found at path.');
-            } else {
-                console.error('[sidecar] Failed to start:', err.message);
-                console.error('[sidecar] TIP: Ensure .NET 9.0 Desktop Runtime is installed.');
-            }
-            sidecarProcess = null;
-        });
+    sidecarProcess.on('exit', (code, signal) => {
+        console.log(`[sidecar] Process exited with code ${code}, signal ${signal}`);
+        sidecarProcess = null;
+    });
+
+    sidecarProcess.on('error', (err) => {
+        if (err.code === 'ENOENT') {
+            console.error('[sidecar] Failed to start: Binary not found at path.');
+        } else {
+            console.error('[sidecar] Failed to start:', err.message);
+            console.error('[sidecar] TIP: Ensure .NET 9.0 Desktop Runtime is installed.');
+        }
+        sidecarProcess = null;
     });
 
     return true;

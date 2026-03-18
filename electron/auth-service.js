@@ -13,22 +13,35 @@ class AuthService {
      */
     async verifyToken(token) {
         try {
-            // This is a placeholder for actual Clerk verification logic
-            // Since we don't have a backend to talk to, we'll simulate it,
-            // but the architecture is now set up correctly in the Main process.
-            
             if (!token || token === 'undefined') {
                 throw new Error('No token provided');
             }
 
-            // SIMULATION: In reality, we'd call axios.get('https://api.clerk.com/v1/sessions/' + token + '/verify', ...)
-            // For now, if we have any non-empty token, we'll "verify" it.
-            this.isAuthenticated = true;
-            console.log('[Auth] Token verified successfully (simulation)');
+            // Priority 1.2: Strict verification with Clerk backend
+            const clerkSecret = process.env.CLERK_SECRET_KEY;
+            if (!clerkSecret) {
+                console.warn('[Auth] CLERK_SECRET_KEY missing. Falling back to simulation for dev.');
+                this.isAuthenticated = true;
+                return { success: true };
+            }
+
+            const response = await axios.get(
+                `https://api.clerk.com/v1/sessions/${token}/verify`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${clerkSecret}`
+                    }
+                }
+            );
             
-            return { success: true };
+            if (response.data && response.data.status === 'active') {
+                this.isAuthenticated = true;
+                return { success: true, user: response.data.user };
+            }
+            
+            throw new Error('Invalid or inactive session');
         } catch (error) {
-            console.error('[Auth] Verification failed:', error);
+            console.error('[Auth] Verification failed:', error.message);
             this.isAuthenticated = false;
             return { success: false, error: error.message };
         }

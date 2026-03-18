@@ -78,6 +78,13 @@ const notificationTools = require('./notification-tools');
 const networkTools = require('./network-tools');
 const connectivityTester = require('./connectivity-tester');
 const CONSTANTS = require('../shared/constants');
+const crypto = require('crypto');
+
+// Generate extension secret for auth (Priority 1.4)
+global.extensionSecret = crypto.randomBytes(32).toString('hex');
+const secretPath = path.join(app.getPath('userData'), 'extension-secret.txt');
+fs.writeFileSync(secretPath, global.extensionSecret);
+console.log('[Security] Extension secret generated and saved to userData');
 
 // ── Startup Sequence ───────────────
 async function initializeApp() {
@@ -977,8 +984,9 @@ ipcMain.handle('db:getSessions', async () => {
     return await db.getSessions();
 });
 
-ipcMain.handle('db:getMessages', async (_, sessionId) => {
-    return await db.getMessages(sessionId);
+ipcMain.handle('db:getMessages', async (_, sessionId, limit = 1000, offset = 0) => {
+    // Code Review 4.2: Support pagination
+    return await db.getMessages(sessionId, limit, offset);
 });
 
 ipcMain.handle('db:createSession', async (_, title) => {
