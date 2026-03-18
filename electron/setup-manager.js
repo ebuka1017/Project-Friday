@@ -5,7 +5,8 @@ const Store = require('electron-store');
 class SetupManager {
     constructor() {
         this.setupWindow = null;
-        this.store = new Store({
+        const StoreClass = Store.default || Store;
+        this.store = new StoreClass({
             name: 'friday-config',
             encryptionKey: 'friday-safe-storage' // In a real app, this would be more unique or generated
         });
