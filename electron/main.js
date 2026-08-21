@@ -12,7 +12,6 @@ require('dotenv').config();
 let mainWindow = null; // Global reference for logging
 
 // ─── Environment Initialization ──────────────────────────────────────────────
-const setupManager = require('./setup-manager');
 const authService = require('./auth-service');
 const browserAgentManager = require('./browser-agent-manager');
 const { createHUD, toggleHUD, hideHUD, getWindow } = require('./hud');
@@ -88,18 +87,12 @@ console.log('[Security] Extension secret generated and saved to userData');
 
 // ── Startup Sequence ───────────────
 async function initializeApp() {
-    // 1. Check for API Keys
-    if (!setupManager.hasKeys()) {
-        console.log('[Startup] Missing API keys. Showing setup dialog...');
-        await setupManager.showSetupDialog();
+    // 1. Load Keys into Environment (directly from .env via dotenv)
+    if (!process.env.GEMINI_API_KEY || !process.env.ZEP_API_KEY) {
+        console.warn('[Startup] Warning: Gemini or Zep API keys are missing from environment.');
     }
     
-    // 2. Load Keys into Environment
-    const keys = setupManager.getKeys();
-    process.env.GEMINI_API_KEY = keys.geminiKey;
-    process.env.ZEP_API_KEY = keys.zepKey;
-    
-    console.log('[Startup] API keys loaded.');
+    console.log('[Startup] Environment initialization complete.');
 
     // 3. Connectivity Checks
     if (process.env.GEMINI_API_KEY) {
@@ -110,7 +103,10 @@ async function initializeApp() {
     authService.init();
 }
 
-initializeApp();
+// Start app after ready
+app.whenReady().then(() => {
+    initializeApp();
+});
 
 // CRITICAL for HUD: Allow the background/hidden main window to start WebRTC AudioContext without user DOM clicks
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
@@ -727,7 +723,8 @@ ipcMain.handle('run-browser-task', async (event, task) => {
 
 const spawnSidecar = (script, input) => {
     return new Promise((resolve) => {
-        const py = spawn('python', [path.join(__dirname, '../sidecar', script)], {
+        const uvPath = 'C:\\Users\\RCCG JESUS EMBASSY\\.cargo\\bin\\uv.exe';
+        const py = spawn(uvPath, ['run', 'python', path.join(__dirname, '../sidecar', script)], {
             env: { ...process.env, PYTHONPATH: process.cwd() }
         });
         let result = '';

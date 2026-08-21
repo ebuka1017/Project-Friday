@@ -18,19 +18,47 @@ namespace Friday.Sidecar;
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IUIAutomation
 {
-    // IUIAutomation methods (vtable order matters!)
+    // 0
     int CompareElements(object el1, object el2);
+    // 1
     int CompareRuntimeIds(int[] a, int[] b);
+    // 2
     IUIAutomationElement GetRootElement();
+    // 3
     IUIAutomationElement ElementFromHandle(nint hwnd);
+    // 4
     IUIAutomationElement ElementFromPoint(tagPOINT pt);
+    // 5
     IUIAutomationElement GetFocusedElement();
-    IUIAutomationTreeWalker get_RawViewWalker();
+    // 6
+    void GetRootElementBuildCacheDummy();
+    // 7
+    void ElementFromHandleBuildCacheDummy();
+    // 8
+    void ElementFromPointBuildCacheDummy();
+    // 9
+    void GetFocusedElementBuildCacheDummy();
+    // 10
+    void CreateTreeWalkerDummy();
+    // 11
     IUIAutomationTreeWalker get_ControlViewWalker();
+    // 12
     IUIAutomationTreeWalker get_ContentViewWalker();
+    // 13
+    IUIAutomationTreeWalker get_RawViewWalker();
+    // 14
+    void get_RawViewConditionDummy();
+    // 15
+    void get_ControlViewConditionDummy();
+    // 16
+    void get_ContentViewConditionDummy();
+    // 17
     IUIAutomationCacheRequest CreateCacheRequest(); // stub
+    // 18
     IUIAutomationCondition CreateTrueCondition();
+    // 19
     IUIAutomationCondition CreateFalseCondition();
+    // 20
     IUIAutomationCondition CreatePropertyCondition(int propertyId, [MarshalAs(UnmanagedType.Struct)] object value);
 }
 
@@ -38,38 +66,71 @@ internal interface IUIAutomation
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IUIAutomationElement
 {
+    // 0
     void SetFocus();
+    // 1
     int[] GetRuntimeId();
+    // 2
     IUIAutomationElement FindFirst(TreeScope scope, IUIAutomationCondition condition);
+    // 3
     IUIAutomationElementArray FindAll(TreeScope scope, IUIAutomationCondition condition);
+    // 4
+    void FindFirstBuildCacheDummy();
+    // 5
+    void FindAllBuildCacheDummy();
+    // 6
+    void BuildUpdatedCacheDummy();
+    // 7
     [return: MarshalAs(UnmanagedType.Struct)]
     object GetCurrentPropertyValue(int propertyId);
+    // 8
     [return: MarshalAs(UnmanagedType.Struct)]
     object GetCurrentPropertyValueEx(int propertyId, bool ignoreDefaultValue);
+    // 9
     [return: MarshalAs(UnmanagedType.Struct)]
     object GetCachedPropertyValue(int propertyId);
+    // 10
     [return: MarshalAs(UnmanagedType.Struct)]
     object GetCachedPropertyValueEx(int propertyId, bool ignoreDefaultValue);
+    // 11
     nint GetCurrentPatternAs(int patternId, [In] ref Guid riid);
+    // 12
     void GetCachedPatternAsDummy();
+    // 13
+    void GetCurrentPatternDummy();
+    // 14
     void GetCachedPatternDummy();
-    IUIAutomationElement GetCurrentParent(); // stub
+    // 15
+    void GetCachedParentDummy();
+    // 16
+    void GetCachedChildrenDummy();
     // Properties — accessed via vtable
+    // 17
     int get_CurrentProcessId();
+    // 18
     int get_CurrentControlType();
+    // 19
     [return: MarshalAs(UnmanagedType.BStr)]
     string get_CurrentLocalizedControlType();
+    // 20
     [return: MarshalAs(UnmanagedType.BStr)]
     string get_CurrentName();
+    // 21
     [return: MarshalAs(UnmanagedType.BStr)]
     string get_CurrentAcceleratorKey();
+    // 22
     [return: MarshalAs(UnmanagedType.BStr)]
     string get_CurrentAccessKey();
+    // 23
     int get_CurrentHasKeyboardFocus();
+    // 24
     int get_CurrentIsKeyboardFocusable();
+    // 25
     int get_CurrentIsEnabled();
+    // 26
     [return: MarshalAs(UnmanagedType.BStr)]
     string get_CurrentAutomationId();
+    // 27
     [return: MarshalAs(UnmanagedType.BStr)]
     string get_CurrentClassName();
 }
@@ -381,7 +442,7 @@ internal static class UiaHelper
             using var proc = System.Diagnostics.Process.GetProcessById(pid);
             if (proc.HasExited) throw new Exception("Target process has exited");
         } catch (Exception ex) {
-            throw new Exception($"Application '{app}' is non-responsive or has exited: {ex.message}");
+            throw new Exception($"Application '{app}' is non-responsive or has exited: {ex.Message}");
         }
 
         return appWindow;
@@ -436,9 +497,12 @@ internal static class UiaHelper
         if (depth > maxDepth) return;
 
         string indent = new(' ', depth * 2);
-        string name = el.get_CurrentName() ?? "";
-        string autoId = el.get_CurrentAutomationId() ?? "";
-        int controlType = el.get_CurrentControlType();
+        string name = "";
+        try { name = el.get_CurrentName() ?? ""; } catch {}
+        string autoId = "";
+        try { autoId = el.get_CurrentAutomationId() ?? ""; } catch {}
+        int controlType = 0;
+        try { controlType = el.get_CurrentControlType(); } catch {}
 
         sb.AppendLine($"{indent}[{controlType}] \"{name}\" id=\"{autoId}\"");
 

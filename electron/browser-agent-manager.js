@@ -41,11 +41,11 @@ class BrowserAgentManager {
     start() {
         if (this.process) return;
 
-        const pyPath = 'python';
+        const uvPath = 'C:\\Users\\RCCG JESUS EMBASSY\\.cargo\\bin\\uv.exe';
         const scriptPath = path.join(__dirname, '../sidecar/browser_agent.py');
         
         console.log('[BrowserAgentManager] Spawning Python sidecar...');
-        this.process = spawn(pyPath, [scriptPath], {
+        this.process = spawn(uvPath, ['run', 'python', scriptPath], {
             stdio: ['pipe', 'pipe', 'pipe'],
             env: { ...process.env, PYTHONPATH: process.cwd() }
         });

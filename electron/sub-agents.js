@@ -120,133 +120,66 @@ class SubAgentManager {
 
     async _runAgentLoop(jobId, taskDescription, onUpdate, isVisual) {
         const task = this.tasks.get(jobId);
-        let browser = task.browser;
-
         const soul = this._getSoul();
-        const tools = [{ functionDeclarations: skillManager.getDefinitions() }];
         
-        // Multi-modal support for visual tasks
-        if (isVisual) {
-            tools.unshift({ computer_use: { environment: "ENVIRONMENT_BROWSER" } });
-        }
-
-        const model = this._getModel("gemini-3-flash-preview", soul, tools);
-        const chat = model.startChat();
+        const { spawn } = require('child_process');
+        const uvPath = 'C:\\Users\\RCCG JESUS EMBASSY\\.cargo\\bin\\uv.exe';
+        const scriptPath = path.join(__dirname, '../sidecar/antigravity_agent.py');
         
-        let turns = 0;
-        let isDone = false;
-        let resultSummary = "";
-
-        // 1. Fetch structured Zep context for this thread
-        let structuredContext = `
-{{current thread}}
-[No recent messages in this session]
-
-{{past conversations}}
-[No past conversations found]
-
-{{important to know}}
-[No prior facts or context extracted yet]`;
-
-        try {
-            const ctx = await memoryManager.getStructuredContext("default_user", jobId, taskDescription);
-            structuredContext = `
-{{current thread}}
-${ctx.currentThread.length > 0 ? ctx.currentThread.join('\n') : '[No recent messages in this session]'}
-
-{{past conversations}}
-${ctx.pastConversations.length > 0 ? ctx.pastConversations.join('\n') : '[No past conversations found]'}
-
-{{important to know}}
-${ctx.importantToKnow.length > 0 ? ctx.importantToKnow.join('\n') : '[No prior facts or context extracted yet]'}`;
-        } catch (memErr) { console.warn('[SubAgents] Zep context fetch failed:', memErr); }
-
-        // Record initial task to Zep thread
-        memoryManager.addMessage(jobId, 'human', `TASK: ${taskDescription}`).catch(() => {});
-
-        // Initial prompt with Desktop State + Structured Zep Context
-        const initialState = await desktopService.getFullState({ browser });
-        let messageParts = [
-            { text: `TASK: ${taskDescription}\n\nMEMORY CONTEXT:\n${structuredContext}\n\nCURRENT DESKTOP STATE:\n${JSON.stringify(initialState, null, 2)}` }
-        ];
-
-        if (isVisual) {
-            const screenshot = await browser.captureScreenshot();
-            if (screenshot) messageParts.push({ inlineData: { mimeType: "image/jpeg", data: screenshot } });
-        }
-
-        let disconnectionDetected = false;
-
-        while (!isDone && turns < 20) {
-            turns++;
+        console.log(`[SubAgents] Spawning Antigravity SDK sub-agent for job ${jobId}...`);
+        
+        return new Promise((resolve, reject) => {
+            const pyProcess = spawn(uvPath, ['run', 'python', scriptPath], {
+                stdio: ['pipe', 'pipe', 'pipe'],
+                env: { ...process.env, PYTHONPATH: process.cwd() }
+            });
             
-            // Heartbeat check for extension
-            const heartbeat = setInterval(() => {
-                if (!browser.isConnected()) {
-                    console.warn(`[SubAgents] Heartbeat failure for task ${jobId}`);
-                    disconnectionDetected = true;
-                }
-            }, 1000);
-
-            let result;
-            try {
-                if (disconnectionDetected) throw new Error("Extension disconnected during task.");
-                result = await chat.sendMessage(messageParts);
-            } finally {
-                clearInterval(heartbeat);
-            }
-            const response = result.response;
-            const text = response.text();
-
-            if (onUpdate) onUpdate({ jobId, type: 'thought', content: text });
-            task.history.push({ role: 'model', text });
+            let finalResult = '';
             
-            // Record assistant thought/response to Zep
-            memoryManager.addMessage(jobId, 'ai', text).catch(() => {});
-
-            const calls = response.functionCalls();
-            if (!calls || calls.length === 0) break;
-
-            const functionResponses = [];
-            for (const call of calls) {
-                if (onUpdate) onUpdate({ jobId, type: 'tool', name: call.name, args: call.args });
-                
+            const readline = require('readline');
+            const rl = readline.createInterface({
+                input: pyProcess.stdout,
+                terminal: false
+            });
+            
+            rl.on('line', (line) => {
                 try {
-                    const skillRes = await skillManager.execute(call.name, call.args, { browser });
-                    if (skillRes.isDone) {
-                        isDone = true;
-                        resultSummary = skillRes.summary;
+                    const msg = JSON.parse(line.trim());
+                    if (msg.event === 'agent_thought') {
+                        if (onUpdate) onUpdate({ jobId, type: 'thought', content: msg.data.reasoning });
+                        task.history.push({ role: 'model', text: msg.data.reasoning });
+                    } else if (msg.event === 'agent_step') {
+                        if (onUpdate) onUpdate({ jobId, type: 'status', content: msg.data.action });
+                    } else if (msg.event === 'agent_status') {
+                        if (onUpdate) onUpdate({ jobId, type: 'status', content: msg.data.message });
+                    } else if (msg.status === 'done') {
+                        finalResult = msg.result;
+                    } else if (msg.status === 'error') {
+                        reject(new Error(msg.error));
                     }
-                    functionResponses.push({ functionResponse: { name: call.name, response: skillRes } });
-                } catch (err) {
-                    functionResponses.push({ functionResponse: { name: call.name, response: { error: err.message } } });
+                } catch (e) {
+                    // Ignore non-JSON output
                 }
-            }
-
-            // 1. Send tool results turn
-            const toolResult = await chat.sendMessage(functionResponses);
-            const toolAckText = toolResult.response.text();
-            if (onUpdate) onUpdate({ jobId, type: 'thought', content: toolAckText });
-            task.history.push({ role: 'model', text: toolAckText });
-
-            // 2. Send perception turn (State + Screenshot)
-            const nextState = await desktopService.getFullState({ browser });
-            messageParts = [
-                { text: `STATE UPDATE:\n${JSON.stringify(nextState, null, 2)}` }
-            ];
+            });
             
-            if (isVisual) {
-                const screenshot = await browser.captureScreenshot();
-                if (screenshot) messageParts.push({ inlineData: { mimeType: "image/jpeg", data: screenshot } });
-            }
-        }
-
-        // AUTOMATIC SYNC TO ZEP (Final Summary)
-        if (resultSummary) {
-            memoryManager.saveToMemory("default_user", `Task Result [${taskDescription}]: ${resultSummary}`, jobId).catch(e => console.error('[SubAgents] Zep final save failed:', e));
-        }
-
-        return resultSummary || "Task completed.";
+            pyProcess.stderr.on('data', (data) => {
+                console.error(`[Antigravity SDK Error]`, data.toString());
+            });
+            
+            pyProcess.on('exit', (code) => {
+                if (code === 0) {
+                    resolve(finalResult || 'Task completed successfully by Antigravity SDK.');
+                } else {
+                    reject(new Error(`Antigravity SDK agent exited with code ${code}`));
+                }
+            });
+            
+            // Send the task configuration as JSON input
+            pyProcess.stdin.write(JSON.stringify({
+                task: taskDescription,
+                system_instructions: soul
+            }) + '\n');
+        });
     }
     getActiveTaskBrowsers() {
         const results = [];
