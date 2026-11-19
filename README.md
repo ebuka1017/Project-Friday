@@ -85,4 +85,4 @@ GCP_API_KEY=your-vertex-ai-api-key
 
 ---
 
-Built by Isaac Okwuzi ([@nothiro__](https://x.com/nothiro__))
+Built by Isaac Okwuzi ([@nothiro__](https://x.com/nothiro__)) && Bethel Chuks ([bethel](https://github.com/Chuksy07))
