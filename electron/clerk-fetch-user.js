@@ -1,14 +1,9 @@
 // electron/clerk-fetch-user.js (main process — never expose secret key to renderer)
 const { ipcMain } = require("electron");
 
-const CLERK_SECRET_KEY = process.env.CLERK_CLIENT_SECRET;
-
-/**
- * Fetches fresh user data from the Clerk Backend API.
- * @param {string} userId - The Clerk user ID (e.g., "user_2abc...")
- */
 async function fetchClerkUser(userId) {
-    if (!CLERK_SECRET_KEY) {
+    const secretKey = process.env.CLERK_CLIENT_SECRET || process.env.CLERK_SECRET_KEY;
+    if (!secretKey) {
         console.error("[ClerkFetch] CLERK_CLIENT_SECRET not found in environment.");
         throw new Error("Clerk secret key not configured.");
     }
@@ -19,7 +14,7 @@ async function fetchClerkUser(userId) {
     try {
         const res = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
             headers: {
-                Authorization: `Bearer ${CLERK_SECRET_KEY}`,
+                Authorization: `Bearer ${secretKey}`,
                 "Content-Type": "application/json",
             },
             signal: controller.signal

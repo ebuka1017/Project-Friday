@@ -3,11 +3,12 @@ const crypto = require("crypto");
 const https = require("https");
 const { URLSearchParams } = require("url");
 const path = require("path");
+const CONSTANTS = require("../shared/constants");
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const PROTOCOL = "friday";
-const DOMAIN = process.env.CLERK_DOMAIN || "clerk.algospend.tech";
+const getDomain = () => process.env.CLERK_DOMAIN || CONSTANTS.DEFAULT_CLERK_DOMAIN;
 
 // ─── PKCE Helpers ────────────────────────────────────────────────────────────
 
@@ -32,10 +33,11 @@ function setMainWindow(win) {
 
 async function exchangeCodeForToken(code) {
     return new Promise((resolve, reject) => {
+        const domain = getDomain();
         const clientId = process.env.CLERK_CLIENT_ID || process.env.CLERK_PUBLISHABLE_KEY || "";
-        const clientSecret = process.env.CLERK_CLIENT_SECRET || "";
-        
-        console.log(`[auth-main] Exchange attempt: domain=${DOMAIN}, client_id=${clientId}`);
+        const clientSecret = process.env.CLERK_CLIENT_SECRET || process.env.CLERK_SECRET_KEY || "";
+
+        console.log(`[auth-main] Exchange attempt: domain=${domain}, client_id=${clientId}`);
 
         const params = {
             grant_type: "authorization_code",
@@ -52,18 +54,18 @@ async function exchangeCodeForToken(code) {
         const data = new URLSearchParams(params).toString();
         const headers = {
             "Content-Type": "application/x-www-form-urlencoded",
-            "Content-Length": data.length,
+            "Content-Length": Buffer.byteLength(data),
         };
 
         const options = {
-            hostname: DOMAIN,
+            hostname: domain,
             port: 443,
             path: "/oauth/token",
             method: "POST",
             headers: headers,
         };
 
-        console.log(`[auth-main] POST to https://${DOMAIN}/oauth/token with data: ${data.replace(clientSecret, '******')}`);
+        console.log(`[auth-main] POST to https://${domain}/oauth/token`);
 
         const req = https.request(options, (res) => {
             let body = "";
@@ -199,11 +201,12 @@ ipcMain.handle("auth:signIn", async () => {
         code_challenge_method: "S256"
     });
 
-    const authorizeUrl = `https://${DOMAIN}/oauth/authorize?${params.toString()}`;
+    const domain = getDomain();
+    const authorizeUrl = `https://${domain}/oauth/authorize?${params.toString()}`;
 
     console.log(`[auth-main] Opening authorize URL: ${authorizeUrl}`);
     console.log(`[auth-main] !! IMPORTANT !! Ensure this Redirect URI is in your Clerk Dashboard: ${redirectUri}`);
-    
+
     await shell.openExternal(authorizeUrl);
     return { started: true };
 });

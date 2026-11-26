@@ -24,7 +24,11 @@
         _listeners.forEach((fn) => fn(_authState));
 
         // Notify main process of auth status and user profile for route protection and tools
-        window.friday.setAuthStatus(_authState.status === 'authenticated', _authState.user);
+        if (_authState.status === 'authenticated' && _authState.token) {
+            window.friday.login(_authState.token, _authState.user);
+        } else if (_authState.status === 'idle') {
+            window.friday.logout();
+        }
     }
 
     function onAuthStateChange(fn) {
@@ -84,7 +88,7 @@
                     
                     // Update agent with full identity
                     const bio = await window.friday.db.getMemory('user_bio');
-                    window.friday.setAuthStatus(true, { ...user, persona: { name: pName, gender: pGender, bio } });
+                    await window.friday.updateUser({ persona: { name: pName, gender: pGender, bio } });
                 }
             } catch (e) {
                 console.error('[AuthRenderer] DB secure storage/persona check err:', e);
@@ -157,8 +161,11 @@
 
                     if (pName && pGender) {
                         console.log('[AuthRenderer] Authenticated and persona present. Hiding overlay.');
-                        setState({ status: "authenticated", user });
-                        window.friday.setAuthStatus(true, { ...user, persona: { name: pName, gender: pGender, bio: pBio || '' } });
+                        setState({
+                            status: "authenticated",
+                            token: saved,
+                            user: { ...user, persona: { name: pName, gender: pGender, bio: pBio || '' } }
+                        });
                         if (overlay) overlay.classList.add('hidden');
 
                         // Sync settings UI
@@ -171,7 +178,7 @@
                     } else {
                         // Signed in but no persona (e.g. app crashed after auth)
                         console.log('[AuthRenderer] User authenticated but persona missing. Triggering personalization...');
-                        setState({ status: "authenticated", user });
+                        setState({ status: "authenticated", token: saved, user });
                         if (overlay) {
                             overlay.classList.remove('hidden');
                             if (window.nextObStep) {
@@ -238,7 +245,7 @@
                 updateConnectorUI('connOutlookCalendar', providers.includes('oauth_outlook'));
 
                 // Update auth status to include these links for the agent to know what it has access to
-                window.friday.setAuthStatus(true, { ..._authState.user, externalAccounts: accounts });
+                await window.friday.updateUser({ externalAccounts: accounts });
             }
         } catch (e) {
             console.error('[AuthRenderer] Refresh external accounts err:', e);

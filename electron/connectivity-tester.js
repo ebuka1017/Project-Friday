@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Firecrawl = require('@mendable/firecrawl-js').default;
+const CONSTANTS = require('../shared/constants');
 
 /**
  * ConnectivityTester
@@ -37,8 +38,8 @@ class ConnectivityTester {
         try {
             const genAI = new GoogleGenerativeAI(key);
             
-            // 1. Sub-Agent Model (Gemini 3 Flash Preview)
-            const subAgentModel = "models/gemini-3-flash-preview"; 
+            // 1. Sub-Agent Model
+            const subAgentModel = process.env.GEMINI_TEST_MODEL || CONSTANTS.DEFAULT_GEMINI_TEST_MODEL;
             let subOk = false;
             try {
                 await genAI.getGenerativeModel({ model: subAgentModel }).generateContent("ping");
@@ -49,8 +50,9 @@ class ConnectivityTester {
                 else console.warn(`[Connectivity] Sub-Agent model (v3) failed: [${status}] ${e.message}`);
             }
 
-            // 2. Voice Model (Gemini 2.5 Native Audio)
-            const voiceModel = "gemini-2.5-flash-native-audio-preview-12-2025";
+            // 2. Voice Model
+            const voiceModelRaw = process.env.GEMINI_VOICE_MODEL || CONSTANTS.DEFAULT_GEMINI_VOICE_MODEL;
+            const voiceModel = voiceModelRaw.replace(/^models\//, '');
             let voiceOk = false;
             try {
                 const vUrl = `https://generativelanguage.googleapis.com/v1alpha/models/${voiceModel}?key=${key}`;
@@ -76,9 +78,9 @@ class ConnectivityTester {
     }
 
     async testClerk() {
-        const key = process.env.CLERK_CLIENT_SECRET;
+        const key = process.env.CLERK_SECRET_KEY || process.env.CLERK_CLIENT_SECRET;
         if (!key) {
-            this.results.clerk = { ok: false, error: 'Missing CLERK_CLIENT_SECRET' };
+            this.results.clerk = { ok: false, error: 'Missing CLERK_SECRET_KEY / CLERK_CLIENT_SECRET' };
             return;
         }
         try {

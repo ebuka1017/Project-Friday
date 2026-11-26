@@ -11,7 +11,10 @@ contextBridge.exposeInMainWorld('friday', {
     getClerkKey: () => ipcRenderer.invoke('env:getClerkKey'),
     getClerkDomain: () => ipcRenderer.invoke('env:getClerkDomain'),
     getClerkAccountUrl: () => ipcRenderer.invoke('env:getClerkAccountUrl'),
-    setAuthStatus: (status) => ipcRenderer.invoke('auth:setStatus', status),
+    login: (token, user) => ipcRenderer.invoke('auth:login', { token, user }),
+    updateUser: (patch) => ipcRenderer.invoke('auth:updateUser', patch),
+    logout: () => ipcRenderer.invoke('auth:logout'),
+    getAuthStatus: () => ipcRenderer.invoke('auth:getStatus'),
 
     // OS-Level Auth integrations
     authSignIn: () => ipcRenderer.invoke('auth:signIn'),
@@ -187,6 +190,7 @@ contextBridge.exposeInMainWorld('friday', {
         setMemory: (key, value, desc) => ipcRenderer.invoke('db:setMemory', key, value, desc),
         getMemory: (key) => ipcRenderer.invoke('db:getMemory', key),
         getAllMemories: () => ipcRenderer.invoke('db:getAllMemories'),
+        clearMemories: () => ipcRenderer.invoke('db:clearMemories'),
         setSecret: (key, value) => ipcRenderer.invoke('db:setSecret', key, value),
         getSecret: (key) => ipcRenderer.invoke('db:getSecret', key)
     },

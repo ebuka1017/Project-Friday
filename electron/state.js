@@ -58,6 +58,7 @@ function addMessage(role, text, image = null) {
  * Broadcast data to all open BrowserWindows.
  */
 function broadcast(channel, data) {
+    if (!BrowserWindow || typeof BrowserWindow.getAllWindows !== 'function') return;
     for (const win of BrowserWindow.getAllWindows()) {
         if (!win.isDestroyed() && win.webContents) {
             win.webContents.send(channel, data);

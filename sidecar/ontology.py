@@ -5,7 +5,8 @@ import sys
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash', google_api_key=GEMINI_API_KEY)
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+llm = ChatGoogleGenerativeAI(model=GEMINI_MODEL, google_api_key=GEMINI_API_KEY)
 
 async def extract_ontology(text: str):
     prompt = f"""

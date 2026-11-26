@@ -1,14 +1,7 @@
 // electron/clerk-tokens.js
-const CLERK_SECRET_KEY = process.env.CLERK_CLIENT_SECRET;
-
-/**
- * Retrieves OAuth access tokens for a given user and provider from Clerk.
- * @param {string} userId - The Clerk user ID.
- * @param {string} provider - The OAuth provider (e.g., 'oauth_google', 'oauth_microsoft').
- * @returns {Promise<string|null>} - The access token or null if not found.
- */
 async function getOAuthToken(userId, provider) {
-    if (!CLERK_SECRET_KEY) {
+    const secretKey = process.env.CLERK_CLIENT_SECRET || process.env.CLERK_SECRET_KEY;
+    if (!secretKey) {
         console.error("[ClerkTokens] CLERK_CLIENT_SECRET missing.");
         return null;
     }
@@ -17,7 +10,7 @@ async function getOAuthToken(userId, provider) {
         console.log(`[ClerkTokens] Fetching ${provider} token for user: ${userId}`);
         const res = await fetch(`https://api.clerk.com/v1/users/${userId}/oauth_access_tokens/${provider}`, {
             headers: {
-                Authorization: `Bearer ${CLERK_SECRET_KEY}`,
+                Authorization: `Bearer ${secretKey}`,
                 "Content-Type": "application/json",
             },
         });

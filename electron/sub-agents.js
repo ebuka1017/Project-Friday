@@ -3,14 +3,15 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const AgentBrowser = require('./agent-browser');
 const skillManager = require('./skill-manager');
 const desktopService = require('./desktop-service');
-const { getState } = require('./state');
+const { spawnPythonScript } = require('./python-runner');
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 
 const memoryManager = require('./memory-manager');
+const CONSTANTS = require('../shared/constants');
 
 class SubAgentManager {
     constructor() {
@@ -21,21 +22,22 @@ class SubAgentManager {
     }
 
     _initBackends() {
-        if (process.env.GEMINI_API_KEY) {
+        if (process.env.GEMINI_API_KEY && !this.genAI) {
             this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             console.log('[SubAgents] AI Studio backend initialized.');
         }
     }
 
     _getModel(modelName, systemInstruction = '', tools = []) {
+        this._initBackends();
         if (this.genAI) {
             return this.genAI.getGenerativeModel({
                 model: modelName,
                 systemInstruction: systemInstruction,
-                tools: tools
+                tools: tools,
             });
         }
-        throw new Error('No AI backend configured');
+        throw new Error('No AI backend configured (missing GEMINI_API_KEY)');
     }
 
     _getSoul(soulName = 'core') {
@@ -45,6 +47,13 @@ class SubAgentManager {
         } catch (e) {
             return 'You are a Friday autonomous agent.';
         }
+    }
+
+    _recordHistory(task, entry) {
+        task.history.push({
+            time: new Date().toISOString(),
+            ...entry,
+        });
     }
 
     startTask(taskDescription, onComplete, onUpdate) {
@@ -59,52 +68,47 @@ class SubAgentManager {
         this.taskCounter++;
         const jobId = `job-${this.taskCounter}`;
 
-        // BUG-017: Evict old tasks to prevent memory leak
+        // BUG-017: Evict old completed tasks to prevent unbounded memory growth
         if (this.tasks.size > 50) {
             const oldestId = Array.from(this.tasks.keys()).find(k => this.tasks.get(k).status !== 'running');
             if (oldestId) this.tasks.delete(oldestId);
         }
 
-        // Strictly use the extension bridge as per user request
         const browserServer = require('./browser-server');
-        const browser = browserServer;
-        const useExtension = true;
+        const task = {
+            id: jobId,
+            description: taskDescription,
+            status: 'running',
+            history: [],
+            isVisual,
+            browser: browserServer,
+            useExtension: true,
+            result: null,
+            error: null,
+        };
+        this.tasks.set(jobId, task);
 
-        this.tasks.set(jobId, { id: jobId, description: taskDescription, status: 'running', history: [], isVisual, browser, useExtension });
-
-        const executeResiliently = async () => {
-            const MAX_ATTEMPTS = 3;
-            // Check for extension connection BEFORE starting
-            if (!browserServer.isConnected()) {
-                if (onUpdate) onUpdate({ jobId, type: 'status', content: "Extension Disconnected: Please go to the Friday Chrome extension and click 'Connect' to proceed." });
-                // We don't throw yet, maybe the user connects it while we are in the retry loop
+        const executeTask = async () => {
+            if (isVisual && !browserServer.isConnected()) {
+                const msg = "Extension Disconnected: Please connect the Friday Chrome extension for visual browser tasks.";
+                if (onUpdate) onUpdate({ jobId, type: 'status', content: msg });
+                throw new Error(msg);
             }
 
-            for (let i = 1; i <= MAX_ATTEMPTS; i++) {
-                try {
-                    if (!browserServer.isConnected()) {
-                        throw new Error("Extension not connected. Please connect the Friday Chrome extension.");
-                    }
-                    return await this._runAgentLoop(jobId, taskDescription, onUpdate, isVisual);
-                } catch (err) {
-                    console.warn(`[SubAgents] Attempt ${i} failed:`, err.message);
-                    if (onUpdate) onUpdate({ jobId, type: 'status', content: `Attempt ${i} failed: ${err.message}` });
-                    if (i === MAX_ATTEMPTS) throw err;
-                    // Wait 5s before retrying, giving user time to connect
-                    await new Promise(r => setTimeout(r, 5000));
-                }
-            }
+            return await this._runAgentLoop(jobId, taskDescription, onUpdate, isVisual);
         };
 
-        executeResiliently().then(result => {
-            const task = this.tasks.get(jobId);
-            if (task) { task.status = 'completed'; task.result = result; }
-            onComplete({ jobId, result });
-        }).catch(err => {
-            const task = this.tasks.get(jobId);
-            if (task) { task.status = 'failed'; task.error = err.message; }
-            onComplete({ jobId, error: err.message });
-        });
+        executeTask()
+            .then(result => {
+                task.status = 'completed';
+                task.result = result;
+                if (onComplete) onComplete({ jobId, result });
+            })
+            .catch(err => {
+                task.status = 'failed';
+                task.error = err.message;
+                if (onComplete) onComplete({ jobId, error: err.message });
+            });
 
         return jobId;
     }
@@ -114,81 +118,200 @@ class SubAgentManager {
             id: t.id,
             description: t.description,
             status: t.status,
-            isVisual: t.isVisual
+            isVisual: t.isVisual,
+            result: t.result,
+            error: t.error,
+            history: t.history,
         }));
     }
 
     async _runAgentLoop(jobId, taskDescription, onUpdate, isVisual) {
         const task = this.tasks.get(jobId);
         const soul = this._getSoul();
-        
-        const { spawn } = require('child_process');
-        const uvPath = 'C:\\Users\\RCCG JESUS EMBASSY\\.cargo\\bin\\uv.exe';
+
+        try {
+            return await this._runAntigravitySidecar(task, jobId, taskDescription, soul, onUpdate);
+        } catch (sidecarErr) {
+            console.warn(`[SubAgents] Antigravity sidecar unavailable (${sidecarErr.message}), falling back to Gemini ReACT loop...`);
+            if (onUpdate) {
+                onUpdate({ jobId, type: 'status', content: 'Running native Gemini sub-agent loop...' });
+            }
+            return await this._runGeminiReactLoop(task, jobId, taskDescription, soul, onUpdate, isVisual);
+        }
+    }
+
+    _runAntigravitySidecar(task, jobId, taskDescription, soul, onUpdate) {
         const scriptPath = path.join(__dirname, '../sidecar/antigravity_agent.py');
-        
         console.log(`[SubAgents] Spawning Antigravity SDK sub-agent for job ${jobId}...`);
-        
+
         return new Promise((resolve, reject) => {
-            const pyProcess = spawn(uvPath, ['run', 'python', scriptPath], {
-                stdio: ['pipe', 'pipe', 'pipe'],
-                env: { ...process.env, PYTHONPATH: process.cwd() }
-            });
-            
+            const pyProcess = spawnPythonScript(scriptPath);
             let finalResult = '';
-            
-            const readline = require('readline');
+            let stderrBuffer = '';
+            let settled = false;
+
+            const finishError = (err) => {
+                if (settled) return;
+                settled = true;
+                reject(err);
+            };
+
             const rl = readline.createInterface({
                 input: pyProcess.stdout,
-                terminal: false
+                terminal: false,
             });
-            
+
             rl.on('line', (line) => {
                 try {
                     const msg = JSON.parse(line.trim());
                     if (msg.event === 'agent_thought') {
                         if (onUpdate) onUpdate({ jobId, type: 'thought', content: msg.data.reasoning });
-                        task.history.push({ role: 'model', text: msg.data.reasoning });
+                        this._recordHistory(task, { type: 'thought', content: msg.data.reasoning });
                     } else if (msg.event === 'agent_step') {
                         if (onUpdate) onUpdate({ jobId, type: 'status', content: msg.data.action });
+                        this._recordHistory(task, { type: 'status', content: msg.data.action });
                     } else if (msg.event === 'agent_status') {
                         if (onUpdate) onUpdate({ jobId, type: 'status', content: msg.data.message });
                     } else if (msg.status === 'done') {
                         finalResult = msg.result;
                     } else if (msg.status === 'error') {
-                        reject(new Error(msg.error));
+                        finishError(new Error(msg.error));
                     }
-                } catch (e) {
+                } catch {
                     // Ignore non-JSON output
                 }
             });
-            
+
             pyProcess.stderr.on('data', (data) => {
-                console.error(`[Antigravity SDK Error]`, data.toString());
+                const text = data.toString();
+                stderrBuffer += text;
+                console.error('[Antigravity SDK Error]', text);
             });
-            
+
+            pyProcess.on('error', (err) => finishError(err));
+
             pyProcess.on('exit', (code) => {
+                if (settled) return;
+                settled = true;
                 if (code === 0) {
                     resolve(finalResult || 'Task completed successfully by Antigravity SDK.');
                 } else {
-                    reject(new Error(`Antigravity SDK agent exited with code ${code}`));
+                    const detail = stderrBuffer.trim().split('\n').pop() || `exit code ${code}`;
+                    reject(new Error(`Antigravity SDK agent failed (${detail})`));
                 }
             });
-            
-            // Send the task configuration as JSON input
+
             pyProcess.stdin.write(JSON.stringify({
                 task: taskDescription,
-                system_instructions: soul
+                system_instructions: soul,
             }) + '\n');
+            pyProcess.stdin.end();
         });
     }
+
+    async _runGeminiReactLoop(task, jobId, taskDescription, soul, onUpdate, isVisual) {
+        const browser = task.browser;
+        const tools = [{ functionDeclarations: skillManager.getDefinitions() }];
+        const modelName = process.env.GEMINI_AGENT_MODEL || CONSTANTS.DEFAULT_GEMINI_AGENT_MODEL;
+        const model = this._getModel(modelName, soul, tools);
+        const chat = model.startChat();
+
+        let turns = 0;
+        let isDone = false;
+        let resultSummary = '';
+
+        const initialState = await desktopService.getFullState({
+            useVision: isVisual,
+            browser: browser && browser.isConnected() ? browser : null,
+        });
+
+        let messageParts = [
+            { text: `TASK: ${taskDescription}\n\nCURRENT DESKTOP STATE:\n${JSON.stringify(initialState, null, 2)}` },
+        ];
+
+        if (isVisual && browser && browser.isConnected()) {
+            const screenshot = await browser.captureScreenshot();
+            if (screenshot) {
+                messageParts.push({ inlineData: { mimeType: 'image/jpeg', data: screenshot } });
+            }
+        }
+
+        while (!isDone && turns < 20) {
+            turns++;
+            const result = await chat.sendMessage(messageParts);
+            const response = result.response;
+            const text = response.text();
+
+            if (text) {
+                if (onUpdate) onUpdate({ jobId, type: 'thought', content: text });
+                this._recordHistory(task, { type: 'thought', content: text });
+                memoryManager.addMessage(jobId, 'ai', text).catch(() => {});
+            }
+
+            const calls = response.functionCalls();
+            if (!calls || calls.length === 0) {
+                resultSummary = text || resultSummary;
+                break;
+            }
+
+            const functionResponses = [];
+            for (const call of calls) {
+                if (onUpdate) onUpdate({ jobId, type: 'tool', name: call.name, args: call.args });
+                this._recordHistory(task, { type: 'tool', name: call.name, args: call.args });
+
+                try {
+                    const skillRes = await skillManager.execute(call.name, call.args, { browser });
+                    if (skillRes && skillRes.isDone) {
+                        isDone = true;
+                        resultSummary = skillRes.summary;
+                    }
+                    functionResponses.push({ functionResponse: { name: call.name, response: skillRes } });
+                } catch (err) {
+                    functionResponses.push({ functionResponse: { name: call.name, response: { error: err.message } } });
+                }
+            }
+
+            const toolResult = await chat.sendMessage(functionResponses);
+            const toolAckText = toolResult.response.text();
+            if (toolAckText) {
+                if (onUpdate) onUpdate({ jobId, type: 'thought', content: toolAckText });
+                this._recordHistory(task, { type: 'thought', content: toolAckText });
+            }
+
+            if (isDone) break;
+
+            const nextState = await desktopService.getFullState({
+                useVision: isVisual,
+                browser: browser && browser.isConnected() ? browser : null,
+            });
+            messageParts = [{ text: `STATE UPDATE:\n${JSON.stringify(nextState, null, 2)}` }];
+            if (isVisual && browser && browser.isConnected()) {
+                const screenshot = await browser.captureScreenshot();
+                if (screenshot) {
+                    messageParts.push({ inlineData: { mimeType: 'image/jpeg', data: screenshot } });
+                }
+            }
+        }
+
+        if (resultSummary) {
+            memoryManager
+                .saveToMemory('default_user', `Task Result [${taskDescription}]: ${resultSummary}`, jobId)
+                .catch(e => console.error('[SubAgents] Zep final save failed:', e));
+        }
+
+        return resultSummary || 'Task completed.';
+    }
+
     getActiveTaskBrowsers() {
         const results = [];
         for (const [id, task] of this.tasks.entries()) {
             if (task.status === 'running' && task.browser) {
+                const title = task.browser.window?.getTitle?.()
+                    || (task.browser.isConnected?.() ? 'Chrome Extension Bridge' : 'Initializing...');
                 results.push({
                     jobId: id,
                     agentName: task.browser.agentName || 'Sub-Agent',
-                    title: task.browser.window ? task.browser.window.getTitle() : 'Initializing...'
+                    title,
                 });
             }
         }

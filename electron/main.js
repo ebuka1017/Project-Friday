@@ -6,7 +6,7 @@
 const { app, BrowserWindow, ipcMain, shell, Notification, dialog, protocol, Tray, Menu, screen, globalShortcut, nativeImage, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { spawn, exec } = require('child_process');
+const crypto = require('crypto');
 require('dotenv').config();
 
 let mainWindow = null; // Global reference for logging
@@ -19,6 +19,7 @@ const sidecar = require('./sidecar-launcher');
 const pipeClient = require('./pipe-client');
 const searchTools = require('./search-tools');
 const productivityTools = require('./productivity-tools');
+const { spawnPythonScript } = require('./python-runner');
 
 // Override console to broadcast logs to renderer
 const originalConsoleLog = console.log;
@@ -58,13 +59,8 @@ authRendererLink.registerDeepLink();
 const { setState, getState, addMessage, broadcast } = require('./state');
 const browserServer = require('./browser-server');
 const subAgents = require('./sub-agents');
-const AgentBrowser = require('./agent-browser');
 const memoryManager = require('./memory-manager');
-const mainAgentBrowser = new AgentBrowser('main', 'Friday');
 const { startMCPServer } = require('./mcp-server');
-
-// Security: Check if main app state is authenticated via AuthService
-startMCPServer(() => authService.getStatus().isAuthenticated);
 
 const db = require('./db');
 const { v4: uuidv4 } = require('uuid');
@@ -77,36 +73,51 @@ const notificationTools = require('./notification-tools');
 const networkTools = require('./network-tools');
 const connectivityTester = require('./connectivity-tester');
 const CONSTANTS = require('../shared/constants');
-const crypto = require('crypto');
 
-// Generate extension secret for auth (Priority 1.4)
-global.extensionSecret = crypto.randomBytes(32).toString('hex');
-const secretPath = path.join(app.getPath('userData'), 'extension-secret.txt');
-fs.writeFileSync(secretPath, global.extensionSecret);
-console.log('[Security] Extension secret generated and saved to userData');
+const isAuth = () => authService.getStatus().isAuthenticated;
+const getCurrentUser = () => authService.getStatus().currentUser || getState().currentUser || null;
+
+// Load or generate persistent extension secret for auth (Priority 1.4)
+function initExtensionSecret() {
+    const secretPath = path.join(app.getPath('userData'), 'extension-secret.txt');
+    try {
+        fs.mkdirSync(path.dirname(secretPath), { recursive: true });
+        if (fs.existsSync(secretPath)) {
+            const existing = fs.readFileSync(secretPath, 'utf8').trim();
+            if (existing.length >= 32) {
+                global.extensionSecret = existing;
+                console.log('[Security] Loaded existing extension secret from userData');
+                return;
+            }
+        }
+        global.extensionSecret = crypto.randomBytes(32).toString('hex');
+        fs.writeFileSync(secretPath, global.extensionSecret, 'utf8');
+        console.log('[Security] Extension secret generated and saved to userData');
+    } catch (err) {
+        global.extensionSecret = crypto.randomBytes(32).toString('hex');
+        console.warn('[Security] Failed to persist extension secret, using ephemeral secret:', err.message);
+    }
+}
 
 // ── Startup Sequence ───────────────
 async function initializeApp() {
+    initExtensionSecret();
+
     // 1. Load Keys into Environment (directly from .env via dotenv)
     if (!process.env.GEMINI_API_KEY || !process.env.ZEP_API_KEY) {
         console.warn('[Startup] Warning: Gemini or Zep API keys are missing from environment.');
     }
-    
+
     console.log('[Startup] Environment initialization complete.');
 
-    // 3. Connectivity Checks
+    // 2. Connectivity Checks
     if (process.env.GEMINI_API_KEY) {
         connectivityTester.testAll().catch(e => console.error('[Connectivity] Startup test failed:', e));
     }
 
-    // 4. Initialize Auth Service
+    // 3. Initialize Auth Service
     authService.init();
 }
-
-// Start app after ready
-app.whenReady().then(() => {
-    initializeApp();
-});
 
 // CRITICAL for HUD: Allow the background/hidden main window to start WebRTC AudioContext without user DOM clicks
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
@@ -289,10 +300,16 @@ ipcMain.handle('app:getSystemInfo', async () => {
     }
 });
 
-ipcMain.handle('app:showNotification', async (_, title, body) => {
+ipcMain.handle('app:showNotification', async (_, titleOrOptions, body) => {
     try {
+        const title = (typeof titleOrOptions === 'object' && titleOrOptions !== null)
+            ? (titleOrOptions.title || 'Friday')
+            : titleOrOptions;
+        const msgBody = (typeof titleOrOptions === 'object' && titleOrOptions !== null)
+            ? (titleOrOptions.body || '')
+            : body;
         db.logAudit('show_notification', { title }).catch(e => console.error('[Audit]', e));
-        return notificationTools.showNotification(title, body);
+        return notificationTools.showNotification(title, msgBody);
     } catch (e) {
         return { error: e.message };
     }
@@ -336,8 +353,7 @@ ipcMain.handle('app:webDeepdive', async (_, url) => {
 
 ipcMain.handle('app:openConnector', async () => {
     // Direct users to Clerk's hosted profile page to manage social connections
-    // The user's specific instance URL as requested:
-    const clerkAccountUrl = 'https://singular-alien-87.accounts.dev/user';
+    const clerkAccountUrl = process.env.CLERK_ACCOUNT_URL || CONSTANTS.DEFAULT_CLERK_ACCOUNT_URL;
     await shell.openExternal(clerkAccountUrl);
     return { success: true };
 });
@@ -385,53 +401,63 @@ ipcMain.handle('app:fetchIframely', async (event, url) => {
 // ── Productivity Tools ──
 
 ipcMain.handle('app:gmailList', async () => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.gmailList(currentUser.id);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.gmailList(user.id);
 });
 
 ipcMain.handle('app:gmailRead', async (_, id) => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.gmailRead(currentUser.id, id);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.gmailRead(user.id, id);
 });
 
 ipcMain.handle('app:gmailSend', async (_, args) => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.gmailSend(currentUser.id, args);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.gmailSend(user.id, args);
 });
 
 ipcMain.handle('app:calendarGoogleList', async () => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.calendarGoogleList(currentUser.id);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.calendarGoogleList(user.id);
 });
 
 ipcMain.handle('app:calendarGoogleCreate', async (_, event) => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.calendarGoogleCreate(currentUser.id, event);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.calendarGoogleCreate(user.id, event);
 });
 
 ipcMain.handle('app:driveList', async (_, query) => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.driveList(currentUser.id, query);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.driveList(user.id, query);
 });
 
 ipcMain.handle('app:driveRead', async (_, fileId) => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.driveRead(currentUser.id, fileId);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.driveRead(user.id, fileId);
 });
 
 ipcMain.handle('app:outlookList', async () => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.outlookList(currentUser.id);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.outlookList(user.id);
 });
 
 ipcMain.handle('app:outlookSend', async (_, args) => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.outlookSend(currentUser.id, args);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.outlookSend(user.id, args);
 });
 
 ipcMain.handle('app:calendarOutlookList', async () => {
-    if (!currentUser) return { error: 'Not authenticated' };
-    return await productivityTools.calendarOutlookList(currentUser.id);
+    const user = getCurrentUser();
+    if (!user) return { error: 'Not authenticated' };
+    return await productivityTools.calendarOutlookList(user.id);
 });
 
 // ── Shared Tools Registry ────────────────────────────────────────────────
@@ -445,13 +471,15 @@ ipcMain.handle('app:getVoiceTools', () => {
 
 // ── Memory Management (Zep Cloud & Local) ────────────────────────────────
 ipcMain.handle('memory:save', async (_, content) => {
-    if (!currentUser) return { success: false, error: 'Not authenticated' };
-    return await memoryManager.saveToMemory(currentUser.id, content);
+    const user = getCurrentUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+    return await memoryManager.saveToMemory(user.id, content);
 });
 
 ipcMain.handle('memory:search', async (_, query) => {
-    if (!currentUser) return { success: false, error: 'Not authenticated' };
-    return await memoryManager.searchMemory(currentUser.id, query);
+    const user = getCurrentUser();
+    if (!user) return { success: false, error: 'Not authenticated' };
+    return await memoryManager.searchMemory(user.id, query);
 });
 
 // ── Native File System Tools ─────────────────────────────────────────────
@@ -521,20 +549,22 @@ if (!gotLock) {
     app.quit();
 } else {
     app.whenReady().then(async () => {
+        await initializeApp();
+
         const { width, height } = screen.getPrimaryDisplay().workAreaSize;
         setState({ screenResolution: { width, height } });
         console.log(`[friday] Screen resolution detected: ${width}x${height}`);
 
         createHUD();
         const voiceProxy = require('./voice-proxy');
-        voiceProxy.init(mainWindow);
+        voiceProxy.init(() => mainWindow);
         console.log('[friday] App ready — initializing...');
 
         // Start Browser extension WebSocket bridge
         browserServer.start();
 
-        // Start Model Context Protocol Server
-        startMCPServer();
+        // Start Model Context Protocol Server (no-op unless --mcp / FRIDAY_MCP=1)
+        startMCPServer(isAuth);
 
         // Initialize browser agent update bridge (No auto-warmup per user request)
         try {
@@ -640,7 +670,7 @@ function initMainWindow() {
         },
     });
 
-    setMainWindow(mainWindow);
+    authRendererLink.setMainWindow(mainWindow);
 
     mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'app.html'));
 
@@ -687,7 +717,7 @@ function showMainWindow() {
 
 function registerHotkey() {
     const handleHotkey = () => {
-        if (!isAuthenticated) {
+        if (!isAuth()) {
             console.log('[hotkey] Not authenticated. Showing main window to prompt login.');
             showMainWindow();
         } else {
@@ -723,16 +753,25 @@ ipcMain.handle('run-browser-task', async (event, task) => {
 
 const spawnSidecar = (script, input) => {
     return new Promise((resolve) => {
-        const uvPath = 'C:\\Users\\RCCG JESUS EMBASSY\\.cargo\\bin\\uv.exe';
-        const py = spawn(uvPath, ['run', 'python', path.join(__dirname, '../sidecar', script)], {
+        const scriptPath = path.join(__dirname, '../sidecar', script);
+        const py = spawnPythonScript(scriptPath, [], {
             env: { ...process.env, PYTHONPATH: process.cwd() }
         });
         let result = '';
         py.stdout.on('data', d => result += d.toString());
         py.stderr.on('data', d => console.error(`[${script} Error]`, d.toString()));
+        py.on('error', (err) => {
+            console.error(`[${script} Spawn Error]`, err.message);
+            resolve({ error: err.message });
+        });
         py.on('close', () => {
-            try { resolve(JSON.parse(result.trim())); }
-            catch(e) { resolve({ error: 'Failed to parse model output' }); }
+            try {
+                const lines = result.trim().split('\n').map(l => l.trim()).filter(Boolean);
+                const lastLine = lines[lines.length - 1];
+                resolve(lastLine ? JSON.parse(lastLine) : { error: 'Empty output from sidecar' });
+            } catch (e) {
+                resolve({ error: 'Failed to parse model output' });
+            }
         });
         py.stdin.write(JSON.stringify(input) + '\n');
         py.stdin.end();
@@ -760,7 +799,7 @@ ipcMain.handle('app:analyzeDocument', async (_, text) => {
 // ── IPC Handlers ────────────────────────────────────────────────────────
 
 ipcMain.handle('sidecar:send', async (_, method, params) => {
-    if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
+    if (!isAuth()) return { error: 'Unauthorized: Please sign in first' };
     if (!pipeClient.isConnected) return { error: 'Engine not connected' };
     try {
         const actionableMethods = ['input.typeString', 'input.sendChord', 'input.clickAt', 'process.kill'];
@@ -872,7 +911,7 @@ ipcMain.handle('browser:ping', async () => {
 ipcMain.handle('tasks:list', () => subAgents.getAllTasks());
 
 ipcMain.handle('app:browseVisual', (_, taskDescription) => {
-    if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
+    if (!isAuth()) return { error: 'Unauthorized: Please sign in first' };
     console.log(`[friday] Delegating VISUAL task: ${taskDescription}`);
     const jobId = subAgents.startVisualTask(
         taskDescription, 
@@ -891,7 +930,7 @@ ipcMain.handle('app:browseVisual', (_, taskDescription) => {
 });
 
 ipcMain.handle('app:delegateTask', (_, taskDescription) => {
-    if (!isAuthenticated) return { error: 'Unauthorized: Please sign in first' };
+    if (!isAuth()) return { error: 'Unauthorized: Please sign in first' };
     console.log(`[friday] Delegating task: ${taskDescription}`);
     const jobId = subAgents.startTask(
         taskDescription, 
@@ -970,8 +1009,8 @@ ipcMain.handle('env:getGeminiKey', () => {
 ipcMain.handle('env:getClerkKey', () => {
     return process.env.CLERK_PUBLISHABLE_KEY || '';
 });
-ipcMain.handle('env:getClerkDomain', () => process.env.CLERK_DOMAIN || 'clerk.algospend.tech');
-ipcMain.handle('env:getClerkAccountUrl', () => process.env.CLERK_ACCOUNT_URL || `https://accounts.algospend.tech/user`);
+ipcMain.handle('env:getClerkDomain', () => process.env.CLERK_DOMAIN || CONSTANTS.DEFAULT_CLERK_DOMAIN);
+ipcMain.handle('env:getClerkAccountUrl', () => process.env.CLERK_ACCOUNT_URL || CONSTANTS.DEFAULT_CLERK_ACCOUNT_URL);
 
 
 
@@ -999,6 +1038,7 @@ ipcMain.handle('db:deleteSession', async (_, id) => {
 ipcMain.handle('db:setMemory', (_, key, val, desc) => db.setMemory(key, val, desc));
 ipcMain.handle('db:getMemory', (_, key) => db.getMemory(key));
 ipcMain.handle('db:getAllMemories', () => db.getAllMemories());
+ipcMain.handle('db:clearMemories', () => db.clearMemories());
 ipcMain.handle('db:setSecret', (_, key, val) => db.setSecret(key, val));
 ipcMain.handle('db:getSecret', (_, key) => db.getSecret(key));
 

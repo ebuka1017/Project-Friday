@@ -16,7 +16,8 @@ def emit(event_type: str, data: dict):
 
 # Use the same key Friday uses
 api_key = os.environ.get("GEMINI_API_KEY")
-llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash', google_api_key=api_key)
+model_name = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=api_key)
 
 # Shared browser session for persistence
 _shared_session = None
@@ -24,8 +25,9 @@ _shared_session = None
 async def get_session():
     global _shared_session
     if _shared_session is None:
+        debug_port = os.environ.get("CHROME_DEBUG_PORT", "9222")
         _shared_session = BrowserSession(
-            cdp_url='http://localhost:9222',
+            cdp_url=f"http://localhost:{debug_port}",
             keep_alive=True,
         )
     return _shared_session

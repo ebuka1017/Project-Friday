@@ -5,12 +5,13 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 const WebSocket = require('ws');
+const CONSTANTS = require('../shared/constants');
 
 class BrowserServer {
     constructor() {
         this.wss = null;
         this.extensionSocket = null;
-        this.port = 8765;
+        this.port = Number(process.env.FRIDAY_BROWSER_PORT) || CONSTANTS.BROWSER_WS_PORT;
         this.messageCounter = 1;
         this.pendingRequests = new Map();
     }

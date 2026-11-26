@@ -272,6 +272,19 @@ class DatabaseManager {
         });
     }
 
+    clearMemories() {
+        return new Promise((resolve, reject) => {
+            this.db.run(
+                `DELETE FROM memory WHERE description NOT IN ('Encrypted Secret', 'Unencrypted Secret')`,
+                [],
+                function (err) {
+                    if (err) reject(err);
+                    else resolve({ cleared: this.changes });
+                }
+            );
+        });
+    }
+
     // ── Secrets (Encrypted) ─────────────────────────────────────────────┐
 
     setSecret(key, value) {

@@ -43,10 +43,10 @@ class DesktopService {
                 ]);
                 
                 state.os.tree = tree;
-                state.os.windows = windows;
+                state.os.windows = windows?.windows || windows || [];
                 
-                if (windows && windows.length > 0) {
-                    state.os.activeWindow = windows.find(w => w.isFocused) || windows[0];
+                if (Array.isArray(state.os.windows) && state.os.windows.length > 0) {
+                    state.os.activeWindow = state.os.windows.find(w => w.isFocused) || state.os.windows[0];
                 }
             }
 
@@ -112,8 +112,8 @@ class DesktopService {
         // 2. Try OS-level Search
         if (pipeClient.isConnected) {
             try {
-                const osEl = await pipeClient.send('find_element', { name: selector });
-                if (osEl && osEl.x) return { type: 'os', ...osEl };
+                const osEl = await pipeClient.send('uia.findElement', { name: selector });
+                if (osEl && osEl.found) return { type: 'os', ...osEl };
             } catch (e) {}
         }
 

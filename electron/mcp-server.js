@@ -121,7 +121,7 @@ class FridayMCPServer {
                     const res = await pipeClient.send('input.typeString', { text: args.text });
                     resultText = JSON.stringify(res);
                 } else if (name === 'desktop_send_chord') {
-                    const res = await pipeClient.send('input.sendChord', { keys: args.keys });
+                    const res = await pipeClient.send('input.sendChord', { keys: args.keys || args.chord });
                     resultText = JSON.stringify(res);
                 } else if (name === 'desktop_click_at') {
                     const res = await pipeClient.send('input.clickAt', { x: args.x, y: args.y });
@@ -184,6 +184,11 @@ class FridayMCPServer {
 
 let instance = null;
 function startMCPServer(authCheck) {
+    // Only bind stdio transport when explicitly launched in MCP server mode
+    const isMcpMode = process.argv.includes('--mcp') || process.env.FRIDAY_MCP === '1';
+    if (!isMcpMode) {
+        return null;
+    }
     if (!instance) {
         instance = new FridayMCPServer();
         instance.authCheck = authCheck;

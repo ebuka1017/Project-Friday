@@ -2369,6 +2369,7 @@
                             <button class="settings-action-btn" id="installExtensionBtn">Install Extension</button>
                         </div>
                     </div>
+                </div>
 
                 <div class="settings-section">
                     <h3 class="settings-section-title">Connectivity</h3>
@@ -2437,8 +2438,8 @@
                                 <span class="setting-desc">Delete stored facts from the SQLite database. Chat histories
                                     will not be deleted.</span>
                             </div>
-                            <button class="settings-action-btn danger"
-                                onclick="alert('Memory would be cleared here.')">Clear Memory</button>
+                            <button class="settings-action-btn danger" id="clearMemoryBtn"
+                                onclick="(async () => { if (confirm('Clear all local memories? Chat histories will not be deleted.')) { await window.friday.db.clearMemories(); window.friday.showNotification('Memory Cleared', 'Local facts have been deleted.'); } })()">Clear Memory</button>
                         </div>
                     </div>
                 </div>
@@ -2630,42 +2631,6 @@
                 console.log('[app.html] Onboarding script initializing...');
                 const player = document.getElementById("splashLottie");
                 const overlay = document.getElementById('onboardingOverlay');
-                
-                // Finish Onboarding (Personalization) Logic
-                const finishBtn = document.getElementById('finishOnboardingBtn');
-                if (finishBtn) {
-                    finishBtn.addEventListener('click', async () => {
-                        const name = document.getElementById('obNameInput')?.value.trim();
-                        const gender = document.getElementById('obGenderSelect')?.value;
-                        const bio = document.getElementById('obBioInput')?.value.trim();
-                        
-                        if (!name || !gender) {
-                            alert("Please enter your name and select your gender so Friday knows how to address you.");
-                            return;
-                        }
-                        
-                        try {
-                            console.log('[app.html] Finalizing personalization...');
-                            await window.friday.db.setMemory('user_name', name);
-                            await window.friday.db.setMemory('user_gender', gender);
-                            await window.friday.db.setMemory('user_bio', bio || '');
-                            
-                            // Sync to settings UI
-                            if (document.getElementById('prefNameInput')) document.getElementById('prefNameInput').value = name;
-                            if (document.getElementById('prefGenderSelect')) document.getElementById('prefGenderSelect').value = gender;
-                            if (document.getElementById('prefBioInput')) document.getElementById('prefBioInput').value = bio || '';
-                            
-                            // Update auth status to include persona for the agent
-                            const state = window.fridayAuth.getAuthState();
-                            window.friday.setAuthStatus(true, { ...state.user, persona: { name, gender, bio } });
-                            
-                            // Hide overlay and enter app
-                            if (overlay) overlay.classList.add('hidden');
-                        } catch (err) {
-                            console.error("[app.html] Failed to save persona data:", err);
-                        }
-                    });
-                }
 
                 if (player) {
                     window.fridayAuth.onAuthStateChange(async (state) => {
@@ -2980,28 +2945,6 @@
                     }
                 });
 
-                // ── Thinking / Action Feed ──────────────────────────────────────
-
-                function addThought(type, text) {
-                    if (emptyState && emptyState.parentNode) emptyState.remove();
-                    thinkingFeed.classList.add('has-items');
-
-                    sessionActive = true;
-                    const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-                    const el = document.createElement('div');
-                    el.className = 'thought-item';
-                    el.innerHTML = `
-        <span class="thought-badge badge-${type}">${type}</span>
-        <div class="thought-content">
-          <div class="thought-text">${escapeHtml(text)}</div>
-          <div class="thought-time">${time}</div>
-        </div>
-      `;
-                    thinkingFeed.appendChild(el);
-                    thinkingFeed.scrollTop = thinkingFeed.scrollHeight;
-                }
-
                 // ── Mic Button (synced with HUD) ────────────────────────────────
 
                 micBtn.addEventListener('mousedown', async () => {
@@ -3190,21 +3133,7 @@
                 }
 
                 // ── Onboarding Flow ─────────────────────────────────────────────
-
-                window.nextObStep = function (currentId, nextId) {
-                    const current = document.getElementById(currentId);
-                    const next = document.getElementById(nextId);
-                    if (current && next) {
-                        current.classList.remove('active');
-                        setTimeout(() => {
-                            current.classList.add('hidden');
-                            next.classList.remove('hidden');
-                            setTimeout(() => {
-                                next.classList.add('active');
-                            }, 50);
-                        }, 400);
-                    }
-                };
+                // (window.nextObStep is defined above in the main onboarding script)
 
                 const finishOnboardingBtn = document.getElementById('finishOnboardingBtn');
                 finishOnboardingBtn.addEventListener('click', async () => {
@@ -3235,10 +3164,7 @@
                         });
                         
                         // Notify auth state change to refresh persona in agent
-                        if (window.fridayAuth) {
-                            const state = window.fridayAuth.getAuthState();
-                            window.friday.setAuthStatus(true, { ...state.user, persona });
-                        }
+                        await window.friday.updateUser({ persona });
 
                     } catch (err) {
                         console.error('Onboarding save error:', err);
@@ -3266,10 +3192,7 @@
                         savePersonaBtn.style.background = '#539E4F';
                         
                         // Notify agent
-                        if (window.fridayAuth) {
-                            const state = window.fridayAuth.getAuthState();
-                            window.friday.setAuthStatus(true, { ...state.user, persona: { name, gender, bio } });
-                        }
+                        await window.friday.updateUser({ persona: { name, gender, bio } });
 
                         setTimeout(() => {
                             savePersonaBtn.textContent = 'Save Profile Updates';

@@ -132,12 +132,13 @@ internal static class Program
     /// </summary>
     private static async Task<string> DispatchMessage(string json)
     {
+        int id = 0;
         try
         {
             var doc = JsonNode.Parse(json);
             if (doc == null) return ErrorResponse(0, "Invalid JSON");
 
-            int id = doc["id"]?.GetValue<int>() ?? 0;
+            id = doc["id"]?.GetValue<int>() ?? 0;
             string method = doc["method"]?.GetValue<string>() ?? "";
             var @params = doc["params"];
 
@@ -166,7 +167,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            return ErrorResponse(0, ex.Message);
+            return ErrorResponse(id, ex.Message);
         }
     }
 

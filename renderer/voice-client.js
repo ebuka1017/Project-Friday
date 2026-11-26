@@ -22,6 +22,7 @@ class VoiceClient {
         this.isReconnecting = false;
 
         this.host = 'generativelanguage.googleapis.com';
+        this.apiVersion = 'v1alpha';
         this.model = "models/gemini-2.5-flash-native-audio-preview-12-2025"; 
         this.skillsList = [];
         this.agentTools = [];
@@ -46,8 +47,6 @@ class VoiceClient {
 
     async init() {
         try {
-            this.skillsList = await window.friday.getSkills();
-            this.agentTools = await window.friday.getVoiceTools();
             this.skillsList = await window.friday.getSkills();
             this.agentTools = await window.friday.getVoiceTools();
             if (!this.playbackCtx) {
@@ -132,9 +131,9 @@ ${this._user && this._user.persona ? `USER INFORMATION:
     }
 
     async onWsOpen() {
-        console.log('[VoiceClient] WebSocket connected (ReadyState:', this.ws.readyState, ')');
+        console.log('[VoiceClient] WebSocket connected via Main Proxy');
         this.isConnected = true;
-        if (!this.ws) return;
+        this.reconnectAttempts = 0;
 
         const instruction = await this._buildSystemInstruction();
         console.log('[VoiceClient] WS Open. Using Model:', this.model, 'API Version:', this.apiVersion);
@@ -151,9 +150,9 @@ ${this._user && this._user.persona ? `USER INFORMATION:
             }
         };
 
-        if (this.ws.readyState === WebSocket.OPEN) {
+        if (this.isConnected) {
             console.log('[VoiceClient] Sending setup message...');
-            this.ws.send(JSON.stringify(setupMessage));
+            await this.wsSend(JSON.stringify(setupMessage));
         }
     }
 
@@ -195,7 +194,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
                 } else if (event.data.type === 'vad_speech') {
                     console.log('[VoiceClient] VAD Triggered (Speech detected)');
                     this.handleInterruption();
-                } else if (event.data.type === 'audio_data' && this.ws?.readyState === WebSocket.OPEN) {
+                } else if (event.data.type === 'audio_data' && this.isConnected) {
                     if (!this.isMicActive) return;
                     
                     const base64 = this.arrayBufferToBase64(event.data.buffer);
@@ -336,7 +335,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
                     window.friday.getState().then(s => {
                         if (s.voiceMode === 'handsfree') {
                             const delay = Math.max(100, (this.nextPlayTime - this.playbackCtx.currentTime) * 1000 + 150);
-                            setTimeout(() => { if (this.ws?.readyState === WebSocket.OPEN) this.startMicrophone(); }, delay);
+                            setTimeout(() => { if (this.isConnected) this.startMicrophone(); }, delay);
                         } else {
                             window.friday.setState({ status: 'idle' });
                         }
@@ -434,41 +433,20 @@ ${this._user && this._user.persona ? `USER INFORMATION:
     }
 
     async sendChunkedText(text) {
-        const CHUNK_LIMIT = 30000; // Safe byte limit
-        const encoder = new TextEncoder();
-        const fullBytes = encoder.encode(text);
-        
-        for (let i = 0; i < fullBytes.length; i += CHUNK_LIMIT) {
-            // Fix BUG-016: ReadyState safety check
-            if (this.ws?.readyState !== WebSocket.OPEN) {
+        const CHUNK_LIMIT = 15000; // Safe character limit per client_content frame
+        for (let i = 0; i < text.length; i += CHUNK_LIMIT) {
+            if (!this.isConnected) {
                 console.warn('[VoiceClient] WS closed during chunked send, aborting.');
                 break;
             }
 
-            const chunk = fullBytes.slice(i, i + CHUNK_LIMIT);
-            const isLast = (i + CHUNK_LIMIT >= fullBytes.length);
+            const chunkText = text.slice(i, i + CHUNK_LIMIT);
+            const isLast = (i + CHUNK_LIMIT >= text.length);
 
-            // BUG-016: Implement backpressure check
-            // If the buffer is too full, wait before sending next chunk
-            if (this.ws.bufferedAmount > 1024 * 1024) { // 1MB threshold
-                console.warn('[VoiceClient] Outgoing buffer full, waiting...');
-                await new Promise(r => {
-                    const check = setInterval(() => {
-                        if (this.ws.bufferedAmount < 1024 * 512) {
-                            clearInterval(check);
-                            r();
-                        }
-                    }, 50);
-                });
-            }
-
-            this.wsSend(JSON.stringify({
-                realtime_input: {
-                    media_chunks: [{
-                        mime_type: "audio/pcm;rate=24000",
-                        data: this.arrayBufferToBase64(chunk)
-                    }],
-                    last_chunk: isLast
+            await this.wsSend(JSON.stringify({
+                client_content: {
+                    turns: [{ role: "user", parts: [{ text: chunkText }] }],
+                    turn_complete: isLast
                 }
             }));
         }
@@ -555,7 +533,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
 
     async handleSubAgentComplete(r) {
         window.friday.addMessage('result', r.error ? `❌ Sub-agent failed` : `✅ Sub-agent finished`);
-        if (this.ws?.readyState === WebSocket.OPEN) {
+        if (this.isConnected) {
             await this.sendChunkedText(`[SYSTEM] Background task finished: ${r.result || r.error}`);
         }
     }
@@ -593,7 +571,7 @@ ${this._user && this._user.persona ? `USER INFORMATION:
     }
 
     wsSend(data) {
-        window.friday.voiceSend(data);
+        return window.friday.voiceSend(data);
     }
 
     arrayBufferToBase64(buffer) {

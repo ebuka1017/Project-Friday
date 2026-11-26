@@ -1,0 +1,11 @@
+[project]
+name = "friday-sidecar"
+version = "0.2.6"
+description = "Python sidecar dependencies for Project Friday"
+requires-python = ">=3.11"
+dependencies = [
+    "browser-use>=0.1.0",
+    "langchain-google-genai>=2.0.0",
+    "langchain-core>=0.3.0",
+    "zep-cloud>=2.0.0",
+]

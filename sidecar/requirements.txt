@@ -1,0 +1,6 @@
+browser-use>=0.1.0
+langchain-google-genai>=2.0.0
+langchain-core>=0.3.0
+zep-cloud>=2.0.0
+# Optional (falls back to Gemini ReACT loop in electron/sub-agents.js if unavailable):
+# google-antigravity
